@@ -1,0 +1,43 @@
+<section class="dd-hero" id="dd-0001" aria-label="Introduction">
+  <div class="dd-hero__image">
+    <picture>
+      <source srcset="
+      https://dummyimage.com/720x405/000000/fff 320w,
+      https://dummyimage.com/1024x505/000000/fff 720w,
+      https://dummyimage.com/1920x1080/000000/fff 1440w"
+      sizes="(max-width: 1440px) 100vw, 1440px">
+      <img src="https://dummyimage.com/1920x1080/000000/fff" class="dd-img" alt="Hero image description" />
+    </picture>
+  </div>
+  <style>
+    .dd-hero__image {
+      background-image: url('https://dummyimage.com/720x405/000000/fff');
+    }
+    @media only screen and (min-width: 64em) {
+      .dd-hero__image {
+        background-image: url('https://dummyimage.com/1920x1080/000000/fff');
+      }
+    }
+  </style>
+  <div class="dd-hero__content dd-g" data-aos="fade-in">
+    <div class="dd-hero__copy dd-u-1-1 dd-u-lg-12-24">
+      <div class="dd-hero__title">
+        <h1>Hero Title</h1>
+      </div>
+      <div class="dd-hero__subtitle">
+        <strong>Subtitle</strong>
+      </div>
+      <div class="dd-hero__body">
+        <p>Hero Body Copy</p>
+        <div class="dd-hero__links dd-g">
+          <div class="dd-hero__link">
+            <a href="#" class="dd-button -primary">Hero Link 1</a>
+          </div>
+          <div class="dd-hero__link">
+            <a href="#" class="dd-button -ghost">Hero Link 2</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

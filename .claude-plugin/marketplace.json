@@ -1,0 +1,48 @@
+{
+  "name": "dd-skills",
+  "owner": {
+    "name": "Jared Lyvers",
+    "email": "jared@ldnddev.com"
+  },
+  "metadata": {
+    "description": "Custom Claude Code plugins for design + development workflows.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "dd-a11y",
+      "source": "./custom/dd-a11y-audit",
+      "description": "WCAG 2.2 accessibility audit — Playwright + axe-core, single or multi-page, generates client deliverables.",
+      "category": "accessibility",
+      "tags": ["a11y", "wcag", "axe-core", "playwright", "audit"]
+    },
+    {
+      "name": "dd-blogs",
+      "source": "./custom/dd-blogs",
+      "description": "ldnddev brand-tone copywriting skill — produces blog HTML markup, ld+json, SEO meta, and social posts.",
+      "category": "content",
+      "tags": ["blog", "copywriting", "seo", "ldnddev"]
+    },
+    {
+      "name": "dd-framework",
+      "source": "./custom/dd-framework",
+      "description": "ldnddev Framework component skill — guides AI agents to add and configure framework components correctly.",
+      "category": "frontend",
+      "tags": ["ldnddev", "framework", "components", "html"]
+    },
+    {
+      "name": "dd-seo",
+      "source": "./custom/dd-seo-audit",
+      "description": "Deterministic LLM-first SEO audits for sites, blog posts, and GitHub repos — schema, CWV, AEO/GEO, prioritized fixes.",
+      "category": "seo",
+      "tags": ["seo", "audit", "schema", "cwv", "aeo", "geo", "github"]
+    },
+    {
+      "name": "dd-vreg",
+      "source": "./custom/dd-vreg-audit",
+      "description": "Visual regression reporter — desktop/mobile screenshot diffing across two sites with Markdown + HTML reports.",
+      "category": "qa",
+      "tags": ["visual-regression", "screenshots", "playwright", "pixelmatch"]
+    }
+  ]
+}

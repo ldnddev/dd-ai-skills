@@ -1,0 +1,12 @@
+{
+  "name": "dd-framework",
+  "version": "1.0.0",
+  "description": "ldnddev Framework component skill — guides AI agents to add, configure, and update framework components (dd-hero, dd-card, dd-section, etc.) with correct parameters and accessibility.",
+  "author": {
+    "name": "Jared Lyvers",
+    "email": "jared@ldnddev.com"
+  },
+  "license": "MIT",
+  "keywords": ["ldnddev", "framework", "components", "templates", "html"],
+  "skills": ["./skills/dd-framework"]
+}

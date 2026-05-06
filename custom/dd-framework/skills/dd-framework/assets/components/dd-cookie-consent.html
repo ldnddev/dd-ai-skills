@@ -1,0 +1,6 @@
+<!-- remove hx-on if not using htmx -->
+<div id="cookie-consent" style="display: none;" class="l-box" hx-on::after-request="dd_cookie_consent()">
+  <p>We use cookies to enhance your experience. Do you consent to Google tracking?</p>
+  <button class="accept dd-button" onclick="handleCookieConsent('accept')">Accept</button>
+  <button class="decline dd-button-secondary" onclick="handleCookieConsent('decline')">Decline</button>
+</div>

@@ -1,0 +1,13 @@
+{
+  "name": "dd-vreg",
+  "version": "1.0.0",
+  "description": "Visual regression reporter — captures desktop/mobile screenshots for two sites, generates pixel diffs, and writes Markdown + HTML reports.",
+  "license": "MIT",
+  "author": {
+    "name": "Jared Lyvers",
+    "email": "jared@ldnddev.com"
+  },
+  "keywords": ["visual-regression", "screenshots", "playwright", "pixelmatch"],
+  "skills": ["./skills/dd-vreg"],
+  "hooks": "./hooks/hooks.json"
+}

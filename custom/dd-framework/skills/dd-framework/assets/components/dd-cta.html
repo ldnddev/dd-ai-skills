@@ -1,0 +1,40 @@
+<div class="dd-cta -top-left">
+  <div class="dd-cta__image">
+    <picture>
+      <source srcset="
+        https://dummyimage.com/720x405/000000/fff 720w,
+        https://dummyimage.com/1920x1080/000000/fff 1440w"
+      sizes="(max-width: 1440px) 100vw, 1440px">
+      <img src="/assets/imgs/cta-bg-sm.webp" class="dd-img" alt="CTA alt tag" />
+    </picture>
+  </div>
+  <style>
+    .dd-cta .dd-cta__image {
+      background-image: url("https://dummyimage.com/720x405/000000/fff");
+    }
+    @media only screen and (min-width: 64em) {
+      .dd-cta .dd-cta__image {
+        background-image: url("https://dummyimage.com/1920x1080/000000/fff");
+      }
+    }
+  </style>
+  <div class="dd-cta__content dd-g" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="0">
+    <div class="dd-cta__copy dd-u-1-1 dd-u-md-12-24">
+      <div class="dd-cta__title">
+        <h2>CTA Title</h2>
+      </div>
+      <div class="dd-cta__subtitle">
+        <strong>CTA Subtitle</strong>
+      </div>
+      <p>CTA body copy</p>
+      <div class="dd-cta__links dd-g -x-center">
+        <div class="dd-cta__link">
+          <a href="#" class="dd-button -primary">CTA Link 1</a>
+        </div>
+        <div class="dd-cta__link">
+          <a href="#" class="dd-button -ghost">CTA Link 2</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

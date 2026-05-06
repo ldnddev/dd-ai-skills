@@ -1,0 +1,13 @@
+{
+  "name": "dd-a11y",
+  "version": "1.0.0",
+  "description": "WCAG 2.2 accessibility audit skill — Playwright + axe-core, single or multi-page, generates client deliverables (MD/CSV/DOCX/HTML).",
+  "license": "MIT",
+  "author": {
+    "name": "Jared Lyvers",
+    "email": "jared@ldnddev.com"
+  },
+  "keywords": ["accessibility", "a11y", "wcag", "audit", "axe-core", "playwright"],
+  "skills": ["./skills/dd-a11y"],
+  "hooks": "./hooks/hooks.json"
+}

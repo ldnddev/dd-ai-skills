@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{REPORT_TITLE}}</title>
+  <style>
+    :root {
+      --bg: {{BRAND_BG}};
+      --surface: {{BRAND_SURFACE}};
+      --ink: {{BRAND_TEXT}};
+      --muted: {{BRAND_MUTED}};
+      --accent: {{BRAND_ACCENT}};
+      --accent-2: {{BRAND_ACCENT_2}};
+      --line: {{BRAND_LINE}};
+      --shadow: {{BRAND_SHADOW}};
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background:
+        radial-gradient(circle at top left, {{BRAND_GLOW_1}}, transparent 30%),
+        radial-gradient(circle at top right, {{BRAND_GLOW_2}}, transparent 28%),
+        linear-gradient(180deg, {{BRAND_BG_TOP}}, var(--bg));
+      color: var(--ink);
+      font-family: {{BODY_FONT}};
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+
+    .hero {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 24px 60px var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 28px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, {{HERO_BG_1}}, {{HERO_BG_2}});
+    }
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      width: 56px;
+      height: 56px;
+      object-fit: contain;
+      border-radius: 14px;
+      background: rgba(255,255,255,.85);
+      padding: 8px;
+      border: 1px solid rgba(255,255,255,.5);
+    }
+
+    .brand-kicker {
+      font: 600 12px/1.2 {{UI_FONT}};
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .hero-title {
+      font: 700 38px/1.05 {{DISPLAY_FONT}};
+      margin: 0;
+    }
+
+    .hero-subtitle {
+      margin: 12px 0 0;
+      max-width: 720px;
+      color: var(--muted);
+      font: 400 16px/1.6 {{BODY_FONT}};
+    }
+
+    .hero-score {
+      min-width: 220px;
+      padding: 20px;
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,.75);
+      border: 1px solid rgba(255,255,255,.6);
+      backdrop-filter: blur(12px);
+      text-align: right;
+    }
+
+    .score-label {
+      font: 600 12px/1.2 {{UI_FONT}};
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .score-value {
+      margin-top: 8px;
+      font: 700 68px/0.9 {{DISPLAY_FONT}};
+      color: var(--accent);
+    }
+
+    .score-rating {
+      margin-top: 10px;
+      font: 600 15px/1.2 {{UI_FONT}};
+    }
+
+    .hero-body {
+      padding: 28px;
+    }
+
+    .meta-grid,
+    .stats-grid,
+    .downloads-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .meta-grid {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      margin-top: 20px;
+    }
+
+    .meta-card,
+    .stat-card,
+    .downloads-panel,
+    .table-panel {
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      box-shadow: 0 12px 30px rgba(0,0,0,.04);
+    }
+
+    .meta-card,
+    .stat-card {
+      padding: 18px;
+    }
+
+    .meta-label,
+    .stat-label,
+    .section-kicker {
+      font: 600 12px/1.2 {{UI_FONT}};
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .meta-value {
+      margin-top: 8px;
+      font: 600 15px/1.45 {{BODY_FONT}};
+    }
+
+    .stat-value {
+      margin-top: 10px;
+      font: 700 36px/1 {{DISPLAY_FONT}};
+      color: var(--accent);
+    }
+
+    .downloads-panel,
+    .table-panel {
+      margin-top: 24px;
+      padding: 24px;
+    }
+
+    .section-title {
+      margin: 8px 0 0;
+      font: 700 28px/1.05 {{DISPLAY_FONT}};
+    }
+
+    .section-note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font: 400 15px/1.6 {{BODY_FONT}};
+    }
+
+    .downloads-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 18px;
+    }
+
+    .page-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .page-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+    }
+
+    .page-preview {
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+    }
+
+    .download-link {
+      display: block;
+      padding: 16px 18px;
+      text-decoration: none;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .download-link:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+      box-shadow: 0 10px 22px rgba(0,0,0,.08);
+    }
+
+    .download-label {
+      font: 700 15px/1.3 {{UI_FONT}};
+    }
+
+    .download-file {
+      margin-top: 8px;
+      color: var(--muted);
+      font: 400 13px/1.45 {{BODY_FONT}};
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+      overflow: hidden;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 14px 12px;
+      background: {{TABLE_HEAD_BG}};
+      border-bottom: 1px solid var(--line);
+      font: 700 12px/1.2 {{UI_FONT}};
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    tbody td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font: 400 14px/1.5 {{BODY_FONT}};
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .priority-pill {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font: 700 12px/1 {{UI_FONT}};
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      background: {{PRIORITY_BG}};
+      color: {{PRIORITY_TEXT}};
+    }
+
+    .footer {
+      margin-top: 22px;
+      color: var(--muted);
+      font: 400 13px/1.6 {{BODY_FONT}};
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      .hero-top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .hero-score {
+        width: 100%;
+        text-align: left;
+      }
+
+      .hero-title {
+        font-size: 30px;
+      }
+
+      .score-value {
+        font-size: 52px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="brand-lockup">
+            <img class="brand-logo" src="{{AGENCY_LOGO}}" alt="{{AGENCY_NAME}} logo">
+            <div>
+              <div class="brand-kicker">{{AGENCY_KICKER}}</div>
+              <h1 class="hero-title">{{REPORT_TITLE}}</h1>
+            </div>
+          </div>
+          <p class="hero-subtitle">{{REPORT_SUBTITLE}}</p>
+        </div>
+        <aside class="hero-score">
+          <div class="score-label">Accessibility Score</div>
+          <div class="score-value">{{SCORE_VALUE}}</div>
+          <div class="score-rating">{{SCORE_RATING}}</div>
+        </aside>
+      </div>
+
+      <div class="hero-body">
+        <section class="meta-grid">
+          <article class="meta-card">
+            <div class="meta-label">Client URL</div>
+            <div class="meta-value">{{AUDIT_URL}}</div>
+          </article>
+          <article class="meta-card">
+            <div class="meta-label">Audit Date</div>
+            <div class="meta-value">{{AUDIT_DATE}}</div>
+          </article>
+          <article class="meta-card">
+            <div class="meta-label">WCAG Target</div>
+            <div class="meta-value">{{WCAG_TARGET}}</div>
+          </article>
+          <article class="meta-card">
+            <div class="meta-label">Generated By</div>
+            <div class="meta-value">{{AGENCY_NAME}}</div>
+          </article>
+        </section>
+
+        <section class="stats-grid">
+          <article class="stat-card">
+            <div class="stat-label">Critical</div>
+            <div class="stat-value">{{CRITICAL_COUNT}}</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">Serious</div>
+            <div class="stat-value">{{SERIOUS_COUNT}}</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">Moderate</div>
+            <div class="stat-value">{{MODERATE_COUNT}}</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">Minor</div>
+            <div class="stat-value">{{MINOR_COUNT}}</div>
+          </article>
+        </section>
+
+        <section class="downloads-panel">
+          <div class="section-kicker">Deliverables</div>
+          <h2 class="section-title">Download the report set</h2>
+          <p class="section-note">{{DOWNLOADS_NOTE}}</p>
+          <div class="downloads-grid">
+            {{DOWNLOAD_LINKS}}
+          </div>
+        </section>
+
+        <section class="table-panel">
+          <div class="section-kicker">Pages</div>
+          <h2 class="section-title">Audited page previews</h2>
+          <p class="section-note">Each page section can include a full-page screenshot and page-level score.</p>
+          <div class="page-grid">
+            {{PAGE_SUMMARY_SECTIONS}}
+          </div>
+        </section>
+
+        <section class="table-panel">
+          <div class="section-kicker">Remediation</div>
+          <h2 class="section-title">Task dashboard</h2>
+          <p class="section-note">{{TASKS_NOTE}}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Page</th>
+                <th>Priority</th>
+                <th>Issue</th>
+                <th>Owner</th>
+                <th>Timeline</th>
+                <th>Selector</th>
+                <th>Screenshot</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{TASK_ROWS}}
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </section>
+
+    <footer class="footer">{{FOOTER_TEXT}}</footer>
+  </main>
+</body>
+</html>

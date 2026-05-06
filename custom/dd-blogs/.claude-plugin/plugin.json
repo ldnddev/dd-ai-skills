@@ -1,0 +1,19 @@
+{
+  "name": "dd-blogs",
+  "version": "1.0.0",
+  "description": "ldnddev brand-tone copywriting skill for blog posts on ldnddev.com \u2014 produces HTML markup, ld+json, SEO meta, and social posts.",
+  "license": "MIT",
+  "author": {
+    "name": "Jared Lyvers",
+    "email": "jared@ldnddev.com"
+  },
+  "keywords": [
+    "blog",
+    "copywriting",
+    "seo",
+    "ldnddev"
+  ],
+  "skills": [
+    "./skills/dd-blogs"
+  ]
+}

@@ -1,0 +1,74 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  manifests:
+    name: Marketplace + plugin manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate marketplace + plugins
+        run: python3 scripts/validate_marketplace.py
+
+      - name: Lint shell scripts (ShellCheck)
+        run: |
+          if ! command -v shellcheck >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y shellcheck
+          fi
+          # Lint every install.sh and hook script. Treat warnings as warnings.
+          find . -type f \( -name 'install.sh' -o -path '*/hooks/*.sh' \) -not -path '*/node_modules/*' -print0 \
+            | xargs -0 shellcheck --severity=error
+
+      - name: Validate JSON files (jq sanity)
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r -d '' f; do
+            if ! jq empty "$f" >/dev/null 2>&1; then
+              echo "[ERROR] $f: invalid JSON"
+              fail=1
+            fi
+          done < <(find . -type f -name '*.json' \
+                   -not -path '*/node_modules/*' \
+                   -not -path '*/.git/*' \
+                   -print0)
+          exit $fail
+
+  npm-lockfiles:
+    name: npm lockfiles in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify each package-lock.json is consistent
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r -d '' pkg; do
+            dir="$(dirname "$pkg")"
+            echo "::group::$dir"
+            ( cd "$dir" && npm ci --ignore-scripts --no-audit --no-fund ) || fail=1
+            echo "::endgroup::"
+          done < <(find . -type f -name 'package.json' \
+                   -not -path '*/node_modules/*' \
+                   -not -path '*/.git/*' \
+                   -print0)
+          exit $fail

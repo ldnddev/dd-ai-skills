@@ -1,0 +1,24 @@
+{
+  "name": "dd-a11y",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sharable accessibility audit skill (Claude Code plugin + Codex skill) powered by Playwright and axe-core.",
+  "license": "MIT",
+  "type": "commonjs",
+  "scripts": {
+    "install:deps": "npm ci",
+    "install:browser": "npx playwright install chromium",
+    "postinstall": "node -e \"if (process.env.DD_A11Y_SKIP_BROWSER) process.exit(0); require('child_process').spawnSync('npx', ['playwright', 'install', 'chromium'], { stdio: 'inherit' });\"",
+    "verify": "node -e \"const { createRequire } = require('module'); const requireFromSkill = createRequire(process.cwd() + '/package.json'); const { chromium } = requireFromSkill('playwright'); chromium.launch({ headless: true, channel: 'chromium' }).then(async browser => { console.log('Playwright Chromium launch OK'); await browser.close(); }).catch(error => { console.error(error && error.message ? error.message : String(error)); process.exit(1); });\"",
+    "audit": "python3 scripts/axe_audit.py",
+    "report": "python3 scripts/run_a11y_audit.py",
+    "demo": "python3 scripts/test_a11y_skill.py https://example.com"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "4.11.2",
+    "playwright": "1.59.1"
+  }
+}
