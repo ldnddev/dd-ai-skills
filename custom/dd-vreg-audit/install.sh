@@ -26,6 +26,8 @@ import json
 from pathlib import Path
 install_dir = Path(r"$TARGET_DIR")
 hooks = json.loads((install_dir / "hooks/hooks.json").read_text())
+if isinstance(hooks, dict) and set(hooks.keys()) == {"hooks"}:
+    hooks = hooks["hooks"]
 def rewrite(node):
     if isinstance(node, dict):
         return {k: rewrite(v) for k, v in node.items()}
