@@ -8,6 +8,5 @@
     "email": "jared@ldnddev.com"
   },
   "keywords": ["accessibility", "a11y", "wcag", "audit", "axe-core", "playwright"],
-  "skills": ["./skills/dd-a11y"],
-  "hooks": "./hooks/hooks.json"
+  "skills": ["./skills/dd-a11y"]
 }

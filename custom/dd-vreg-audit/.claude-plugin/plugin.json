@@ -8,6 +8,5 @@
     "email": "jared@ldnddev.com"
   },
   "keywords": ["visual-regression", "screenshots", "playwright", "pixelmatch"],
-  "skills": ["./skills/dd-vreg"],
-  "hooks": "./hooks/hooks.json"
+  "skills": ["./skills/dd-vreg"]
 }
