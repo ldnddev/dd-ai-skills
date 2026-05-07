@@ -9,12 +9,15 @@ Usage:
 """
 
 import argparse
+import csv
+import html as html_lib
 import json
 import os
 import re
 import subprocess
 import sys
 from datetime import datetime, timezone
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from finding_verifier import verify_findings
 from github_api import get_token, resolve_repo
@@ -681,6 +684,241 @@ def build_action_plan_markdown(report: dict) -> str:
     return "\n".join(lines).strip() + "\n"
 
 
+_GH_SEVERITY_RANK = {"Critical": 0, "Warning": 1, "Info": 2, "Pass": 3}
+
+_GH_SOURCE_OWNERS = {
+    "repo_audit": "Repo Maintainer",
+    "readme_lint": "Docs Owner",
+    "community_health": "Community / Maintainer",
+    "competitor_research": "Repo Maintainer",
+}
+
+
+def _gh_normalize_severity(value: str) -> str:
+    raw = (value or "info").strip().lower()
+    if raw in ("critical", "high"):
+        return "Critical"
+    if raw in ("warning", "warn", "medium"):
+        return "Warning"
+    if raw == "pass":
+        return "Pass"
+    return "Info"
+
+
+def _gh_timeline_for(severity: str) -> str:
+    return {
+        "Critical": "Now (0-7 days)",
+        "Warning": "Now (0-7 days)",
+        "Info": "Next (1-4 weeks)",
+        "Pass": "Monitor",
+    }.get(severity, "Triage")
+
+
+def _gh_effort_for(severity: str) -> float:
+    return {"Critical": 2.0, "Warning": 1.0, "Info": 0.5, "Pass": 0.25}.get(severity, 0.5)
+
+
+def _gh_truncate(text: str, limit: int = 500) -> str:
+    text = (text or "").strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1] + "…"
+
+
+def build_github_tasks(report: dict) -> list:
+    """Flatten verified findings into prioritized task rows for CSV/DOCX export."""
+    repo = report.get("repo", "")
+    rows_raw = []
+
+    for finding in report.get("findings", []) or []:
+        sev = _gh_normalize_severity(finding.get("severity"))
+        source = finding.get("source") or ", ".join(finding.get("sources") or []) or "analysis"
+        primary_source = (finding.get("source") or (finding.get("sources") or ["analysis"])[0]).strip()
+        rows_raw.append({
+            "repo": repo,
+            "source": source,
+            "primary_source": primary_source,
+            "priority": sev,
+            "confidence": finding.get("confidence", "Likely"),
+            "finding": _gh_truncate(finding.get("finding") or ""),
+            "evidence": _gh_truncate(finding.get("evidence") or ""),
+            "fix": _gh_truncate(finding.get("fix") or ""),
+        })
+
+    competitor = (report.get("outputs", {}) or {}).get("competitor_research", {})
+    if competitor.get("ok"):
+        gaps = (competitor.get("data", {}) or {}).get("gaps", {}) or {}
+        for gap in gaps.get("topic_gaps", [])[:8]:
+            topic = gap.get("topic")
+            if not topic:
+                continue
+            covered = gap.get("covered_by_competitors")
+            rows_raw.append({
+                "repo": repo,
+                "source": "competitor_research",
+                "primary_source": "competitor_research",
+                "priority": "Info",
+                "confidence": "Likely",
+                "finding": f"Topic gap: `{topic}` covered by {covered} competitors but not on this repo.",
+                "evidence": f"Observed in {covered} competitor repos in current sample.",
+                "fix": f"Evaluate adding the `{topic}` topic and related README/docs coverage if relevant to project scope.",
+            })
+
+    rows_raw.sort(key=lambda r: (_GH_SEVERITY_RANK.get(r["priority"], 9), r["source"]))
+
+    finalized = []
+    for index, row in enumerate(rows_raw, start=1):
+        sev = row["priority"]
+        finalized.append({
+            "task_id": f"GH-SEO-{index:03d}",
+            "repo": row["repo"],
+            "source": row["source"],
+            "priority": sev,
+            "confidence": row["confidence"],
+            "finding": row["finding"],
+            "evidence": row["evidence"],
+            "fix": row["fix"],
+            "owner": _GH_SOURCE_OWNERS.get(row["primary_source"], "Repo Maintainer"),
+            "timeline": _gh_timeline_for(sev),
+            "estimated_hours": _gh_effort_for(sev),
+            "status": "Open",
+        })
+    return finalized
+
+
+def write_github_csv(path: str, rows: list) -> None:
+    fieldnames = [
+        "task_id", "repo", "source", "priority", "confidence",
+        "finding", "evidence", "fix",
+        "owner", "timeline", "estimated_hours", "status",
+    ]
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+
+def _gh_docx_paragraph(text: str) -> str:
+    escaped = html_lib.escape(text or "")
+    return (
+        '<w:p><w:r><w:t xml:space="preserve">'
+        f"{escaped}"
+        "</w:t></w:r></w:p>"
+    )
+
+
+def build_github_docx(path: str, report: dict, rows: list) -> None:
+    repo = report.get("repo", "")
+    timestamp = report.get("timestamp_utc", utc_now_iso())
+    scores = report.get("scores", {}) or {}
+    overall = scores.get("overall")
+    components = scores.get("components", {}) or {}
+    summary = {
+        "Critical": sum(1 for r in rows if r["priority"] == "Critical"),
+        "Warning": sum(1 for r in rows if r["priority"] == "Warning"),
+        "Info": sum(1 for r in rows if r["priority"] == "Info"),
+    }
+    title_analysis = report.get("title_analysis", {}) or {}
+    backlink_plan = report.get("backlink_plan", {}) or {}
+
+    body = []
+    body.append(_gh_docx_paragraph("GitHub SEO Audit Client Report"))
+    body.append(_gh_docx_paragraph(f"Repository: {repo}"))
+    body.append(_gh_docx_paragraph(f"Generated (UTC): {timestamp}"))
+    body.append(_gh_docx_paragraph(f"Overall score: {overall if overall is not None else 'n/a'}"))
+    body.append(_gh_docx_paragraph(
+        f"Critical: {summary['Critical']}, Warning: {summary['Warning']}, Info: {summary['Info']}"
+    ))
+    body.append(_gh_docx_paragraph(" "))
+
+    if components:
+        body.append(_gh_docx_paragraph("Score components"))
+        for key, value in components.items():
+            body.append(_gh_docx_paragraph(f"{key}: {value}"))
+        body.append(_gh_docx_paragraph(" "))
+
+    if title_analysis:
+        body.append(_gh_docx_paragraph("Title optimization"))
+        body.append(_gh_docx_paragraph(f"Current name: {title_analysis.get('current_name', '')}"))
+        body.append(_gh_docx_paragraph(f"Recommended slug: {title_analysis.get('recommended_repo_slug', '')}"))
+        body.append(_gh_docx_paragraph(f"Recommended title: {title_analysis.get('recommended_display_title', '')}"))
+        keywords = title_analysis.get("search_intent_keywords") or []
+        if keywords:
+            body.append(_gh_docx_paragraph(f"Intent keywords: {', '.join(keywords)}"))
+        body.append(_gh_docx_paragraph(" "))
+
+    body.append(_gh_docx_paragraph("Remediation tasks"))
+    if not rows:
+        body.append(_gh_docx_paragraph("No actionable findings — repository is healthy."))
+    else:
+        for row in rows:
+            body.append(_gh_docx_paragraph(
+                f"{row['task_id']} | {row['priority']} | {row['source']} | "
+                f"Owner: {row['owner']} | Timeline: {row['timeline']} | "
+                f"Effort: {row['estimated_hours']}h | Confidence: {row['confidence']}"
+            ))
+            body.append(_gh_docx_paragraph(f"Finding: {row['finding']}"))
+            if row["evidence"]:
+                body.append(_gh_docx_paragraph(f"Evidence: {row['evidence']}"))
+            if row["fix"]:
+                body.append(_gh_docx_paragraph(f"Fix: {row['fix']}"))
+            body.append(_gh_docx_paragraph(" "))
+
+    if backlink_plan.get("channels"):
+        body.append(_gh_docx_paragraph("Backlink distribution channels"))
+        for ch in backlink_plan["channels"][:6]:
+            body.append(_gh_docx_paragraph(
+                f"{ch.get('channel', '')} — {ch.get('type', '')} — {ch.get('cadence', '')}"
+            ))
+
+    document_xml = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f"<w:body>{''.join(body)}"
+        '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" '
+        'w:right="1440" w:bottom="1440" w:left="1440" w:header="708" '
+        'w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>'
+    )
+
+    content_types = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>"""
+
+    rels = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>"""
+
+    core = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>GitHub SEO Audit Client Report</dc:title>
+  <dc:creator>dd-seo skill</dc:creator>
+  <cp:lastModifiedBy>dd-seo skill</cp:lastModifiedBy>
+  <dcterms:created xsi:type="dcterms:W3CDTF">{timestamp}</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">{timestamp}</dcterms:modified>
+</cp:coreProperties>"""
+
+    app = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>dd-seo skill</Application>
+</Properties>"""
+
+    with ZipFile(path, "w", ZIP_DEFLATED) as docx:
+        docx.writestr("[Content_Types].xml", content_types)
+        docx.writestr("_rels/.rels", rels)
+        docx.writestr("docProps/core.xml", core)
+        docx.writestr("docProps/app.xml", app)
+        docx.writestr("word/document.xml", document_xml)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate consolidated GitHub SEO report from local script outputs.")
     parser.add_argument("--repo", help="Repository slug or URL (owner/repo). If omitted, infer from git origin.")
@@ -711,6 +949,16 @@ def main():
         "--action-plan",
         default="GITHUB-ACTION-PLAN.md",
         help="Output markdown path for prioritized action plan (default: GITHUB-ACTION-PLAN.md).",
+    )
+    parser.add_argument(
+        "--csv",
+        default="GITHUB-REMEDIATION-TASKS.csv",
+        help="Output CSV path for prioritized remediation tasks (default: GITHUB-REMEDIATION-TASKS.csv).",
+    )
+    parser.add_argument(
+        "--docx",
+        default="GITHUB-CLIENT-REPORT.docx",
+        help="Output DOCX path for client-ready Word report (default: GITHUB-CLIENT-REPORT.docx).",
     )
     parser.add_argument("--json", action="store_true", help="Output merged JSON.")
     parser.add_argument("--output", help="Write merged JSON to file path.")
@@ -814,6 +1062,13 @@ def main():
     with open(args.action_plan, "w", encoding="utf-8") as f:
         f.write(action_plan_markdown)
 
+    task_rows = build_github_tasks(report)
+    write_github_csv(args.csv, task_rows)
+    build_github_docx(args.docx, report, task_rows)
+    report["csv_path"] = args.csv
+    report["docx_path"] = args.docx
+    report["task_count"] = len(task_rows)
+
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2)
@@ -823,6 +1078,8 @@ def main():
     else:
         print(f"Generated markdown report: {args.markdown}")
         print(f"Generated action plan: {args.action_plan}")
+        print(f"Generated remediation CSV: {args.csv}")
+        print(f"Generated client DOCX: {args.docx} ({len(task_rows)} tasks)")
         if limitations:
             print("Limitations:")
             for item in limitations[:10]:

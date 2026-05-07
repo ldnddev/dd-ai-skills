@@ -59,6 +59,8 @@ Apply `resources/references/llm-audit-rubric.md` for evidence standards, confide
 - `FULL-AUDIT-REPORT.md` — Full single-page findings with evidence, severity, and confidence labels
 - `ACTION-PLAN.md` — Prioritized implementation plan (Critical → High → Medium → Low)
 - `SEO-REPORT.html` — Optional interactive dashboard path (when `generate_report.py` is executed)
+- `SEO-REPORT-REMEDIATION-TASKS.csv` — Prioritized task list (written alongside the HTML dashboard)
+- `SEO-REPORT-CLIENT-REPORT.docx` — Client-ready Word report (written alongside the HTML dashboard)
 
 ### Page Score Card
 ```

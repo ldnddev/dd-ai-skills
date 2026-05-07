@@ -17,7 +17,7 @@ Custom Claude Code plugin marketplace by [ldnddev](https://ldnddev.com). Single 
 Add this marketplace once, then install plugins independently.
 
 ```bash
-/plugin marketplace add jlyvers/dd-ai-skills
+/plugin marketplace add ldnddev/dd-ai-skills
 /plugin install dd-a11y@dd-skills
 /plugin install dd-seo@dd-skills
 /plugin install dd-vreg@dd-skills

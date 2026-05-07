@@ -5,7 +5,7 @@ Captures desktop and mobile screenshots for two sites, compares matching pages, 
 ## Install — Claude Code plugin
 
 ```bash
-/plugin marketplace add jlyvers/dd-ai-skills
+/plugin marketplace add ldnddev/dd-ai-skills
 /plugin install dd-vreg@dd-skills
 ```
 
@@ -13,11 +13,7 @@ Captures desktop and mobile screenshots for two sites, compares matching pages, 
 
 ## Install — Codex skill
 
-```bash
-bash install.sh
-```
-
-Installs to `${CODEX_HOME:-$HOME/.codex}/skills/dd-vreg/`, runs `npm install`, fetches Chromium, renders Codex `settings.json` from `hooks/hooks.json`.
+`bash install.sh` from this directory — runs `npm install`, fetches Chromium, renders Codex `settings.json` from `hooks/hooks.json`. See [root README](../../README.md#codex-install-legacy) for context.
 
 ## Input format
 
@@ -82,12 +78,6 @@ dd-vreg-audit/
     ├── scripts/run_visual_regression.js
     └── assets/agency-logo.svg
 ```
-
-## Requirements
-
-- Node.js >= 18
-- npm
-- Runtime that allows Chromium to launch (Playwright sandbox-friendly env)
 
 ## Caveats
 

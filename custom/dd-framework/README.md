@@ -5,7 +5,7 @@ Guides AI agents to add, configure, and update pages built on the ldnddev Framew
 ## Install — Claude Code plugin
 
 ```bash
-/plugin marketplace add jlyvers/dd-ai-skills
+/plugin marketplace add ldnddev/dd-ai-skills
 /plugin install dd-framework@dd-skills
 ```
 
@@ -13,11 +13,7 @@ No deps. Loads instantly.
 
 ## Install — Codex skill
 
-```bash
-bash install.sh
-```
-
-Installs to `${CODEX_HOME:-$HOME/.codex}/skills/dd-framework/`.
+`bash install.sh` from this directory. See [root README](../../README.md#codex-install-legacy) for context.
 
 ## Trigger phrases
 

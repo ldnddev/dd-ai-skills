@@ -100,10 +100,14 @@ Classify recommendations:
 
 ### 5. Output Artifacts
 
-Required for `seo github` runs:
+Required for `seo github` runs (all written together by `github_seo_report.py`):
 
 - `GITHUB-SEO-REPORT.md` — findings and evidence.
 - `GITHUB-ACTION-PLAN.md` — prioritized fixes.
+- `GITHUB-REMEDIATION-TASKS.csv` — prioritized remediation task list (matches dd-a11y / dd-vreg shape).
+- `GITHUB-CLIENT-REPORT.docx` — client-ready Word report.
+
+Override paths via `--markdown`, `--action-plan`, `--csv`, `--docx`.
 
 Optional:
 

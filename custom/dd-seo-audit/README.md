@@ -5,7 +5,7 @@ Deterministic, LLM-first SEO audits for websites, blog posts, and GitHub reposit
 ## Install — Claude Code plugin
 
 ```bash
-/plugin marketplace add jlyvers/dd-ai-skills
+/plugin marketplace add ldnddev/dd-ai-skills
 /plugin install dd-seo@dd-skills
 ```
 
@@ -23,11 +23,7 @@ pip3 install --user playwright && python3 -m playwright install chromium
 
 ## Install — Codex skill
 
-```bash
-bash install.sh
-```
-
-Installs to `${CODEX_HOME:-$HOME/.codex}/skills/dd-seo/`. The installer attempts `pip3 install --user requests beautifulsoup4`.
+`bash install.sh` from this directory — attempts `pip3 install --user requests beautifulsoup4`. See [root README](../../README.md#codex-install-legacy) for context.
 
 ## Trigger phrases
 
@@ -55,7 +51,15 @@ Installs to `${CODEX_HOME:-$HOME/.codex}/skills/dd-seo/`. The installer attempts
 
 - `FULL-AUDIT-REPORT.md`
 - `ACTION-PLAN.md`
-- Optional `SEO-REPORT.html` (via `generate_report.py`)
+- Optional via `generate_report.py` (all three written together):
+  - `SEO-REPORT.html` — interactive dashboard
+  - `SEO-REPORT-REMEDIATION-TASKS.csv` — prioritized remediation task list
+  - `SEO-REPORT-CLIENT-REPORT.docx` — client-ready Word report
+- GitHub repo audits via `github_seo_report.py` always emit four files:
+  - `GITHUB-SEO-REPORT.md`
+  - `GITHUB-ACTION-PLAN.md`
+  - `GITHUB-REMEDIATION-TASKS.csv`
+  - `GITHUB-CLIENT-REPORT.docx`
 
 ## Layout
 

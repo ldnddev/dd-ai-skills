@@ -11,6 +11,7 @@ Usage:
 """
 
 import argparse
+import csv
 import html as html_lib
 import json
 import os
@@ -19,8 +20,9 @@ import subprocess
 import sys
 import tempfile
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from urllib.parse import urlparse
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import urllib.request
 
@@ -1490,6 +1492,317 @@ document.getElementById('chevron-issues').classList.add('open');
     return html
 
 
+SEVERITY_RANK = {"Critical": 0, "Warning": 1, "Info": 2}
+
+CATEGORY_LABELS = {
+    "security": "Security Headers",
+    "social": "Social Meta",
+    "robots": "Robots & Crawlers",
+    "broken_links": "Broken Links",
+    "internal_links": "Internal Links",
+    "redirects": "Redirects",
+    "llms_txt": "AI Search (llms.txt)",
+    "pagespeed": "Performance (CWV)",
+    "onpage": "On-Page SEO",
+    "readability": "Readability",
+    "article": "Article Extractor",
+    "entity": "Entity SEO",
+    "link_profile": "Link Profile",
+    "hreflang": "Hreflang",
+    "duplicate_content": "Content Uniqueness",
+    "environment": "Environment / Platform",
+}
+
+CATEGORY_OWNERS = {
+    "security": "Web Engineering",
+    "social": "Content / SEO",
+    "robots": "Technical SEO",
+    "broken_links": "Technical SEO",
+    "internal_links": "Technical SEO",
+    "redirects": "Technical SEO",
+    "llms_txt": "Technical SEO",
+    "pagespeed": "Performance / Frontend",
+    "onpage": "Content / SEO",
+    "readability": "Content / SEO",
+    "article": "Content / SEO",
+    "entity": "Content / SEO",
+    "link_profile": "Technical SEO",
+    "hreflang": "Technical SEO",
+    "duplicate_content": "Content / SEO",
+    "environment": "Web Engineering",
+}
+
+
+def normalize_severity(value: str) -> str:
+    raw = (value or "info").strip().lower()
+    if raw in ("critical", "high", "🔴"):
+        return "Critical"
+    if raw in ("warning", "warn", "medium", "⚠️"):
+        return "Warning"
+    return "Info"
+
+
+def severity_from_text(text: str) -> str:
+    if "🔴" in text:
+        return "Critical"
+    if "⚠️" in text:
+        return "Warning"
+    return "Info"
+
+
+def timeline_for(severity: str) -> str:
+    return {
+        "Critical": "Week 1",
+        "Warning": "Month 1",
+        "Info": "Month 2-3",
+    }.get(severity, "Triage")
+
+
+def effort_for(severity: str) -> float:
+    return {"Critical": 2.0, "Warning": 1.0, "Info": 0.5}.get(severity, 0.5)
+
+
+def owner_for(category: str) -> str:
+    return CATEGORY_OWNERS.get(category, "SEO Lead")
+
+
+def category_label(category: str) -> str:
+    return CATEGORY_LABELS.get(category, category.replace("_", " ").title())
+
+
+def _truncate(text: str, limit: int = 500) -> str:
+    text = (text or "").strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1] + "…"
+
+
+def build_seo_tasks(data: dict) -> list:
+    """Flatten section issues + environment fixes into prioritized task rows."""
+    rows = []
+    page_url = data.get("url", "")
+    page_domain = data.get("domain", "")
+
+    # Environment-specific fix plan
+    for fix in data.get("environment_fixes", []) or []:
+        sev = normalize_severity(fix.get("severity"))
+        if sev == "Info" and (fix.get("severity") or "").lower() == "pass":
+            continue
+        rows.append({
+            "page_url": page_url,
+            "page_domain": page_domain,
+            "category": "environment",
+            "category_label": "Environment / Platform",
+            "priority": sev,
+            "finding": _truncate(fix.get("title") or fix.get("reason") or ""),
+            "evidence": _truncate(fix.get("reason") or ""),
+            "fix": _truncate(fix.get("fix") or ""),
+        })
+
+    # Per-section structured / string issues
+    for section_name, section_data in (data.get("sections") or {}).items():
+        if not isinstance(section_data, dict):
+            continue
+        for issue in section_data.get("issues", []) or []:
+            if isinstance(issue, dict):
+                finding = str(issue.get("finding") or issue.get("message") or "")
+                if not finding:
+                    continue
+                rows.append({
+                    "page_url": page_url,
+                    "page_domain": page_domain,
+                    "category": section_name,
+                    "category_label": category_label(section_name),
+                    "priority": normalize_severity(issue.get("severity")),
+                    "finding": _truncate(finding),
+                    "evidence": _truncate(str(issue.get("evidence") or "")),
+                    "fix": _truncate(str(issue.get("fix") or "")),
+                })
+            elif isinstance(issue, str):
+                rows.append({
+                    "page_url": page_url,
+                    "page_domain": page_domain,
+                    "category": section_name,
+                    "category_label": category_label(section_name),
+                    "priority": severity_from_text(issue),
+                    "finding": _truncate(issue),
+                    "evidence": "",
+                    "fix": "",
+                })
+
+        # Recommendations / opportunities surface as Info tasks when no fix text exists
+        recs = section_data.get("recommendations") or section_data.get("suggestions") or []
+        if isinstance(recs, dict):
+            recs = [f"{k}: {v}" for k, v in recs.items()]
+        opps = section_data.get("opportunities") or []
+        if isinstance(opps, list):
+            recs = list(recs) + list(opps)
+        for rec in (recs or [])[:8]:
+            if not isinstance(rec, str) or not rec.strip():
+                continue
+            rows.append({
+                "page_url": page_url,
+                "page_domain": page_domain,
+                "category": section_name,
+                "category_label": category_label(section_name),
+                "priority": "Info",
+                "finding": _truncate(rec),
+                "evidence": "",
+                "fix": _truncate(rec),
+            })
+
+    rows.sort(key=lambda r: (SEVERITY_RANK.get(r["priority"], 9), r["category"]))
+
+    finalized = []
+    for index, row in enumerate(rows, start=1):
+        sev = row["priority"]
+        finalized.append({
+            "task_id": f"SEO-{index:03d}",
+            "page_url": row["page_url"],
+            "page_domain": row["page_domain"],
+            "category": row["category"],
+            "category_label": row["category_label"],
+            "priority": sev,
+            "finding": row["finding"],
+            "evidence": row["evidence"],
+            "fix": row["fix"],
+            "owner": owner_for(row["category"]),
+            "timeline": timeline_for(sev),
+            "estimated_hours": effort_for(sev),
+            "status": "Open",
+        })
+    return finalized
+
+
+def write_seo_csv(path: str, rows: list) -> None:
+    fieldnames = [
+        "task_id", "page_url", "page_domain", "category", "category_label",
+        "priority", "finding", "evidence", "fix",
+        "owner", "timeline", "estimated_hours", "status",
+    ]
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+
+def _docx_paragraph(text: str) -> str:
+    escaped = html_lib.escape(text or "")
+    return (
+        '<w:p><w:r><w:t xml:space="preserve">'
+        f"{escaped}"
+        "</w:t></w:r></w:p>"
+    )
+
+
+def build_seo_docx(path: str, data: dict, scores: dict, rows: list) -> None:
+    timestamp = data.get("timestamp", datetime.now().isoformat())
+    overall = scores.get("overall", 0)
+    domain = data.get("domain", "")
+    url = data.get("url", "")
+    summary = {
+        "Critical": sum(1 for r in rows if r["priority"] == "Critical"),
+        "Warning": sum(1 for r in rows if r["priority"] == "Warning"),
+        "Info": sum(1 for r in rows if r["priority"] == "Info"),
+    }
+
+    body = []
+    body.append(_docx_paragraph("SEO Audit Client Report"))
+    body.append(_docx_paragraph(f"URL: {url}"))
+    body.append(_docx_paragraph(f"Domain: {domain}"))
+    body.append(_docx_paragraph(f"Generated: {timestamp}"))
+    body.append(_docx_paragraph(f"Overall score: {overall}/100"))
+    body.append(_docx_paragraph(
+        f"Critical: {summary['Critical']}, Warning: {summary['Warning']}, Info: {summary['Info']}"
+    ))
+    body.append(_docx_paragraph(" "))
+
+    body.append(_docx_paragraph("Category scores"))
+    for key, label in CATEGORY_LABELS.items():
+        if key == "environment":
+            continue
+        score = scores.get("categories", {}).get(key)
+        if score is None:
+            continue
+        body.append(_docx_paragraph(f"{label}: {score}/100"))
+    body.append(_docx_paragraph(" "))
+
+    body.append(_docx_paragraph("Remediation tasks"))
+    if not rows:
+        body.append(_docx_paragraph("No issues detected — site is healthy."))
+    else:
+        for row in rows:
+            body.append(_docx_paragraph(
+                f"{row['task_id']} | {row['priority']} | {row['category_label']} | "
+                f"Owner: {row['owner']} | Timeline: {row['timeline']} | "
+                f"Effort: {row['estimated_hours']}h"
+            ))
+            body.append(_docx_paragraph(f"Finding: {row['finding']}"))
+            if row["evidence"]:
+                body.append(_docx_paragraph(f"Evidence: {row['evidence']}"))
+            if row["fix"]:
+                body.append(_docx_paragraph(f"Fix: {row['fix']}"))
+            body.append(_docx_paragraph(" "))
+
+    document_xml = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f"<w:body>{''.join(body)}"
+        '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" '
+        'w:right="1440" w:bottom="1440" w:left="1440" w:header="708" '
+        'w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>'
+    )
+
+    content_types = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>"""
+
+    rels = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>"""
+
+    utc_now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    core = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>SEO Audit Client Report</dc:title>
+  <dc:creator>dd-seo skill</dc:creator>
+  <cp:lastModifiedBy>dd-seo skill</cp:lastModifiedBy>
+  <dcterms:created xsi:type="dcterms:W3CDTF">{utc_now}</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">{utc_now}</dcterms:modified>
+</cp:coreProperties>"""
+
+    app = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>dd-seo skill</Application>
+</Properties>"""
+
+    with ZipFile(path, "w", ZIP_DEFLATED) as docx:
+        docx.writestr("[Content_Types].xml", content_types)
+        docx.writestr("_rels/.rels", rels)
+        docx.writestr("docProps/core.xml", core)
+        docx.writestr("docProps/app.xml", app)
+        docx.writestr("word/document.xml", document_xml)
+
+
+def derive_sibling_paths(html_output_path: str) -> tuple:
+    """Return (csv_path, docx_path) next to the HTML output."""
+    abs_path = os.path.abspath(html_output_path)
+    output_dir = os.path.dirname(abs_path) or "."
+    base = os.path.splitext(os.path.basename(abs_path))[0]
+    csv_path = os.path.join(output_dir, f"{base}-REMEDIATION-TASKS.csv")
+    docx_path = os.path.join(output_dir, f"{base}-CLIENT-REPORT.docx")
+    return csv_path, docx_path
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate interactive SEO HTML report")
     parser.add_argument("url", help="Website URL to analyze")
@@ -1520,9 +1833,17 @@ def main():
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
 
+    rows = build_seo_tasks(data)
+    csv_path, docx_path = derive_sibling_paths(output_path)
+    write_seo_csv(csv_path, rows)
+    build_seo_docx(docx_path, data, scores, rows)
+
     print(f"\n✅ Report saved to: {os.path.abspath(output_path)}")
-    print(f"   Overall Score: {scores['overall']}/100")
-    print(f"   Open in browser to view the interactive report")
+    print(f"   Tasks CSV:        {csv_path}")
+    print(f"   Client DOCX:      {docx_path}")
+    print(f"   Overall Score:    {scores['overall']}/100")
+    print(f"   Tasks generated:  {len(rows)}")
+    print(f"   Open the HTML in a browser to view the interactive dashboard")
 
 
 if __name__ == "__main__":

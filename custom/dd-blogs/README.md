@@ -5,7 +5,7 @@ Brand-tone copywriting skill for ldnddev.com blog posts. Enforces voice, structu
 ## Install — Claude Code plugin
 
 ```bash
-/plugin marketplace add jlyvers/dd-ai-skills
+/plugin marketplace add ldnddev/dd-ai-skills
 /plugin install dd-blogs@dd-skills
 ```
 
@@ -13,11 +13,7 @@ No deps. Loads instantly.
 
 ## Install — Codex skill
 
-```bash
-bash install.sh
-```
-
-Installs to `${CODEX_HOME:-$HOME/.codex}/skills/dd-blogs/`.
+`bash install.sh` from this directory. See [root README](../../README.md#codex-install-legacy) for context.
 
 ## Trigger phrases
 

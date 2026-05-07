@@ -22,7 +22,7 @@ For prompt reliability in Codex/agent IDEs, map common user wording to a fixed w
 - For full/page audits, always produce:
   - `FULL-AUDIT-REPORT.md` (detailed findings)
   - `ACTION-PLAN.md` (prioritized fixes)
-- If `generate_report.py` is run, also return the saved HTML path (for example `SEO-REPORT.html`).
+- If `generate_report.py` is run, also return the saved HTML path (for example `SEO-REPORT.html`) plus the sibling `SEO-REPORT-REMEDIATION-TASKS.csv` and `SEO-REPORT-CLIENT-REPORT.docx` artifacts written next to it.
 
 ## Available Commands
 
@@ -146,7 +146,8 @@ python3 <SKILL_DIR>/scripts/github_search_benchmark.py --repo <owner/repo> --que
 python3 <SKILL_DIR>/scripts/github_competitor_research.py --repo <owner/repo> --query "<llm_or_web_query>" --provider auto --top-n 6 --json
 python3 <SKILL_DIR>/scripts/github_competitor_research.py --repo <owner/repo> --competitor <owner/repo> --competitor <owner/repo> --provider auto --json
 python3 <SKILL_DIR>/scripts/github_traffic_archiver.py --repo <owner/repo> --provider auto --archive-dir .github-seo-data --json
-python3 <SKILL_DIR>/scripts/github_seo_report.py --repo <owner/repo> --provider auto --markdown GITHUB-SEO-REPORT.md --action-plan GITHUB-ACTION-PLAN.md --json
+python3 <SKILL_DIR>/scripts/github_seo_report.py --repo <owner/repo> --provider auto --markdown GITHUB-SEO-REPORT.md --action-plan GITHUB-ACTION-PLAN.md --csv GITHUB-REMEDIATION-TASKS.csv --docx GITHUB-CLIENT-REPORT.docx --json
+# Always emits MD + ACTION-PLAN + CSV + DOCX. Override paths with --markdown/--action-plan/--csv/--docx.
 # Optional: increase/reduce auto-derived query volume (default: 6)
 # python3 <SKILL_DIR>/scripts/github_seo_report.py --repo <owner/repo> --provider auto --auto-query-max 8 --markdown GITHUB-SEO-REPORT.md --action-plan GITHUB-ACTION-PLAN.md --json
 ```
@@ -167,11 +168,15 @@ python3 <SKILL_DIR>/scripts/capture_screenshot.py <url> --all
 python3 <SKILL_DIR>/scripts/analyze_visual.py <url> --json
 ```
 
-**HTML Report Generator** — generates a self-contained interactive HTML dashboard:
+**HTML Report Generator** — generates a self-contained interactive HTML dashboard plus client deliverables (CSV remediation tasks, DOCX client report) sharing the dashboard's basename:
 ```bash
-# Generate full SEO report (runs scripts automatically, saves HTML to PWD)
+# Generate full SEO report (runs scripts automatically, saves HTML/CSV/DOCX to PWD)
 python3 <SKILL_DIR>/scripts/generate_report.py <url>
-python3 <SKILL_DIR>/scripts/generate_report.py <url> --output custom-report.html
+python3 <SKILL_DIR>/scripts/generate_report.py <url> --output SEO-REPORT.html
+# Produces:
+#   SEO-REPORT.html
+#   SEO-REPORT-REMEDIATION-TASKS.csv
+#   SEO-REPORT-CLIENT-REPORT.docx
 ```
 
 ### Step 5 — Delegate to Specialist Agents
@@ -236,7 +241,7 @@ For `seo audit`, `seo page`, and generic `perform seo analysis on <url>` flows:
 
 1. Create `FULL-AUDIT-REPORT.md` in the current working directory at the start of the audit, then update it as evidence is collected.
 2. Create `ACTION-PLAN.md` in the current working directory at the start of the audit, then update it with prioritized fixes.
-3. If HTML dashboard was generated, include its exact saved path (for example `SEO-REPORT.html` or an absolute path).
+3. If `generate_report.py` was run, include the exact saved paths for the HTML dashboard (`SEO-REPORT.html`), the remediation CSV (`SEO-REPORT-REMEDIATION-TASKS.csv`), and the client DOCX (`SEO-REPORT-CLIENT-REPORT.docx`). All three are written together by the script.
 4. In the final response, explicitly list generated artifacts and paths.
 5. If technical checks are blocked by environment limits, still write both markdown files and include an "Environment Limitations" section.
 

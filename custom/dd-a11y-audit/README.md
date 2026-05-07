@@ -1,97 +1,48 @@
 # dd-a11y — Accessibility Audit Skill
 
-Sharable accessibility audit skill for single-page or multi-page WCAG 2.2 reviews using Playwright and `@axe-core/playwright`. Ships in two formats: a **Claude Code plugin** (preferred) and a **Codex skill** installer (`install.sh`).
+WCAG 2.2 accessibility audit for single-page or multi-page web reviews. Playwright + `@axe-core/playwright` for evidence; LLM analysis for prioritization. Generates `WCAG-AUDIT-REPORT.md`, `ACCESSIBILITY-ACTION-PLAN.md`, `REMEDIATION-TASKS.csv`, `A11Y-CLIENT-REPORT.docx`, and an HTML dashboard.
 
-## Install — Claude Code plugin (one-shot)
+## Install — Claude Code plugin
 
 ```bash
-/plugin marketplace add <github-owner>/dd-a11y-audit
-/plugin install dd-a11y@dd-a11y-marketplace
+/plugin marketplace add ldnddev/dd-ai-skills
+/plugin install dd-a11y@dd-skills
 ```
 
-That's it. On the next session, the `SessionStart` bootstrap hook (`hooks/bootstrap.sh`) runs `npm ci` automatically the first time; the package.json `postinstall` script then downloads pinned Chromium. A `.dd-a11y-bootstrap.ok` sentinel file makes subsequent sessions a no-op.
+`SessionStart` bootstrap hook runs `npm ci` + downloads pinned Chromium on first session. Skip browser download with `DD_A11Y_SKIP_BROWSER=1`.
 
-To skip the Chromium download (CI / preinstalled): set `DD_A11Y_SKIP_BROWSER=1` before plugin install.
-
-## Install — Codex skill (legacy)
+## Install — Codex skill
 
 ```bash
 bash install.sh
 ```
 
-Installs to `${CODEX_HOME:-$HOME/.codex}/skills/dd-a11y/` with `SKILL.md` at install root and Codex-style `settings.json` rendered from `hooks/hooks.json`.
+See [root README](../../README.md#codex-install-legacy) for layout details.
 
-## What is included
+## Trigger phrases
 
-- `.claude-plugin/{plugin,marketplace}.json` — Claude Code plugin manifest + marketplace
-- `skills/dd-a11y/SKILL.md` — canonical skill entry
-- `skills/dd-a11y/references/` — WCAG rubric + checklist
-- `hooks/hooks.json` — Claude Code hook wiring (uses `${CLAUDE_PLUGIN_ROOT}`)
-- `hooks/bootstrap.sh` — SessionStart one-shot dep installer
-- `hooks/a11y-{team-eval,enforce-edit,mark-reviewed}.sh` — UI-edit gating
-- `scripts/run_a11y_audit.py` — pipeline orchestrator (single + multi-page)
-- `scripts/{axe_audit,capture_a11y_screenshots,generate_a11y_report,test_a11y_skill}.py`
-- `templates/{brand.json,dashboard.html,assets/}` — report branding
-- `install.sh` — Codex install path
+- `a11y audit <url>`
+- `perform accessibility audit on <url>`
+- `full deep a11y audit <url>`
+- `multi-page a11y audit <url-list-or-sitemap>`
 
-## Requirements
-
-- Node.js 18+
-- `npm`
-- `python3`
-- Internet access during installation to download npm packages and the Chromium browser runtime
-- A runtime environment that allows Chromium to launch
-
-From repo root:
+## CLI usage
 
 ```bash
-bash install.sh
-```
-
-The installer copies the skill to `${CODEX_HOME:-$HOME/.codex}/skills/dd-a11y`, rewrites hook paths for the local machine, installs npm dependencies, and downloads Playwright Chromium.
-
-## Verify the install
-
-```bash
-cd ~/.codex/skills/dd-a11y
-npm run verify
-python3 scripts/axe_audit.py https://example.com --json
-```
-
-If Chromium launch is blocked by a sandboxed environment, `axe_audit.py` returns a structured error explaining that the browser is installed but the current runtime does not allow it to launch.
-
-## Use the skill
-
-Typical prompt patterns:
-
-- `a11y audit https://example.com`
-- `perform accessibility audit on https://example.com`
-- `full deep a11y audit https://example.com`
-
-Direct CLI usage:
-
-```bash
-cd ~/.codex/skills/dd-a11y
-python3 scripts/axe_audit.py https://example.com --level AA --json
-python3 scripts/run_a11y_audit.py https://example.com
+python3 scripts/axe_audit.py <url> --level AA --json
+python3 scripts/run_a11y_audit.py <url>
 python3 scripts/run_a11y_audit.py --urls-file ./urls.txt
 python3 scripts/run_a11y_audit.py --sitemap https://example.com/sitemap.xml --max-urls 25
-python3 scripts/test_a11y_skill.py https://example.com
+python3 scripts/test_a11y_skill.py <url>          # demo / Chromium-blocked fallback
 ```
 
-## Deliverables
+Verify install:
 
-`python3 scripts/run_a11y_audit.py <url>` generates output in:
-
-- `web/[DOMAIN-a11y-audit-YYYY-MM-DD]/`
-
-For example:
-
-```text
-web/example.com-a11y-audit-2026-04-27/
+```bash
+npm run verify   # smoke-tests Chromium launch
 ```
 
-Generated files:
+## Deliverables (under `web/<domain>-a11y-audit-<date>/`)
 
 - `axe-results.json`
 - `WCAG-AUDIT-REPORT.md`
@@ -100,36 +51,19 @@ Generated files:
 - `A11Y-CLIENT-REPORT.docx`
 - `index.html`
 
-For multi-page audits, the same output folder also contains:
+Multi-page adds:
 
 - `pages/<page-slug>/axe-results.json`
 - `pages/<page-slug>/screenshots/full-page.png`
 - `pages/<page-slug>/screenshots/A11Y-###.png`
 
-The CSV includes page-level context and screenshot paths. The HTML dashboard links to report files and issue screenshots. The DOCX includes page-level screenshot references.
+CSV includes page-level context + screenshot paths. HTML dashboard links to report files and issue screenshots. DOCX embeds page-level screenshots.
 
-## Troubleshooting
+## UI-edit hook gating
 
-### `Node.js` not found
-Install Node.js and rerun `./install.sh`.
+`hooks/a11y-enforce-edit.sh` blocks `Edit`/`Write` on UI files (`.jsx`, `.tsx`, `.vue`, `.svelte`, `.html`, `.css`, etc.) until `accessibility-agents:accessibility-lead` subagent runs in the same session. `hooks/a11y-mark-reviewed.sh` clears the block via a `/tmp` session marker.
 
-### `playwright` or `@axe-core/playwright` missing
-From the installed skill directory:
+## Caveats
 
-```bash
-npm ci
-```
-
-### Chromium is installed but will not launch
-This usually means the current environment blocks browser subprocesses or sandbox-related system calls. Verify in a normal host shell instead of a heavily restricted sandbox.
-
-```bash
-cd ~/.codex/skills/dd-a11y
-npm run verify
-```
-
-### Reinstall
-
-```bash
-bash install.sh
-```
+- If Chromium fails to launch (sandboxed runtime), `axe_audit.py` returns a structured JSON error with `missing_dependencies` + `install_commands`. Use `test_a11y_skill.py` as a fallback report path.
+- `hooks/a11y-team-eval.sh` injects a mandatory delegation instruction on web projects. Disable by removing it from `hooks/hooks.json` if not needed.

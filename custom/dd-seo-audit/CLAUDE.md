@@ -30,7 +30,9 @@ python3 scripts/validate_schema.py path/to/file.html
 # Pre-commit lint (staged HTML files: schema placeholders, title length, alt text, deprecated FID/HowTo/FAQ)
 bash scripts/pre_commit_seo_check.sh
 
-# End-to-end audit dashboard (drives many other scripts internally)
+# End-to-end audit dashboard (drives many other scripts internally).
+# Also writes <basename>-REMEDIATION-TASKS.csv and <basename>-CLIENT-REPORT.docx
+# next to the HTML, mirroring dd-a11y / dd-vreg deliverables.
 python3 scripts/generate_report.py <url> --output SEO-REPORT.html
 ```
 
@@ -60,6 +62,10 @@ scripts/*.py                   ← deterministic evidence collectors invoked by 
 `SKILL.md` § "Orchestration Logic" defines the canonical 8-step flow: identify task → collect evidence (`read_url_content` first, then scripts) → LLM analysis with `llm-audit-rubric.md` → run baseline verification scripts → delegate to specialist agent files → apply quality gates from `resources/references/` → run `scripts/finding_verifier.py` → score and write deliverables.
 
 Mandatory artifacts for any full / page / generic audit are **`FULL-AUDIT-REPORT.md`** and **`ACTION-PLAN.md`** in CWD, created at audit start and updated as evidence arrives. Don't move these names — they are referenced from multiple sub-skill files and are the public contract.
+
+When `generate_report.py` is invoked, three sibling files are written together: `<basename>.html`, `<basename>-REMEDIATION-TASKS.csv`, and `<basename>-CLIENT-REPORT.docx`. The basename derives from the `--output` argument (default: `seo-report-<domain>.html`). The CSV/DOCX are produced by `build_seo_tasks` / `write_seo_csv` / `build_seo_docx` in `scripts/generate_report.py` and follow the same severity vocabulary (Critical / Warning / Info) as the rest of the skill — keep those labels stable.
+
+`scripts/github_seo_report.py` writes four artifacts together: `GITHUB-SEO-REPORT.md`, `GITHUB-ACTION-PLAN.md`, `GITHUB-REMEDIATION-TASKS.csv`, `GITHUB-CLIENT-REPORT.docx` (override via `--markdown` / `--action-plan` / `--csv` / `--docx`). The CSV/DOCX are produced by `build_github_tasks` / `write_github_csv` / `build_github_docx` from the same verified findings the markdown report uses, so severity normalization (`_gh_normalize_severity`) maps to the project-wide `Critical` / `Warning` / `Info` / `Pass` vocabulary — keep the mapping in sync if new severities are introduced upstream.
 
 ### Script conventions
 
