@@ -27,6 +27,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import urllib.request
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATES_DIR = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "..", "..", "templates"))
 
 
 def run_script(script_name: str, args: list, timeout: int = 120) -> dict:
@@ -687,48 +688,132 @@ def render_all_recommendations(data: dict) -> str:
     return html if html else '<p style="color:var(--green)">✅ No recommendations — everything looks good!</p>'
 
 
-def generate_html(data: dict, scores: dict) -> str:
-    """Generate the interactive HTML report."""
-    domain = data["domain"]
-    url = data["url"]
-    timestamp = data["timestamp"]
-    overall = scores["overall"]
+def _load_template_files() -> tuple:
+    dashboard_path = os.path.join(TEMPLATES_DIR, "dashboard.html")
+    brand_path = os.path.join(TEMPLATES_DIR, "brand.json")
+    with open(dashboard_path, "r", encoding="utf-8") as f:
+        template = f.read()
+    with open(brand_path, "r", encoding="utf-8") as f:
+        brand = json.load(f)
+    return template, brand
 
-    # Determine overall grade
-    if overall >= 90:
-        grade, grade_color = "A+", "#22c55e"
-    elif overall >= 80:
-        grade, grade_color = "A", "#22c55e"
-    elif overall >= 70:
-        grade, grade_color = "B", "#eab308"
-    elif overall >= 60:
-        grade, grade_color = "C", "#f97316"
-    elif overall >= 50:
-        grade, grade_color = "D", "#ef4444"
-    else:
-        grade, grade_color = "F", "#dc2626"
 
-    # Collect all issues
-    all_issues = []
-    for section_name, section_data in data["sections"].items():
-        issues = section_data.get("issues", [])
-        for issue in issues:
-            if isinstance(issue, dict):
-                # Structured issue from entity_checker, hreflang_checker, etc.
-                sev_raw = issue.get("severity", "info").lower()
-                severity_map = {"critical": "critical", "high": "critical", "warning": "warning", "medium": "warning", "info": "info", "low": "info"}
-                severity = severity_map.get(sev_raw, "info")
-                text = f"{issue.get('finding', '')} — Fix: {issue.get('fix', '')}" if issue.get('fix') else issue.get('finding', str(issue))
-                all_issues.append({"text": text, "severity": severity, "section": section_name})
-            elif isinstance(issue, str):
-                severity = "critical" if "🔴" in issue else "warning" if "⚠️" in issue else "info"
-                all_issues.append({"text": issue, "severity": severity, "section": section_name})
+def _score_rating(score: int) -> str:
+    if score >= 90:
+        return "Excellent"
+    if score >= 70:
+        return "Good"
+    if score >= 50:
+        return "Needs Improvement"
+    if score >= 30:
+        return "Poor"
+    return "Critical"
 
-    critical_count = sum(1 for i in all_issues if i["severity"] == "critical")
-    warning_count = sum(1 for i in all_issues if i["severity"] == "warning")
-    pass_count = sum(1 for i in all_issues if i["severity"] == "info")
 
-    # Section data extraction
+def _ring_color(score: int) -> str:
+    if score >= 80:
+        return "#1f5f33"
+    if score >= 50:
+        return "#7a4a00"
+    return "#8a1a1a"
+
+
+def _render_category_cards(scores: dict) -> str:
+    icons = {
+        "security": "🔒", "social": "📱", "robots": "🤖",
+        "broken_links": "🔗", "internal_links": "🕸️", "redirects": "↪️",
+        "llms_txt": "🧠", "pagespeed": "⚡", "onpage": "📝",
+        "readability": "📖", "article": "📄", "entity": "🏛️",
+        "link_profile": "🔗", "hreflang": "🌍", "duplicate_content": "📋",
+    }
+    cards = []
+    for key, label in CATEGORY_LABELS.items():
+        if key == "environment":
+            continue
+        raw = scores.get("categories", {}).get(key)
+        if raw is None:
+            continue
+        score = int(raw)
+        ring = _ring_color(score)
+        dash = round(score * 2.51327, 1)
+        icon = icons.get(key, "📊")
+        anchor = f"#section-{key}"
+        cards.append(
+            f'<a class="category-card" href="{anchor}" '
+            f'aria-label="{html_lib.escape(label)}: {score} of 100">'
+            f'<div class="ring-wrap">'
+            f'<svg viewBox="0 0 90 90" aria-hidden="true">'
+            f'<circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/>'
+            f'<circle cx="45" cy="45" r="40" fill="none" stroke="{ring}" stroke-width="6" '
+            f'stroke-dasharray="{dash} 251.327" stroke-linecap="round" '
+            f'transform="rotate(-90 45 45)"/>'
+            f'</svg>'
+            f'<div class="ring-label">{score}</div>'
+            f'</div>'
+            f'<div class="category-name">{icon} {html_lib.escape(label)}</div>'
+            f'</a>'
+        )
+    return "\n".join(cards)
+
+
+def _render_download_links(artifacts: list) -> str:
+    chunks = []
+    for art in artifacts:
+        kind = html_lib.escape(art["kind"])
+        label = html_lib.escape(art["label"])
+        filename = html_lib.escape(art["filename"])
+        chunks.append(
+            f'<a class="download-link" href="{filename}" download>'
+            f'<span class="download-kind">{kind}</span>'
+            f'<div class="download-label">{label}</div>'
+            f'<div class="download-file">{filename}</div>'
+            f'</a>'
+        )
+    return "\n".join(chunks)
+
+
+def _render_task_rows(rows: list) -> str:
+    if not rows:
+        return (
+            '<tr><td colspan="7" style="text-align:center;color:var(--muted)">'
+            'No remediation tasks — site is healthy.'
+            '</td></tr>'
+        )
+    out = []
+    for r in rows:
+        sev = r["priority"].lower()
+        out.append(
+            f'<tr>'
+            f'<td>{html_lib.escape(r["task_id"])}</td>'
+            f'<td><span class="priority-pill" data-severity="{sev}">'
+            f'{html_lib.escape(r["priority"])}</span></td>'
+            f'<td>{html_lib.escape(r["category_label"])}</td>'
+            f'<td>{html_lib.escape(r["finding"])}</td>'
+            f'<td>{html_lib.escape(r["owner"])}</td>'
+            f'<td>{html_lib.escape(r["timeline"])}</td>'
+            f'<td>{r["estimated_hours"]}h</td>'
+            f'</tr>'
+        )
+    return "\n".join(out)
+
+
+def _details_block(section_id: str, title: str, score, body_html: str) -> str:
+    score_chip = ""
+    if score is not None and score != "":
+        score_chip = (
+            f'<span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">'
+            f'{int(score)}/100</span>'
+        )
+    return (
+        f'<details class="section-detail" id="section-{section_id}">'
+        f'<summary>{html_lib.escape(title)} {score_chip}</summary>'
+        f'<div class="section-body">{body_html}</div>'
+        f'</details>'
+    )
+
+
+def _render_detailed_sections(data: dict, scores: dict) -> str:
+    cats = scores.get("categories", {})
     sec = data["sections"].get("security", {})
     soc = data["sections"].get("social", {})
     rob = data["sections"].get("robots", {})
@@ -747,748 +832,355 @@ def generate_html(data: dict, scores: dict) -> str:
     env = data.get("environment", {})
     env_fixes = data.get("environment_fixes", [])
 
-    env_primary = html_lib.escape(env.get("primary", "Unknown"), quote=True)
-    env_runtime = html_lib.escape(env.get("runtime", "Unknown"), quote=True)
-    env_confidence = html_lib.escape(env.get("confidence", "low").upper(), quote=True)
-    env_alts = [html_lib.escape(x, quote=True) for x in env.get("alternatives", [])]
-    env_signals_html = "".join(
-        f'<li class="mono" style="margin:4px 0;">{html_lib.escape(sig, quote=True)}</li>'
-        for sig in env.get("signals", [])
-    ) or '<li style="color:var(--text-muted)">No strong platform markers found.</li>'
-    env_fixes_html = render_environment_fixes(env_fixes)
+    blocks = []
 
-    # Build issues HTML
-    issues_html = ""
-    for issue in sorted(all_issues, key=lambda x: {"critical": 0, "warning": 1, "info": 2}[x["severity"]]):
-        badge_class = issue["severity"]
-        issues_html += f'<div class="issue-item {badge_class}"><span class="issue-badge">{badge_class.upper()}</span> {issue["text"]}</div>\n'
+    sig_html = "".join(
+        f'<li style="margin:4px 0;">{html_lib.escape(s)}</li>'
+        for s in env.get("signals", [])
+    ) or '<li style="color:var(--muted)">No strong platform markers found.</li>'
+    env_body = (
+        f'<p><strong>Primary platform:</strong> {html_lib.escape(env.get("primary","Unknown"))} · '
+        f'<strong>Runtime:</strong> {html_lib.escape(env.get("runtime","Unknown"))} · '
+        f'<strong>Confidence:</strong> {html_lib.escape(env.get("confidence","low"))}</p>'
+        f'<h4 style="margin:12px 0 6px;">Detection signals</h4><ul>{sig_html}</ul>'
+    )
+    if env.get("alternatives"):
+        env_body += (
+            '<p style="color:var(--muted)"><strong>Alternative matches:</strong> '
+            + ", ".join(html_lib.escape(a) for a in env["alternatives"])
+            + "</p>"
+        )
+    blocks.append(_details_block("environment", "Environment detection", None, env_body))
 
-    # Build category cards
-    category_labels = {
-        "security": ("🔒", "Security Headers"),
-        "social": ("📱", "Social Meta"),
-        "robots": ("🤖", "Robots & Crawlers"),
-        "broken_links": ("🔗", "Broken Links"),
-        "internal_links": ("🕸️", "Internal Links"),
-        "redirects": ("↪️", "Redirects"),
-        "llms_txt": ("🧠", "AI Search (llms.txt)"),
-        "pagespeed": ("⚡", "Performance (CWV)"),
-        "onpage": ("📝", "On-Page SEO"),
-        "readability": ("📖", "Readability"),
-        "article": ("📄", "Article Extractor"),
-        "entity": ("🏛️", "Entity SEO"),
-        "link_profile": ("🔗", "Link Profile"),
-        "hreflang": ("🌍", "Hreflang"),
-        "duplicate_content": ("📋", "Content Uniqueness"),
-    }
+    if env_fixes:
+        blocks.append(_details_block(
+            "env_fixes", "Environment-specific fix plan", None,
+            render_environment_fixes(env_fixes),
+        ))
 
-    category_cards = ""
-    for key, (icon, label) in category_labels.items():
-        score = scores["categories"].get(key, 0)
-        if score is None:
-            score = 0
-        if score >= 80:
-            ring_color = "#22c55e"
-        elif score >= 50:
-            ring_color = "#eab308"
-        else:
-            ring_color = "#ef4444"
-        dash = round(score * 2.51327, 1)  # circumference = 251.327
-        category_cards += f'''
-        <div class="category-card" onclick="scrollToSection('{key}')">
-            <svg class="ring" viewBox="0 0 90 90">
-                <circle cx="45" cy="45" r="40" fill="none" stroke="var(--card-border)" stroke-width="6"/>
-                <circle cx="45" cy="45" r="40" fill="none" stroke="{ring_color}" stroke-width="6"
-                    stroke-dasharray="{dash} 251.327" stroke-linecap="round"
-                    transform="rotate(-90 45 45)" class="ring-progress"/>
-            </svg>
-            <div class="ring-label">{score}</div>
-            <div class="category-icon">{icon}</div>
-            <div class="category-name">{label}</div>
-        </div>'''
+    rows = ""
+    for h, v in sec.get("headers_present", {}).items():
+        rows += (
+            f'<tr><td>{html_lib.escape(h)}</td>'
+            f'<td><span class="priority-pill" data-severity="pass">Present</span></td>'
+            f'<td class="url-cell">{html_lib.escape(str(v)[:80])}</td></tr>'
+        )
+    for h, d in sec.get("headers_missing", {}).items():
+        rows += (
+            f'<tr><td>{html_lib.escape(h)}</td>'
+            f'<td><span class="priority-pill" data-severity="critical">Missing</span></td>'
+            f'<td>{html_lib.escape(str(d))}</td></tr>'
+        )
+    sec_body = (
+        '<table><thead><tr><th scope="col">Header</th><th scope="col">Status</th>'
+        f'<th scope="col">Value / Description</th></tr></thead><tbody>{rows}</tbody></table>'
+    )
+    blocks.append(_details_block("security", "Security headers", cats.get("security"), sec_body))
 
-    # Security details
-    security_rows = ""
-    for header, value in sec.get("headers_present", {}).items():
-        security_rows += f'<tr><td>{header}</td><td><span class="badge pass">Present</span></td><td class="mono">{value[:60]}</td></tr>'
-    for header, desc in sec.get("headers_missing", {}).items():
-        security_rows += f'<tr><td>{header}</td><td><span class="badge critical">Missing</span></td><td>{desc}</td></tr>'
-
-    # Social meta details
-    social_rows = ""
+    rows = ""
     og = soc.get("og_tags", {})
     tw = soc.get("twitter_tags", {})
     for tag in ["og:title", "og:description", "og:image", "og:url", "og:type", "og:site_name"]:
-        val = og.get(tag, "")
-        status = '<span class="badge pass">✅</span>' if val else '<span class="badge critical">Missing</span>'
-        social_rows += f'<tr><td>{tag}</td><td>{status}</td><td>{val[:60] if val else "—"}</td></tr>'
-    for tag in ["twitter:card", "twitter:title", "twitter:description", "twitter:image", "twitter:site"]:
-        val = tw.get(tag, "")
-        status = '<span class="badge pass">✅</span>' if val else '<span class="badge warning">Missing</span>'
-        social_rows += f'<tr><td>{tag}</td><td>{status}</td><td>{val[:60] if val else "—"}</td></tr>'
+        v = og.get(tag, "")
+        sev = "pass" if v else "critical"
+        label = "Present" if v else "Missing"
+        rows += (
+            f'<tr><td>{tag}</td>'
+            f'<td><span class="priority-pill" data-severity="{sev}">{label}</span></td>'
+            f'<td>{html_lib.escape(str(v)[:80]) or "—"}</td></tr>'
+        )
+    for tag in ["twitter:card", "twitter:title", "twitter:description", "twitter:image"]:
+        v = tw.get(tag, "")
+        sev = "pass" if v else "warning"
+        label = "Present" if v else "Missing"
+        rows += (
+            f'<tr><td>{tag}</td>'
+            f'<td><span class="priority-pill" data-severity="{sev}">{label}</span></td>'
+            f'<td>{html_lib.escape(str(v)[:80]) or "—"}</td></tr>'
+        )
+    soc_body = (
+        '<table><thead><tr><th scope="col">Tag</th><th scope="col">Status</th>'
+        f'<th scope="col">Value</th></tr></thead><tbody>{rows}</tbody></table>'
+    )
+    blocks.append(_details_block("social", "Social meta tags", cats.get("social"), soc_body))
 
-    # AI Crawlers details
-    ai_rows = ""
+    rows = ""
     for crawler, status in rob.get("ai_crawler_status", {}).items():
         if "blocked" in status:
-            badge = '<span class="badge pass">Blocked</span>'
+            sev, label = "pass", "Blocked"
         elif "not managed" in status:
-            badge = '<span class="badge warning">Unmanaged</span>'
+            sev, label = "warning", "Unmanaged"
         else:
-            badge = '<span class="badge info">Info</span>'
-        ai_rows += f'<tr><td>{crawler}</td><td>{badge}</td><td>{status}</td></tr>'
-
-    # Broken links details
-    broken_rows = ""
-    for link in bl.get("broken", [])[:20]:
-        status = link.get("status") or link.get("error", "?")
-        loc = "Internal" if link.get("is_internal") else "External"
-        broken_rows += f'<tr><td><span class="badge {"critical" if link.get("is_internal") else "warning"}">{loc}</span></td><td class="mono">{status}</td><td class="link-url">{link["url"][:80]}</td><td>{link.get("anchor_text", "")[:40]}</td></tr>'
+            sev, label = "info", "Info"
+        rows += (
+            f'<tr><td>{html_lib.escape(crawler)}</td>'
+            f'<td><span class="priority-pill" data-severity="{sev}">{label}</span></td>'
+            f'<td>{html_lib.escape(status)}</td></tr>'
+        )
+    rob_body = (
+        f'<p><strong>robots.txt:</strong> HTTP {rob.get("status","?")} · '
+        f'<strong>Sitemaps:</strong> {len(rob.get("sitemaps", []))} · '
+        f'<strong>User-agents:</strong> {len(rob.get("user_agents", {}))}</p>'
+        '<table><thead><tr><th scope="col">Crawler</th><th scope="col">Status</th>'
+        f'<th scope="col">Detail</th></tr></thead><tbody>{rows}</tbody></table>'
+    )
+    blocks.append(_details_block("robots", "Robots & AI crawlers", cats.get("robots"), rob_body))
 
     bl_summary = bl.get("summary", {})
-    bl_total = bl_summary.get("total", 0)
-    bl_healthy = bl_summary.get("healthy", 0)
-    bl_broken = bl_summary.get("broken", 0)
+    rows = ""
+    for link in bl.get("broken", [])[:20]:
+        loc = "Internal" if link.get("is_internal") else "External"
+        sev = "critical" if link.get("is_internal") else "warning"
+        status = link.get("status") or html_lib.escape(str(link.get("error", "?")))
+        rows += (
+            f'<tr><td><span class="priority-pill" data-severity="{sev}">{loc}</span></td>'
+            f'<td>{status}</td>'
+            f'<td class="url-cell">{html_lib.escape(str(link.get("url",""))[:80])}</td>'
+            f'<td>{html_lib.escape(str(link.get("anchor_text",""))[:40])}</td></tr>'
+        )
+    bl_body = (
+        f'<p><strong>Total:</strong> {bl_summary.get("total",0)} · '
+        f'<strong>Healthy:</strong> {bl_summary.get("healthy",0)} · '
+        f'<strong>Broken:</strong> {bl_summary.get("broken",0)} · '
+        f'<strong>Redirected:</strong> {bl_summary.get("redirected",0)}</p>'
+    )
+    if rows:
+        bl_body += (
+            '<table><thead><tr><th scope="col">Type</th><th scope="col">Status</th>'
+            '<th scope="col">URL</th><th scope="col">Anchor</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table>'
+        )
+    else:
+        bl_body += '<p style="color:var(--pass-text)">No broken links detected.</p>'
+    blocks.append(_details_block("broken_links", "Broken links", cats.get("broken_links"), bl_body))
 
-    # Internal links details
-    orphan_rows = ""
-    for orphan in il.get("orphan_candidates", [])[:15]:
-        orphan_rows += f'<tr><td class="link-url">{orphan["url"][:80]}</td><td>{orphan["incoming_links"]}</td></tr>'
-
-    il_pages = il.get("pages_crawled", 0)
-    il_total = il.get("total_internal_links", 0)
     il_dist = il.get("link_distribution", {})
+    rows = ""
+    for orphan in il.get("orphan_candidates", [])[:15]:
+        rows += (
+            f'<tr><td class="url-cell">{html_lib.escape(str(orphan.get("url",""))[:80])}</td>'
+            f'<td>{orphan.get("incoming_links","?")}</td></tr>'
+        )
+    il_body = (
+        f'<p><strong>Pages crawled:</strong> {il.get("pages_crawled",0)} · '
+        f'<strong>Internal links:</strong> {il.get("total_internal_links",0)} · '
+        f'<strong>Avg per page:</strong> {il_dist.get("avg",0)} · '
+        f'<strong>Orphans:</strong> {len(il.get("orphan_candidates", []))}</p>'
+    )
+    if rows:
+        il_body += (
+            '<h4 style="margin:12px 0 6px;">Potential orphan pages</h4>'
+            '<table><thead><tr><th scope="col">URL</th>'
+            f'<th scope="col">Incoming</th></tr></thead><tbody>{rows}</tbody></table>'
+        )
+    blocks.append(_details_block("internal_links", "Internal link structure", cats.get("internal_links"), il_body))
 
-    # Redirect details
-    redirect_rows = ""
+    rows = ""
     for hop in red.get("chain", []):
         status = hop.get("status", "?")
-        time_ms = hop.get("time_ms", 0)
         if hop.get("final"):
-            icon_c = "pass" if 200 <= status < 300 else "critical"
-            redirect_rows += f'<tr><td>{hop["step"]}</td><td><span class="badge {icon_c}">{status}</span></td><td class="link-url">{hop["url"][:80]}</td><td>{time_ms}ms</td><td>FINAL</td></tr>'
+            sev = "pass" if isinstance(status, int) and 200 <= status < 300 else "critical"
+            tail = "FINAL"
         else:
-            redirect_rows += f'<tr><td>{hop["step"]}</td><td><span class="badge warning">{status}</span></td><td class="link-url">{hop["url"][:80]}</td><td>{time_ms}ms</td><td>{hop.get("redirect_type", "")}</td></tr>'
+            sev = "warning"
+            tail = html_lib.escape(str(hop.get("redirect_type", "")))
+        rows += (
+            f'<tr><td>{hop.get("step","?")}</td>'
+            f'<td><span class="priority-pill" data-severity="{sev}">{status}</span></td>'
+            f'<td class="url-cell">{html_lib.escape(str(hop.get("url",""))[:80])}</td>'
+            f'<td>{hop.get("time_ms",0)}ms</td><td>{tail}</td></tr>'
+        )
+    if rows:
+        red_body = (
+            '<table><thead><tr><th scope="col">#</th><th scope="col">Status</th>'
+            '<th scope="col">URL</th><th scope="col">Time</th>'
+            f'<th scope="col">Type</th></tr></thead><tbody>{rows}</tbody></table>'
+        )
+    else:
+        red_body = '<p style="color:var(--pass-text)">No redirect chain — direct access.</p>'
+    blocks.append(_details_block("redirects", "Redirect chain", cats.get("redirects"), red_body))
 
-    # Anchor text chart data
-    anchor_data = il.get("anchor_texts", {})
-    anchor_items = list(anchor_data.items())[:10]
-    anchor_bars = ""
-    if anchor_items:
-        max_val = max(v for _, v in anchor_items) if anchor_items else 1
-        for text, count in anchor_items:
-            pct = round(count / max_val * 100)
-            anchor_bars += f'<div class="bar-row"><span class="bar-label">{text[:25]}</span><div class="bar-track"><div class="bar-fill" style="width:{pct}%"></div></div><span class="bar-value">{count}</span></div>'
+    suggestions = "".join(
+        f'<li>{html_lib.escape(s)}</li>'
+        for s in (llm.get("quality", {}).get("suggestions") or [])
+    )
+    llm_body = (
+        f'<p><strong>llms.txt:</strong> {"Found" if llm.get("exists") else "Not found"} · '
+        f'<strong>llms-full.txt:</strong> {"Found" if llm.get("full_exists") else "Not found"} · '
+        f'<strong>Quality score:</strong> {llm.get("quality", {}).get("score", 0)}/100</p>'
+    )
+    if suggestions:
+        llm_body += f'<h4 style="margin:12px 0 6px;">Suggestions</h4><ul>{suggestions}</ul>'
+    blocks.append(_details_block("llms_txt", "AI search readiness (llms.txt)", cats.get("llms_txt"), llm_body))
 
-    html = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SEO Report — {domain}</title>
-<style>
-:root {{
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --card: #1e293b;
-    --card-border: #334155;
-    --text: #f1f5f9;
-    --text-muted: #94a3b8;
-    --accent: #6366f1;
-    --accent-glow: rgba(99, 102, 241, 0.3);
-    --green: #22c55e;
-    --yellow: #eab308;
-    --red: #ef4444;
-    --orange: #f97316;
-    --radius: 12px;
-}}
-[data-theme="light"] {{
-    --bg: #f8fafc;
-    --surface: #ffffff;
-    --card: #ffffff;
-    --card-border: #e2e8f0;
-    --text: #1e293b;
-    --text-muted: #64748b;
-    --accent-glow: rgba(99, 102, 241, 0.15);
-}}
-* {{ margin: 0; padding: 0; box-sizing: border-box; }}
-body {{
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
-    min-height: 100vh;
-}}
-.container {{ max-width: 1200px; margin: 0 auto; padding: 24px; }}
+    fd = psi.get("field_data") or psi.get("lab_data") or {}
+    psi_body = (
+        f'<p><strong>Performance score:</strong> {psi.get("performance_score","?")} · '
+        f'<strong>LCP:</strong> {fd.get("LCP","?")} · '
+        f'<strong>INP/TBT:</strong> {fd.get("INP", fd.get("TBT","?"))} · '
+        f'<strong>CLS:</strong> {fd.get("CLS","?")}</p>'
+    )
+    if psi.get("error") or psi.get("performance_score", 0) == 0:
+        psi_body += (
+            '<p style="color:var(--warning-text)"><strong>Note:</strong> '
+            'PageSpeed API returned an error or was rate-limited. '
+            'Re-run pagespeed.py with --api-key for confirmed values.</p>'
+        )
+    psi_body += render_recommendations(psi)
+    blocks.append(_details_block("pagespeed", "Performance & Core Web Vitals", cats.get("pagespeed"), psi_body))
 
-/* Header */
-.header {{
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
-    padding: 48px 0 60px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}}
-.header::before {{
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(ellipse at center, rgba(99,102,241,0.15) 0%, transparent 70%);
-    animation: pulse 4s ease-in-out infinite;
-}}
-@keyframes pulse {{ 0%,100% {{ opacity: 0.5; }} 50% {{ opacity: 1; }} }}
-.header h1 {{ font-size: 2rem; font-weight: 700; color: white; position: relative; }}
-.header .domain {{ font-size: 1.1rem; color: #a5b4fc; margin-top: 8px; position: relative; }}
-.header .timestamp {{ font-size: 0.85rem; color: #818cf8; margin-top: 4px; position: relative; }}
+    op_h1 = ""
+    if isinstance(op.get("h1"), list) and op.get("h1"):
+        op_h1 = op["h1"][0]
+    elif isinstance(op.get("h1"), str):
+        op_h1 = op["h1"]
+    op_body = (
+        '<table><thead><tr><th scope="col">Element</th>'
+        '<th scope="col">Value</th><th scope="col">Length</th></tr></thead><tbody>'
+        f'<tr><td>Title</td><td>{html_lib.escape(str(op.get("title","") or "—")[:120])}</td>'
+        f'<td>{len(str(op.get("title","") or ""))}</td></tr>'
+        f'<tr><td>Meta description</td>'
+        f'<td>{html_lib.escape(str(op.get("meta_description","") or "—")[:160])}</td>'
+        f'<td>{len(str(op.get("meta_description","") or ""))}</td></tr>'
+        f'<tr><td>H1</td><td>{html_lib.escape(str(op_h1)[:120] or "—")}</td><td>—</td></tr>'
+        f'<tr><td>Canonical</td>'
+        f'<td class="url-cell">{html_lib.escape(str(op.get("canonical","") or "—")[:120])}</td>'
+        '<td>—</td></tr></tbody></table>'
+    )
+    op_body += render_recommendations(op)
+    blocks.append(_details_block("onpage", "On-page SEO", cats.get("onpage"), op_body))
 
-/* Theme Toggle */
-.theme-toggle {{
-    position: fixed; top: 16px; right: 16px; z-index: 100;
-    background: var(--surface); border: 1px solid var(--card-border);
-    border-radius: 50%; width: 44px; height: 44px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 1.2rem; transition: all 0.3s;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}}
-.theme-toggle:hover {{ transform: scale(1.1); }}
+    rd_body = (
+        f'<p><strong>Flesch ease:</strong> {rd.get("flesch_reading_ease","?")} · '
+        f'<strong>Grade:</strong> {rd.get("flesch_kincaid_grade","?")} · '
+        f'<strong>Words:</strong> {rd.get("word_count","?")} · '
+        f'<strong>Read time:</strong> {rd.get("estimated_reading_time_min","?")} min</p>'
+    )
+    rd_body += render_recommendations(rd)
+    rd_body += render_readability_rewrites(rd)
+    blocks.append(_details_block("readability", "Readability", cats.get("readability"), rd_body))
 
-/* Overall Score */
-.score-hero {{
-    display: flex; justify-content: center; align-items: center;
-    gap: 48px; padding: 40px 0; flex-wrap: wrap;
-}}
-.score-gauge {{ position: relative; width: 180px; height: 180px; }}
-.score-gauge svg {{ width: 100%; height: 100%; }}
-.score-gauge .gauge-value {{
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    text-align: center;
-}}
-.score-gauge .gauge-number {{ font-size: 3rem; font-weight: 800; color: {grade_color}; }}
-.score-gauge .gauge-grade {{ font-size: 1rem; color: var(--text-muted); }}
-.score-stats {{ display: flex; gap: 24px; }}
-.stat-card {{
-    background: var(--card); border: 1px solid var(--card-border);
-    border-radius: var(--radius); padding: 20px 28px; text-align: center;
-    min-width: 100px;
-}}
-.stat-value {{ font-size: 2rem; font-weight: 700; }}
-.stat-label {{ font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }}
-.stat-critical .stat-value {{ color: var(--red); }}
-.stat-warning .stat-value {{ color: var(--yellow); }}
-.stat-pass .stat-value {{ color: var(--green); }}
+    art_body = (
+        f'<p><strong>Words:</strong> {art.get("word_count","?")} · '
+        f'<strong>H2s:</strong> {len(art.get("headings", {}).get("h2", []))} · '
+        f'<strong>Images:</strong> {len(art.get("images", []))}</p>'
+        '<table><thead><tr><th scope="col">Target keyword</th>'
+        '<th scope="col">LSI / related</th></tr></thead><tbody>'
+        f'<tr><td>{html_lib.escape(str(art.get("target_keyword","—") or "—"))}</td>'
+        f'<td>{html_lib.escape(", ".join(art.get("lsi_keywords", [])) or "—")}</td></tr>'
+        '</tbody></table>'
+    )
+    art_body += render_recommendations(art)
+    blocks.append(_details_block("article", "Article info & keywords", cats.get("article"), art_body))
 
-/* Category Cards Grid */
-.categories {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin: 32px 0; }}
-.category-card {{
-    background: var(--card); border: 1px solid var(--card-border);
-    border-radius: var(--radius); padding: 20px; text-align: center;
-    cursor: pointer; transition: all 0.3s;
-    position: relative;
-}}
-.category-card:hover {{ transform: translateY(-4px); box-shadow: 0 8px 24px var(--accent-glow); border-color: var(--accent); }}
-.category-card .ring {{ width: 70px; height: 70px; margin: 0 auto 8px; }}
-.category-card .ring-label {{
-    position: absolute; top: 52px; left: 50%; transform: translate(-50%, -50%);
-    font-size: 1.1rem; font-weight: 700;
-}}
-.ring-progress {{ transition: stroke-dasharray 1s ease; }}
-.category-icon {{ font-size: 1.3rem; margin: 4px 0; }}
-.category-name {{ font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }}
+    sa = ent.get("sameas_analysis", {})
+    ent_body = (
+        f'<p><strong>Wikidata:</strong> {"Found" if ent.get("wikidata", {}).get("found") else "Missing"} · '
+        f'<strong>Wikipedia:</strong> {"Found" if ent.get("wikipedia", {}).get("found") else "Missing"} · '
+        f'<strong>sameAs links:</strong> {sa.get("total_found",0)}</p>'
+    )
+    ent_body += render_recommendations(ent)
+    blocks.append(_details_block("entity", "Entity SEO", cats.get("entity"), ent_body))
 
-/* Sections */
-.section {{
-    background: var(--card); border: 1px solid var(--card-border);
-    border-radius: var(--radius); margin: 24px 0; overflow: hidden;
-}}
-.section-header {{
-    padding: 20px 24px; cursor: pointer; display: flex;
-    align-items: center; justify-content: space-between;
-    transition: background 0.2s;
-}}
-.section-header:hover {{ background: rgba(99,102,241,0.05); }}
-.section-header h2 {{ font-size: 1.15rem; font-weight: 600; display: flex; align-items: center; gap: 10px; }}
-.section-header .chevron {{ transition: transform 0.3s; font-size: 1.2rem; color: var(--text-muted); }}
-.section-header .chevron.open {{ transform: rotate(180deg); }}
-.section-body {{ padding: 0 24px 24px; display: none; }}
-.section-body.open {{ display: block; animation: fadeIn 0.3s; }}
-@keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(-8px); }} to {{ opacity: 1; transform: translateY(0); }} }}
+    lp_body = (
+        f'<p><strong>Pages crawled:</strong> {lp.get("pages_crawled","?")} · '
+        f'<strong>Avg internal links:</strong> {lp.get("avg_internal_links_per_page","?")} · '
+        f'<strong>Orphans:</strong> {lp.get("orphan_pages", {}).get("count",0)} · '
+        f'<strong>Dead ends:</strong> {lp.get("dead_end_pages", {}).get("count",0)}</p>'
+    )
+    lp_body += render_recommendations(lp)
+    blocks.append(_details_block("link_profile", "Link profile", cats.get("link_profile"), lp_body))
 
-/* Tables */
-table {{ width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9rem; }}
-th {{ text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--card-border); color: var(--text-muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }}
-td {{ padding: 10px 12px; border-bottom: 1px solid var(--card-border); vertical-align: top; }}
-tr:last-child td {{ border-bottom: none; }}
-tr:hover td {{ background: rgba(99,102,241,0.03); }}
-.mono {{ font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; }}
-.link-url {{ word-break: break-all; max-width: 400px; color: var(--accent); }}
+    hf_body = (
+        f'<p><strong>Implementation:</strong> {html_lib.escape(str(hf.get("implementation_method","none")))} · '
+        f'<strong>Tags found:</strong> {hf.get("hreflang_tags_found",0)}</p>'
+    )
+    if hf.get("hreflang_tags_found", 0) == 0:
+        hf_body += '<p style="color:var(--muted)">No hreflang tags found — expected for single-language sites.</p>'
+    else:
+        hf_body += render_recommendations(hf)
+    blocks.append(_details_block("hreflang", "Hreflang / international SEO", cats.get("hreflang"), hf_body))
 
-/* Badges */
-.badge {{
-    display: inline-block; padding: 2px 10px; border-radius: 100px;
-    font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-}}
-.badge.critical {{ background: rgba(239,68,68,0.15); color: var(--red); }}
-.badge.warning {{ background: rgba(234,179,8,0.15); color: var(--yellow); }}
-.badge.pass {{ background: rgba(34,197,94,0.15); color: var(--green); }}
-.badge.info {{ background: rgba(99,102,241,0.15); color: var(--accent); }}
+    dc_body = (
+        f'<p><strong>Pages analyzed:</strong> {dc.get("pages_analyzed","?")} · '
+        f'<strong>Near-duplicates:</strong> {len(dc.get("near_duplicates", []))} · '
+        f'<strong>Thin pages:</strong> {len(dc.get("thin_pages", []))}</p>'
+    )
+    dc_body += render_recommendations(dc)
+    blocks.append(_details_block("duplicate_content", "Content uniqueness", cats.get("duplicate_content"), dc_body))
 
-/* Issues */
-.issue-item {{
-    padding: 12px 16px; border-radius: 8px; margin: 6px 0;
-    font-size: 0.9rem; display: flex; align-items: flex-start; gap: 10px;
-}}
-.issue-item.critical {{ background: rgba(239,68,68,0.08); border-left: 3px solid var(--red); }}
-.issue-item.warning {{ background: rgba(234,179,8,0.08); border-left: 3px solid var(--yellow); }}
-.issue-item.info {{ background: rgba(99,102,241,0.08); border-left: 3px solid var(--accent); }}
-.issue-badge {{ flex-shrink: 0; }}
+    blocks.append(_details_block(
+        "recommendations", "All recommendations", None, render_all_recommendations(data),
+    ))
 
-/* Bar Chart */
-.bar-row {{ display: flex; align-items: center; gap: 10px; margin: 6px 0; }}
-.bar-label {{ width: 150px; font-size: 0.85rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); }}
-.bar-track {{ flex: 1; height: 22px; background: var(--card-border); border-radius: 4px; overflow: hidden; }}
-.bar-fill {{ height: 100%; background: linear-gradient(90deg, var(--accent), #818cf8); border-radius: 4px; transition: width 1s ease; }}
-.bar-value {{ width: 30px; font-size: 0.85rem; font-weight: 600; }}
+    return "\n".join(blocks)
 
-/* Summary cards row */
-.summary-row {{ display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }}
-.summary-item {{
-    flex: 1; min-width: 120px; background: var(--bg); border-radius: 8px;
-    padding: 16px; text-align: center;
-}}
-.summary-item .val {{ font-size: 1.5rem; font-weight: 700; }}
-.summary-item .lbl {{ font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }}
 
-/* Footer */
-.footer {{ text-align: center; padding: 32px 0; color: var(--text-muted); font-size: 0.8rem; }}
+def generate_html(data: dict, scores: dict, artifacts: list, rows: list) -> str:
+    """Render the SEO dashboard from templates/dashboard.html + brand.json."""
+    template, brand = _load_template_files()
+    overall = int(scores.get("overall", 0))
+    rating = _score_rating(overall)
+    domain = data.get("domain", "")
+    url = data.get("url", "")
+    audit_date = data.get("timestamp", datetime.now().isoformat())[:10]
+    env_platform = data.get("environment", {}).get("primary", "Unknown")
 
-@media (max-width: 768px) {{
-    .score-hero {{ flex-direction: column; gap: 24px; }}
-    .score-stats {{ flex-wrap: wrap; justify-content: center; }}
-    .categories {{ grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }}
-    .container {{ padding: 16px; }}
-}}
-</style>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-</head>
-<body>
+    critical_count = sum(1 for r in rows if r["priority"] == "Critical")
+    warning_count = sum(1 for r in rows if r["priority"] == "Warning")
+    info_count = sum(1 for r in rows if r["priority"] == "Info")
+    pass_count = sum(
+        1 for fix in (data.get("environment_fixes") or [])
+        if (fix.get("severity") or "").lower() == "pass"
+    )
 
-<div class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</div>
+    substitutions = {
+        "REPORT_TITLE": brand.get("report_title", "SEO Audit Dashboard"),
+        "REPORT_SUBTITLE": brand.get("report_subtitle", ""),
+        "AGENCY_NAME": brand.get("agency_name", ""),
+        "AGENCY_KICKER": brand.get("agency_kicker", "SEO Audit"),
+        "AGENCY_LOGO": brand.get("agency_logo", "assets/agency-logo.svg"),
+        "DOWNLOADS_NOTE": brand.get("downloads_note", ""),
+        "TASKS_NOTE": brand.get("tasks_note", ""),
+        "FOOTER_TEXT": brand.get("footer_text", ""),
+        "DISPLAY_FONT": brand.get("display_font", "Georgia, serif"),
+        "BODY_FONT": brand.get("body_font", "system-ui, sans-serif"),
+        "UI_FONT": brand.get("ui_font", "system-ui, sans-serif"),
+        "BRAND_BG": brand.get("brand_bg", "#f4efe8"),
+        "BRAND_BG_TOP": brand.get("brand_bg_top", "#ebe0cf"),
+        "BRAND_SURFACE": brand.get("brand_surface", "#fcfcfc"),
+        "BRAND_TEXT": brand.get("brand_text", "#121212"),
+        "BRAND_MUTED": brand.get("brand_muted", "#665f57"),
+        "BRAND_ACCENT": brand.get("brand_accent", "#007DA3"),
+        "BRAND_ACCENT_2": brand.get("brand_accent_2", "#7F507A"),
+        "BRAND_LINE": brand.get("brand_line", "#dfd3c3"),
+        "BRAND_SHADOW": brand.get("brand_shadow", "rgba(32,22,12,0.12)"),
+        "BRAND_GLOW_1": brand.get("brand_glow_1", "rgba(182,90,46,0.14)"),
+        "BRAND_GLOW_2": brand.get("brand_glow_2", "rgba(15,118,110,0.12)"),
+        "HERO_BG_1": brand.get("hero_bg_1", "#fcfcfc"),
+        "HERO_BG_2": brand.get("hero_bg_2", "#fcfcfc"),
+        "TABLE_HEAD_BG": brand.get("table_head_bg", "#f3eadb"),
+        "PRIORITY_BG": brand.get("priority_bg", "#f8e0d7"),
+        "PRIORITY_TEXT": brand.get("priority_text", "#8d3f1e"),
+        "AUDIT_URL": url,
+        "AUDIT_DOMAIN": domain,
+        "AUDIT_DATE": audit_date,
+        "ENV_PLATFORM": env_platform,
+        "SCORE_VALUE": str(overall),
+        "SCORE_RATING": rating,
+        "CRITICAL_COUNT": str(critical_count),
+        "WARNING_COUNT": str(warning_count),
+        "INFO_COUNT": str(info_count),
+        "PASS_COUNT": str(pass_count),
+        "CATEGORY_CARDS": _render_category_cards(scores),
+        "DOWNLOAD_LINKS": _render_download_links(artifacts),
+        "TASK_ROWS": _render_task_rows(rows),
+        "DETAILED_SECTIONS": _render_detailed_sections(data, scores),
+    }
 
-<div class="header">
-    <div class="container">
-        <h1>SEO Analysis Report</h1>
-        <div class="domain">{domain}</div>
-        <div class="timestamp">Generated: {datetime.fromisoformat(timestamp).strftime("%B %d, %Y at %I:%M %p")}</div>
-    </div>
-</div>
-
-<div class="container">
-
-    <!-- Overall Score -->
-    <div class="score-hero">
-        <div class="score-gauge">
-            <svg viewBox="0 0 200 200">
-                <circle cx="100" cy="100" r="85" fill="none" stroke="var(--card-border)" stroke-width="12"/>
-                <circle cx="100" cy="100" r="85" fill="none" stroke="{grade_color}" stroke-width="12"
-                    stroke-dasharray="{round(overall * 5.341, 1)} 534.07" stroke-linecap="round"
-                    transform="rotate(-90 100 100)"/>
-            </svg>
-            <div class="gauge-value">
-                <div class="gauge-number">{overall}</div>
-                <div class="gauge-grade">Grade: {grade}</div>
-            </div>
-        </div>
-        <div class="score-stats">
-            <div class="stat-card stat-critical">
-                <div class="stat-value">{critical_count}</div>
-                <div class="stat-label">Critical</div>
-            </div>
-            <div class="stat-card stat-warning">
-                <div class="stat-value">{warning_count}</div>
-                <div class="stat-label">Warnings</div>
-            </div>
-            <div class="stat-card stat-pass">
-                <div class="stat-value">{pass_count}</div>
-                <div class="stat-label">Info</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Category Cards -->
-    <div class="categories">
-        {category_cards}
-    </div>
-
-    <!-- Environment Detection -->
-    <div class="section" id="section-environment">
-        <div class="section-header" onclick="toggleSection('environment')">
-            <h2>🧭 Environment Detection (LLM-Inferred)</h2>
-            <span class="chevron" id="chevron-environment">▼</span>
-        </div>
-        <div class="section-body" id="body-environment">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{env_primary}</div><div class="lbl">Primary Platform</div></div>
-                <div class="summary-item"><div class="val">{env_runtime}</div><div class="lbl">Runtime Type</div></div>
-                <div class="summary-item"><div class="val">{env_confidence}</div><div class="lbl">Confidence</div></div>
-                <div class="summary-item"><div class="val">{len(env.get("signals", []))}</div><div class="lbl">Matched Signals</div></div>
-            </div>
-            <h3 style="margin: 16px 0 8px; font-size: 0.95rem;">Detection Signals</h3>
-            <ul style="padding-left:20px;">{env_signals_html}</ul>
-            {f'<p style="margin-top:10px;color:var(--text-muted)"><strong>Alternative matches:</strong> {", ".join(env_alts)}</p>' if env_alts else ''}
-        </div>
-    </div>
-
-    <!-- Environment-specific Fix Plan -->
-    <div class="section" id="section-env_fixes">
-        <div class="section-header" onclick="toggleSection('env_fixes')">
-            <h2>🛠️ Environment-Specific Fix Plan</h2>
-            <span class="chevron" id="chevron-env_fixes">▼</span>
-        </div>
-        <div class="section-body" id="body-env_fixes">
-            {env_fixes_html}
-        </div>
-    </div>
-
-    <!-- Issues Summary -->
-    <div class="section" id="section-issues">
-        <div class="section-header" onclick="toggleSection('issues')">
-            <h2>🚨 All Issues ({len(all_issues)})</h2>
-            <span class="chevron" id="chevron-issues">▼</span>
-        </div>
-        <div class="section-body" id="body-issues">
-            {issues_html if issues_html else '<p style="color:var(--text-muted)">No issues found — excellent!</p>'}
-        </div>
-    </div>
-
-    <!-- Security Headers -->
-    <div class="section" id="section-security">
-        <div class="section-header" onclick="toggleSection('security')">
-            <h2>🔒 Security Headers <span class="badge {"pass" if scores["categories"].get("security",0) >= 80 else "warning" if scores["categories"].get("security",0) >= 50 else "critical"}">{scores["categories"].get("security",0)}/100</span></h2>
-            <span class="chevron" id="chevron-security">▼</span>
-        </div>
-        <div class="section-body" id="body-security">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{"✅" if sec.get("https") else "❌"}</div><div class="lbl">HTTPS</div></div>
-                <div class="summary-item"><div class="val">{len(sec.get("headers_present", {}))}</div><div class="lbl">Present</div></div>
-                <div class="summary-item"><div class="val">{len(sec.get("headers_missing", {}))}</div><div class="lbl">Missing</div></div>
-            </div>
-            <table>
-                <thead><tr><th>Header</th><th>Status</th><th>Value / Description</th></tr></thead>
-                <tbody>{security_rows}</tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Social Meta -->
-    <div class="section" id="section-social">
-        <div class="section-header" onclick="toggleSection('social')">
-            <h2>📱 Social Meta Tags <span class="badge {"pass" if scores["categories"].get("social",0) >= 80 else "warning" if scores["categories"].get("social",0) >= 50 else "critical"}">{scores["categories"].get("social",0)}/100</span></h2>
-            <span class="chevron" id="chevron-social">▼</span>
-        </div>
-        <div class="section-body" id="body-social">
-            <table>
-                <thead><tr><th>Tag</th><th>Status</th><th>Value</th></tr></thead>
-                <tbody>{social_rows}</tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- AI Crawlers -->
-    <div class="section" id="section-robots">
-        <div class="section-header" onclick="toggleSection('robots')">
-            <h2>🤖 Robots & AI Crawlers <span class="badge {"pass" if scores["categories"].get("robots",0) >= 80 else "warning" if scores["categories"].get("robots",0) >= 50 else "critical"}">{scores["categories"].get("robots",0)}/100</span></h2>
-            <span class="chevron" id="chevron-robots">▼</span>
-        </div>
-        <div class="section-body" id="body-robots">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{rob.get("status", "?")}</div><div class="lbl">robots.txt</div></div>
-                <div class="summary-item"><div class="val">{len(rob.get("sitemaps", []))}</div><div class="lbl">Sitemaps</div></div>
-                <div class="summary-item"><div class="val">{len(rob.get("user_agents", {}))}</div><div class="lbl">User-Agents</div></div>
-            </div>
-            <h3 style="margin: 16px 0 8px; font-size: 0.95rem;">AI Crawler Management</h3>
-            <table>
-                <thead><tr><th>Crawler</th><th>Status</th><th>Details</th></tr></thead>
-                <tbody>{ai_rows}</tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Broken Links -->
-    <div class="section" id="section-broken_links">
-        <div class="section-header" onclick="toggleSection('broken_links')">
-            <h2>🔗 Broken Links <span class="badge {"pass" if bl_broken == 0 else "critical"}">{bl_broken} broken / {bl_total} total</span></h2>
-            <span class="chevron" id="chevron-broken_links">▼</span>
-        </div>
-        <div class="section-body" id="body-broken_links">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val" style="color:var(--green)">{bl_healthy}</div><div class="lbl">Healthy</div></div>
-                <div class="summary-item"><div class="val" style="color:var(--red)">{bl_broken}</div><div class="lbl">Broken</div></div>
-                <div class="summary-item"><div class="val" style="color:var(--yellow)">{bl_summary.get("redirected", 0)}</div><div class="lbl">Redirected</div></div>
-                <div class="summary-item"><div class="val" style="color:var(--orange)">{bl_summary.get("timeout", 0)}</div><div class="lbl">Timeout</div></div>
-            </div>
-            {"<table><thead><tr><th>Type</th><th>Status</th><th>URL</th><th>Anchor</th></tr></thead><tbody>" + broken_rows + "</tbody></table>" if broken_rows else '<p style="color:var(--green);margin-top:12px">✅ No broken links found</p>'}
-        </div>
-    </div>
-
-    <!-- Internal Links -->
-    <div class="section" id="section-internal_links">
-        <div class="section-header" onclick="toggleSection('internal_links')">
-            <h2>🕸️ Internal Link Structure <span class="badge {"pass" if scores["categories"].get("internal_links",0) >= 80 else "warning" if scores["categories"].get("internal_links",0) >= 50 else "critical"}">{scores["categories"].get("internal_links",0)}/100</span></h2>
-            <span class="chevron" id="chevron-internal_links">▼</span>
-        </div>
-        <div class="section-body" id="body-internal_links">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{il_pages}</div><div class="lbl">Pages Crawled</div></div>
-                <div class="summary-item"><div class="val">{il_total}</div><div class="lbl">Internal Links</div></div>
-                <div class="summary-item"><div class="val">{il_dist.get("avg", 0)}</div><div class="lbl">Avg Links/Page</div></div>
-                <div class="summary-item"><div class="val">{len(il.get("orphan_candidates", []))}</div><div class="lbl">Orphan Pages</div></div>
-            </div>
-            {f'<h3 style="margin:16px 0 8px;font-size:0.95rem;">Top Anchor Texts</h3>' + anchor_bars if anchor_bars else ''}
-            {f'<h3 style="margin:16px 0 8px;font-size:0.95rem;">Potential Orphan Pages</h3><table><thead><tr><th>URL</th><th>Incoming Links</th></tr></thead><tbody>{orphan_rows}</tbody></table>' if orphan_rows else ''}
-        </div>
-    </div>
-
-    <!-- Redirects -->
-    <div class="section" id="section-redirects">
-        <div class="section-header" onclick="toggleSection('redirects')">
-            <h2>↪️ Redirect Chain <span class="badge {"pass" if red.get("total_hops", 0) <= 1 else "warning"}">{red.get("total_hops", 0)} hops</span></h2>
-            <span class="chevron" id="chevron-redirects">▼</span>
-        </div>
-        <div class="section-body" id="body-redirects">
-            {f'<table><thead><tr><th>#</th><th>Status</th><th>URL</th><th>Time</th><th>Type</th></tr></thead><tbody>{redirect_rows}</tbody></table>' if redirect_rows else '<p style="color:var(--green)">✅ No redirects — direct access</p>'}
-        </div>
-    </div>
-
-    <!-- llms.txt -->
-    <div class="section" id="section-llms_txt">
-        <div class="section-header" onclick="toggleSection('llms_txt')">
-            <h2>🧠 AI Search Readiness (llms.txt) <span class="badge {"pass" if llm.get("exists") else "critical"}">{"Found" if llm.get("exists") else "Not Found"}</span></h2>
-            <span class="chevron" id="chevron-llms_txt">▼</span>
-        </div>
-        <div class="section-body" id="body-llms_txt">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{"✅" if llm.get("exists") else "❌"}</div><div class="lbl">llms.txt</div></div>
-                <div class="summary-item"><div class="val">{"✅" if llm.get("full_exists") else "❌"}</div><div class="lbl">llms-full.txt</div></div>
-                <div class="summary-item"><div class="val">{llm.get("quality", {}).get("score", 0)}</div><div class="lbl">Quality Score</div></div>
-            </div>
-            {"".join(f'<div class="issue-item warning"><span class="issue-badge">TIP</span> {s}</div>' for s in llm.get("quality", {}).get("suggestions", []))}
-        </div>
-    </div>
-
-    <!-- PageSpeed / Core Web Vitals -->
-    <div class="section" id="section-pagespeed">
-        <div class="section-header" onclick="toggleSection('pagespeed')">
-            <h2>⚡ Performance & Core Web Vitals <span class="badge {"pass" if scores["categories"].get("pagespeed",0) >= 80 else "warning" if scores["categories"].get("pagespeed",0) >= 50 else "critical"}">{scores["categories"].get("pagespeed",0)}/100</span></h2>
-            <span class="chevron" id="chevron-pagespeed">▼</span>
-        </div>
-        <div class="section-body" id="body-pagespeed">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{psi.get("performance_score", "?")}</div><div class="lbl">Performance</div></div>
-                <div class="summary-item"><div class="val">{psi.get("field_data", psi.get("lab_data", {})).get("LCP", "?")}</div><div class="lbl">LCP</div></div>
-                <div class="summary-item"><div class="val">{psi.get("field_data", psi.get("lab_data", {})).get("INP", psi.get("field_data", psi.get("lab_data", {})).get("TBT", "?"))}</div><div class="lbl">INP/TBT</div></div>
-                <div class="summary-item"><div class="val">{psi.get("field_data", psi.get("lab_data", {})).get("CLS", "?")}</div><div class="lbl">CLS</div></div>
-            </div>
-            {'<div class="issue-item warning"><span class="issue-badge">NOTE</span> <div><strong>PageSpeed API returned an error or was rate-limited.</strong><br><span style="color:var(--text-muted)">Try running <code>python3 scripts/pagespeed.py URL --api-key YOUR_KEY</code> manually, or rerun the report later. The LLM can still analyze Core Web Vitals by reading the page directly.</span></div></div>' if psi.get('error') or psi.get('performance_score', 0) == 0 else ''}
-            {render_recommendations(psi)}
-        </div>
-    </div>
-
-    <!-- On-Page SEO -->
-    <div class="section" id="section-onpage">
-        <div class="section-header" onclick="toggleSection('onpage')">
-            <h2>📝 On-Page SEO <span class="badge {"pass" if scores["categories"].get("onpage",0) >= 80 else "warning" if scores["categories"].get("onpage",0) >= 50 else "critical"}">{scores["categories"].get("onpage",0)}/100</span></h2>
-            <span class="chevron" id="chevron-onpage">▼</span>
-        </div>
-        <div class="section-body" id="body-onpage">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{'✅' if op.get('title') else '❌'}</div><div class="lbl">Title Tag</div></div>
-                <div class="summary-item"><div class="val">{'✅' if op.get('meta_description') else '❌'}</div><div class="lbl">Meta Desc</div></div>
-                <div class="summary-item"><div class="val">{'✅' if op.get('h1') else '❌'}</div><div class="lbl">H1</div></div>
-                <div class="summary-item"><div class="val">{'✅' if op.get('canonical') else '❌'}</div><div class="lbl">Canonical</div></div>
-            </div>
-            <table>
-                <thead><tr><th>Element</th><th>Value</th><th>Length</th></tr></thead>
-                <tbody>
-                    <tr><td>Title</td><td>{(op.get('title','') or '—')[:70]}</td><td>{len(op.get('title','') or '')}</td></tr>
-                    <tr><td>Meta Description</td><td>{(op.get('meta_description','') or '—')[:100]}</td><td>{len(op.get('meta_description','') or '')}</td></tr>
-                    <tr><td>H1</td><td>{(op.get('h1',[''])[0] if isinstance(op.get('h1'), list) and op.get('h1') else op.get('h1','') or '—')[:70]}</td><td>—</td></tr>
-                    <tr><td>Canonical</td><td class="link-url">{op.get('canonical','—')[:80]}</td><td>—</td></tr>
-                </tbody>
-            </table>
-            {render_recommendations(op)}
-        </div>
-    </div>
-
-    <!-- Readability -->
-    <div class="section" id="section-readability">
-        <div class="section-header" onclick="toggleSection('readability')">
-            <h2>📖 Readability <span class="badge {"pass" if scores["categories"].get("readability",0) >= 80 else "warning" if scores["categories"].get("readability",0) >= 50 else "critical"}">{scores["categories"].get("readability",0)}/100</span></h2>
-            <span class="chevron" id="chevron-readability">▼</span>
-        </div>
-        <div class="section-body" id="body-readability">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{rd.get('flesch_reading_ease', '?')}</div><div class="lbl">Flesch Score</div></div>
-                <div class="summary-item"><div class="val">{rd.get('flesch_kincaid_grade', '?')}</div><div class="lbl">Grade Level</div></div>
-                <div class="summary-item"><div class="val">{rd.get('word_count', '?')}</div><div class="lbl">Words</div></div>
-                <div class="summary-item"><div class="val">{rd.get('estimated_reading_time_min', '?')} min</div><div class="lbl">Read Time</div></div>
-            </div>
-            {render_recommendations(rd)}
-            {render_readability_rewrites(rd)}
-        </div>
-    </div>
-
-    <!-- Article SEO Extractor -->
-    <div class="section" id="section-article">
-        <div class="section-header" onclick="toggleSection('article')">
-            <h2>📄 Article Info & Keywords <span class="badge {"pass" if scores["categories"].get("article",0) >= 80 else "warning" if scores["categories"].get("article",0) >= 50 else "critical"}">{scores["categories"].get("article",0)}/100</span></h2>
-            <span class="chevron" id="chevron-article">▼</span>
-        </div>
-        <div class="section-body" id="body-article">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{art.get('word_count', '?')}</div><div class="lbl">Words</div></div>
-                <div class="summary-item"><div class="val">{len(art.get('headings', dict()).get('h2', []))}</div><div class="lbl">H2 Headings</div></div>
-                <div class="summary-item"><div class="val">{len(art.get('images', []))}</div><div class="lbl">Images</div></div>
-            </div>
-            <h3 style="margin: 16px 0 8px; font-size: 0.95rem;">Extracted Keywords</h3>
-            <table>
-                <thead><tr><th>Target Keyword</th><th>LSI / Related Keywords</th></tr></thead>
-                <tbody>
-                    <tr>
-                        <td style="font-weight: 600; color: var(--accent);">{art.get('target_keyword', '—')}</td>
-                        <td>{', '.join(art.get('lsi_keywords', [])) if art.get('lsi_keywords') else '—'}</td>
-                    </tr>
-                </tbody>
-            </table>
-            {render_recommendations(art)}
-        </div>
-    </div>
-
-    <!-- Entity SEO -->
-    <div class="section" id="section-entity">
-        <div class="section-header" onclick="toggleSection('entity')">
-            <h2>🏛️ Entity SEO <span class="badge {"pass" if scores["categories"].get("entity",0) >= 50 else "warning" if scores["categories"].get("entity",0) >= 20 else "critical"}">{scores["categories"].get("entity",0)}/100</span></h2>
-            <span class="chevron" id="chevron-entity">▼</span>
-        </div>
-        <div class="section-body" id="body-entity">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{'✅' if ent.get('wikidata', {}).get('found') else '❌'}</div><div class="lbl">Wikidata</div></div>
-                <div class="summary-item"><div class="val">{'✅' if ent.get('wikipedia', {}).get('found') else '❌'}</div><div class="lbl">Wikipedia</div></div>
-                <div class="summary-item"><div class="val">{ent.get('sameas_analysis', {}).get('total_found', 0)}</div><div class="lbl">sameAs Links</div></div>
-                <div class="summary-item"><div class="val">{len(ent.get('issues', []))}</div><div class="lbl">Issues</div></div>
-            </div>
-            {render_recommendations(ent)}
-        </div>
-    </div>
-
-    <!-- Link Profile -->
-    <div class="section" id="section-link_profile">
-        <div class="section-header" onclick="toggleSection('link_profile')">
-            <h2>🔗 Link Profile <span class="badge {"pass" if scores["categories"].get("link_profile",0) >= 70 else "warning" if scores["categories"].get("link_profile",0) >= 40 else "critical"}">{scores["categories"].get("link_profile",0)}/100</span></h2>
-            <span class="chevron" id="chevron-link_profile">▼</span>
-        </div>
-        <div class="section-body" id="body-link_profile">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{lp.get('pages_crawled', '?')}</div><div class="lbl">Pages Crawled</div></div>
-                <div class="summary-item"><div class="val">{lp.get('avg_internal_links_per_page', '?')}</div><div class="lbl">Avg Links/Page</div></div>
-                <div class="summary-item"><div class="val">{lp.get('orphan_pages', {}).get('count', 0)}</div><div class="lbl">Orphan Pages</div></div>
-                <div class="summary-item"><div class="val">{lp.get('dead_end_pages', {}).get('count', 0)}</div><div class="lbl">Dead Ends</div></div>
-            </div>
-            {render_recommendations(lp)}
-        </div>
-    </div>
-
-    <!-- Hreflang -->
-    <div class="section" id="section-hreflang">
-        <div class="section-header" onclick="toggleSection('hreflang')">
-            <h2>🌍 Hreflang / International SEO <span class="badge {"pass" if hf.get('hreflang_tags_found', 0) > 0 else "info"}">{hf.get('hreflang_tags_found', 0)} tags</span></h2>
-            <span class="chevron" id="chevron-hreflang">▼</span>
-        </div>
-        <div class="section-body" id="body-hreflang">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{hf.get('implementation_method', 'none')}</div><div class="lbl">Method</div></div>
-                <div class="summary-item"><div class="val">{hf.get('hreflang_tags_found', 0)}</div><div class="lbl">Tags Found</div></div>
-            </div>
-            {'<p style="color:var(--text-muted);margin-top:12px">No hreflang tags found — this is expected for single-language sites.</p>' if hf.get('hreflang_tags_found', 0) == 0 else render_recommendations(hf)}
-        </div>
-    </div>
-
-    <!-- Duplicate Content -->
-    <div class="section" id="section-duplicate_content">
-        <div class="section-header" onclick="toggleSection('duplicate_content')">
-            <h2>📋 Content Uniqueness <span class="badge {"pass" if len(dc.get('near_duplicates', [])) == 0 else "warning"}">{len(dc.get('near_duplicates', []))} dupes / {len(dc.get('thin_pages', []))} thin</span></h2>
-            <span class="chevron" id="chevron-duplicate_content">▼</span>
-        </div>
-        <div class="section-body" id="body-duplicate_content">
-            <div class="summary-row">
-                <div class="summary-item"><div class="val">{dc.get('pages_analyzed', '?')}</div><div class="lbl">Pages Analyzed</div></div>
-                <div class="summary-item"><div class="val">{len(dc.get('near_duplicates', []))}</div><div class="lbl">Near Duplicates</div></div>
-                <div class="summary-item"><div class="val">{len(dc.get('thin_pages', []))}</div><div class="lbl">Thin Pages</div></div>
-            </div>
-            {render_recommendations(dc)}
-        </div>
-    </div>
-
-    <!-- Recommendations Summary -->
-    <div class="section" id="section-recs">
-        <div class="section-header" onclick="toggleSection('recs')">
-            <h2>💡 All Recommendations</h2>
-            <span class="chevron" id="chevron-recs">▼</span>
-        </div>
-        <div class="section-body" id="body-recs">
-            {render_all_recommendations(data)}
-        </div>
-    </div>
-
-</div>
-
-<div class="footer">
-    <p>Generated by SEO Skill · {datetime.fromisoformat(timestamp).strftime("%Y-%m-%d %H:%M")}</p>
-</div>
-
-<script>
-function toggleSection(id) {{
-    const body = document.getElementById('body-' + id);
-    const chevron = document.getElementById('chevron-' + id);
-    body.classList.toggle('open');
-    chevron.classList.toggle('open');
-}}
-function scrollToSection(id) {{
-    const el = document.getElementById('section-' + id);
-    if (el) {{
-        el.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
-        // Auto-open
-        const body = document.getElementById('body-' + id);
-        const chevron = document.getElementById('chevron-' + id);
-        if (!body.classList.contains('open')) {{
-            body.classList.add('open');
-            chevron.classList.add('open');
-        }}
-    }}
-}}
-function toggleTheme() {{
-    const html = document.documentElement;
-    const btn = document.querySelector('.theme-toggle');
-    if (html.getAttribute('data-theme') === 'light') {{
-        html.removeAttribute('data-theme');
-        btn.textContent = '🌙';
-    }} else {{
-        html.setAttribute('data-theme', 'light');
-        btn.textContent = '☀️';
-    }}
-}}
-// Auto-open issues section
-document.getElementById('body-issues').classList.add('open');
-document.getElementById('chevron-issues').classList.add('open');
-</script>
-
-</body>
-</html>'''
-
+    html = template
+    for key, val in substitutions.items():
+        html = html.replace("{{" + key + "}}", str(val))
     return html
 
 
@@ -1696,9 +1388,65 @@ def _docx_paragraph(text: str) -> str:
     )
 
 
-def build_seo_docx(path: str, data: dict, scores: dict, rows: list) -> None:
+def _docx_heading(text: str, level: int = 1) -> str:
+    size = {1: 36, 2: 30, 3: 26}.get(level, 24)
+    escaped = html_lib.escape(text or "")
+    return (
+        f'<w:p><w:r><w:rPr><w:b/><w:sz w:val="{size}"/></w:rPr>'
+        f'<w:t xml:space="preserve">{escaped}</w:t></w:r></w:p>'
+    )
+
+
+def _docx_pkg(path: str, title: str, body_xml: str) -> None:
+    document_xml = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f"<w:body>{body_xml}"
+        '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" '
+        'w:right="1440" w:bottom="1440" w:left="1440" w:header="708" '
+        'w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>'
+    )
+    content_types = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>"""
+    rels = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>"""
+    utc_now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    safe_title = html_lib.escape(title)
+    core = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>{safe_title}</dc:title>
+  <dc:creator>dd-seo skill</dc:creator>
+  <cp:lastModifiedBy>dd-seo skill</cp:lastModifiedBy>
+  <dcterms:created xsi:type="dcterms:W3CDTF">{utc_now}</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">{utc_now}</dcterms:modified>
+</cp:coreProperties>"""
+    app = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>dd-seo skill</Application>
+</Properties>"""
+    with ZipFile(path, "w", ZIP_DEFLATED) as docx:
+        docx.writestr("[Content_Types].xml", content_types)
+        docx.writestr("_rels/.rels", rels)
+        docx.writestr("docProps/core.xml", core)
+        docx.writestr("docProps/app.xml", app)
+        docx.writestr("word/document.xml", document_xml)
+
+
+def build_full_audit_docx(path: str, data: dict, scores: dict, rows: list) -> None:
+    """Findings + scoring narrative — one DOCX per audit."""
     timestamp = data.get("timestamp", datetime.now().isoformat())
     overall = scores.get("overall", 0)
+    rating = _score_rating(int(overall))
     domain = data.get("domain", "")
     url = data.get("url", "")
     summary = {
@@ -1708,17 +1456,17 @@ def build_seo_docx(path: str, data: dict, scores: dict, rows: list) -> None:
     }
 
     body = []
-    body.append(_docx_paragraph("SEO Audit Client Report"))
+    body.append(_docx_heading("SEO Full Audit Report", 1))
     body.append(_docx_paragraph(f"URL: {url}"))
     body.append(_docx_paragraph(f"Domain: {domain}"))
     body.append(_docx_paragraph(f"Generated: {timestamp}"))
-    body.append(_docx_paragraph(f"Overall score: {overall}/100"))
+    body.append(_docx_paragraph(f"Overall score: {overall}/100 — {rating}"))
     body.append(_docx_paragraph(
-        f"Critical: {summary['Critical']}, Warning: {summary['Warning']}, Info: {summary['Info']}"
+        f"Critical: {summary['Critical']} · Warning: {summary['Warning']} · Info: {summary['Info']}"
     ))
     body.append(_docx_paragraph(" "))
 
-    body.append(_docx_paragraph("Category scores"))
+    body.append(_docx_heading("Category scores", 2))
     for key, label in CATEGORY_LABELS.items():
         if key == "environment":
             continue
@@ -1728,122 +1476,140 @@ def build_seo_docx(path: str, data: dict, scores: dict, rows: list) -> None:
         body.append(_docx_paragraph(f"{label}: {score}/100"))
     body.append(_docx_paragraph(" "))
 
-    body.append(_docx_paragraph("Remediation tasks"))
+    body.append(_docx_heading("Findings by severity", 2))
     if not rows:
-        body.append(_docx_paragraph("No issues detected — site is healthy."))
+        body.append(_docx_paragraph("No findings detected — site is healthy."))
     else:
-        for row in rows:
-            body.append(_docx_paragraph(
-                f"{row['task_id']} | {row['priority']} | {row['category_label']} | "
-                f"Owner: {row['owner']} | Timeline: {row['timeline']} | "
-                f"Effort: {row['estimated_hours']}h"
-            ))
-            body.append(_docx_paragraph(f"Finding: {row['finding']}"))
-            if row["evidence"]:
-                body.append(_docx_paragraph(f"Evidence: {row['evidence']}"))
-            if row["fix"]:
-                body.append(_docx_paragraph(f"Fix: {row['fix']}"))
-            body.append(_docx_paragraph(" "))
+        for sev_key in ("Critical", "Warning", "Info"):
+            sev_rows = [r for r in rows if r["priority"] == sev_key]
+            if not sev_rows:
+                continue
+            body.append(_docx_heading(f"{sev_key} ({len(sev_rows)})", 3))
+            for r in sev_rows:
+                body.append(_docx_paragraph(
+                    f"[{r['task_id']}] {r['category_label']} — {r['finding']}"
+                ))
+                if r.get("evidence"):
+                    body.append(_docx_paragraph(f"Evidence: {r['evidence']}"))
+                if r.get("fix"):
+                    body.append(_docx_paragraph(f"Fix: {r['fix']}"))
+                body.append(_docx_paragraph(" "))
 
-    document_xml = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-        f"<w:body>{''.join(body)}"
-        '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" '
-        'w:right="1440" w:bottom="1440" w:left="1440" w:header="708" '
-        'w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>'
-    )
-
-    content_types = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
-  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
-</Types>"""
-
-    rels = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
-  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
-</Relationships>"""
-
-    utc_now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
-    core = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <dc:title>SEO Audit Client Report</dc:title>
-  <dc:creator>dd-seo skill</dc:creator>
-  <cp:lastModifiedBy>dd-seo skill</cp:lastModifiedBy>
-  <dcterms:created xsi:type="dcterms:W3CDTF">{utc_now}</dcterms:created>
-  <dcterms:modified xsi:type="dcterms:W3CDTF">{utc_now}</dcterms:modified>
-</cp:coreProperties>"""
-
-    app = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
-  <Application>dd-seo skill</Application>
-</Properties>"""
-
-    with ZipFile(path, "w", ZIP_DEFLATED) as docx:
-        docx.writestr("[Content_Types].xml", content_types)
-        docx.writestr("_rels/.rels", rels)
-        docx.writestr("docProps/core.xml", core)
-        docx.writestr("docProps/app.xml", app)
-        docx.writestr("word/document.xml", document_xml)
+    _docx_pkg(path, "SEO Full Audit Report", "".join(body))
 
 
-def derive_sibling_paths(html_output_path: str) -> tuple:
-    """Return (csv_path, docx_path) next to the HTML output."""
-    abs_path = os.path.abspath(html_output_path)
-    output_dir = os.path.dirname(abs_path) or "."
-    base = os.path.splitext(os.path.basename(abs_path))[0]
-    csv_path = os.path.join(output_dir, f"{base}-REMEDIATION-TASKS.csv")
-    docx_path = os.path.join(output_dir, f"{base}-CLIENT-REPORT.docx")
-    return csv_path, docx_path
+def build_action_plan_docx(path: str, data: dict, rows: list) -> None:
+    """Prioritized remediation tasks — one DOCX per audit."""
+    timestamp = data.get("timestamp", datetime.now().isoformat())
+    domain = data.get("domain", "")
+    url = data.get("url", "")
+
+    body = []
+    body.append(_docx_heading("SEO Action Plan", 1))
+    body.append(_docx_paragraph(f"URL: {url}"))
+    body.append(_docx_paragraph(f"Domain: {domain}"))
+    body.append(_docx_paragraph(f"Generated: {timestamp}"))
+    body.append(_docx_paragraph(f"Total tasks: {len(rows)}"))
+    body.append(_docx_paragraph(" "))
+
+    if not rows:
+        body.append(_docx_paragraph("No remediation tasks needed."))
+    else:
+        for sev_key, label in (
+            ("Critical", "P0 — Critical (Week 1)"),
+            ("Warning",  "P1 — Important (Month 1)"),
+            ("Info",     "P2 — Optimize (Month 2-3)"),
+        ):
+            sev_rows = [r for r in rows if r["priority"] == sev_key]
+            if not sev_rows:
+                continue
+            body.append(_docx_heading(label, 2))
+            for r in sev_rows:
+                body.append(_docx_heading(f"{r['task_id']} — {r['finding']}", 3))
+                body.append(_docx_paragraph(f"Category: {r['category_label']}"))
+                body.append(_docx_paragraph(
+                    f"Owner: {r['owner']} · Timeline: {r['timeline']} · "
+                    f"Effort: {r['estimated_hours']}h"
+                ))
+                if r.get("evidence"):
+                    body.append(_docx_paragraph(f"Evidence: {r['evidence']}"))
+                if r.get("fix"):
+                    body.append(_docx_paragraph(f"Fix: {r['fix']}"))
+                body.append(_docx_paragraph(" "))
+
+    _docx_pkg(path, "SEO Action Plan", "".join(body))
+
+
+def derive_output_dir(url: str, override: str = None) -> str:
+    """Default: web/<domain>-seo-audit-<YYYY-MM-DD>/"""
+    if override:
+        return os.path.abspath(override)
+    domain = urlparse(url).netloc or "unknown"
+    audit_date = datetime.now().strftime("%Y-%m-%d")
+    return os.path.abspath(os.path.join("web", f"{domain}-seo-audit-{audit_date}"))
+
+
+def _copy_template_assets(output_dir: str) -> None:
+    src = os.path.join(TEMPLATES_DIR, "assets")
+    if not os.path.isdir(src):
+        return
+    dst = os.path.join(output_dir, "assets")
+    os.makedirs(dst, exist_ok=True)
+    for name in os.listdir(src):
+        s_path = os.path.join(src, name)
+        if not os.path.isfile(s_path):
+            continue
+        with open(s_path, "rb") as fr:
+            content = fr.read()
+        with open(os.path.join(dst, name), "wb") as fw:
+            fw.write(content)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate interactive SEO HTML report")
+    parser = argparse.ArgumentParser(
+        description="Generate SEO audit bundle (index.html + DOCX + CSV)"
+    )
     parser.add_argument("url", help="Website URL to analyze")
-    parser.add_argument("--output", "-o", help="Output filename (default: seo-report-<domain>.html)")
-
+    parser.add_argument(
+        "--output-dir", "-o", default=None,
+        help="Output directory (default: web/<domain>-seo-audit-<YYYY-MM-DD>/)",
+    )
     args = parser.parse_args()
 
-    # Collect all data
     data = collect_data(args.url)
-
-    # Calculate scores
     scores = calculate_overall_score(data)
+    rows = build_seo_tasks(data)
 
-    # Generate HTML
-    html = generate_html(data, scores)
+    output_dir = derive_output_dir(args.url, args.output_dir)
+    os.makedirs(output_dir, exist_ok=True)
+    _copy_template_assets(output_dir)
 
-    # Determine output path
-    if args.output:
-        output_path = args.output
-    else:
-        domain = urlparse(args.url).netloc.replace(".", "_")
-        output_path = f"seo-report-{domain}.html"
+    artifacts = [
+        {"kind": "DOCX", "label": "Full Audit Report",  "filename": "FULL-AUDIT-REPORT.docx"},
+        {"kind": "DOCX", "label": "Action Plan",        "filename": "ACTION-PLAN.docx"},
+        {"kind": "CSV",  "label": "Remediation Tasks",  "filename": "tasks.csv"},
+    ]
 
-    output_dir = os.path.dirname(output_path)
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
-
-    with open(output_path, "w", encoding="utf-8") as f:
+    html = generate_html(data, scores, artifacts, rows)
+    index_path = os.path.join(output_dir, "index.html")
+    with open(index_path, "w", encoding="utf-8") as f:
         f.write(html)
 
-    rows = build_seo_tasks(data)
-    csv_path, docx_path = derive_sibling_paths(output_path)
+    csv_path = os.path.join(output_dir, "tasks.csv")
     write_seo_csv(csv_path, rows)
-    build_seo_docx(docx_path, data, scores, rows)
 
-    print(f"\n✅ Report saved to: {os.path.abspath(output_path)}")
-    print(f"   Tasks CSV:        {csv_path}")
-    print(f"   Client DOCX:      {docx_path}")
-    print(f"   Overall Score:    {scores['overall']}/100")
-    print(f"   Tasks generated:  {len(rows)}")
-    print(f"   Open the HTML in a browser to view the interactive dashboard")
+    full_docx_path = os.path.join(output_dir, "FULL-AUDIT-REPORT.docx")
+    plan_docx_path = os.path.join(output_dir, "ACTION-PLAN.docx")
+    build_full_audit_docx(full_docx_path, data, scores, rows)
+    build_action_plan_docx(plan_docx_path, data, rows)
+
+    print(f"\n✅ Bundle saved to: {output_dir}")
+    print(f"   Dashboard:    {index_path}")
+    print(f"   Full audit:   {full_docx_path}")
+    print(f"   Action plan:  {plan_docx_path}")
+    print(f"   Tasks CSV:    {csv_path}")
+    print(f"   Overall:      {scores['overall']}/100  ({_score_rating(int(scores['overall']))})")
+    print(f"   Tasks:        {len(rows)}")
 
 
 if __name__ == "__main__":

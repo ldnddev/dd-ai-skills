@@ -51,10 +51,12 @@ pip3 install --user playwright && python3 -m playwright install chromium
 
 - `FULL-AUDIT-REPORT.md`
 - `ACTION-PLAN.md`
-- Optional via `generate_report.py` (all three written together):
-  - `SEO-REPORT.html` — interactive dashboard
-  - `SEO-REPORT-REMEDIATION-TASKS.csv` — prioritized remediation task list
-  - `SEO-REPORT-CLIENT-REPORT.docx` — client-ready Word report
+- Optional client bundle via `generate_report.py` — written into `web/<domain>-seo-audit-<YYYY-MM-DD>/`:
+  - `index.html` — branded interactive dashboard (driven by `templates/dashboard.html` + `templates/brand.json`)
+  - `FULL-AUDIT-REPORT.docx` — findings + scoring narrative
+  - `ACTION-PLAN.docx` — prioritized remediation tasks (P0/P1/P2 grouping)
+  - `tasks.csv` — same tasks in CSV form (project-tracker-ready)
+  - `assets/` — agency logo and other branded assets copied from `templates/assets/`
 - GitHub repo audits via `github_seo_report.py` always emit four files:
   - `GITHUB-SEO-REPORT.md`
   - `GITHUB-ACTION-PLAN.md`

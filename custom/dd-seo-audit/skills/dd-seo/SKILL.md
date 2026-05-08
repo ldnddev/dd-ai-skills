@@ -19,10 +19,14 @@ For prompt reliability in Codex/agent IDEs, map common user wording to a fixed w
 
 - If user says `perform seo analysis on <url>` (or similar generic SEO request with a URL), treat it as a **single-URL full audit**.
 - If no explicit sub-skill is specified, run the full/page audit path with **LLM-first reasoning** and script-backed evidence.
-- For full/page audits, always produce:
+- For full/page audits, always produce **all** of:
   - `FULL-AUDIT-REPORT.md` (detailed findings)
   - `ACTION-PLAN.md` (prioritized fixes)
-- If `generate_report.py` is run, also return the saved HTML path (for example `SEO-REPORT.html`) plus the sibling `SEO-REPORT-REMEDIATION-TASKS.csv` and `SEO-REPORT-CLIENT-REPORT.docx` artifacts written next to it.
+  - `web/<domain>-seo-audit-<YYYY-MM-DD>/index.html` (branded dashboard)
+  - `web/<domain>-seo-audit-<YYYY-MM-DD>/FULL-AUDIT-REPORT.docx`
+  - `web/<domain>-seo-audit-<YYYY-MM-DD>/ACTION-PLAN.docx`
+  - `web/<domain>-seo-audit-<YYYY-MM-DD>/tasks.csv`
+- `generate_report.py` is **mandatory** for every full/page/generic audit. Run it as default — not optional. Return saved bundle directory + every file inside.
 
 ## Available Commands
 
@@ -76,8 +80,11 @@ Use this as the baseline evidence for reasoning.
 python3 <SKILL_DIR>/scripts/fetch_page.py <url> --output /tmp/page.html
 python3 <SKILL_DIR>/scripts/parse_html.py /tmp/page.html --url <url> --json
 
-# Optional: generate shareable HTML dashboard artifact
-python3 <SKILL_DIR>/scripts/generate_report.py <url> --output SEO-REPORT.html
+# MANDATORY: generate shareable client bundle (index.html + DOCX + DOCX + CSV)
+# Run on every full/page/generic audit. Default output: web/<domain>-seo-audit-<YYYY-MM-DD>/
+python3 <SKILL_DIR>/scripts/generate_report.py <url>
+# or override the directory:
+python3 <SKILL_DIR>/scripts/generate_report.py <url> --output-dir custom/path/
 ```
 
 > **Do not use third-party mirrors (e.g., `r.jina.ai`) as primary evidence when direct site fetch or bundled scripts are available.**
@@ -168,15 +175,18 @@ python3 <SKILL_DIR>/scripts/capture_screenshot.py <url> --all
 python3 <SKILL_DIR>/scripts/analyze_visual.py <url> --json
 ```
 
-**HTML Report Generator** — generates a self-contained interactive HTML dashboard plus client deliverables (CSV remediation tasks, DOCX client report) sharing the dashboard's basename:
+**HTML Report Generator** — runs all analyzers and writes a branded client bundle (templated dashboard + two DOCX files + CSV) into `web/<domain>-seo-audit-<YYYY-MM-DD>/`:
 ```bash
-# Generate full SEO report (runs scripts automatically, saves HTML/CSV/DOCX to PWD)
+# Generate the bundle (default path: web/<domain>-seo-audit-<YYYY-MM-DD>/)
 python3 <SKILL_DIR>/scripts/generate_report.py <url>
-python3 <SKILL_DIR>/scripts/generate_report.py <url> --output SEO-REPORT.html
-# Produces:
-#   SEO-REPORT.html
-#   SEO-REPORT-REMEDIATION-TASKS.csv
-#   SEO-REPORT-CLIENT-REPORT.docx
+# Override the output directory if needed:
+python3 <SKILL_DIR>/scripts/generate_report.py <url> --output-dir reports/acme-2026Q2/
+# Produces inside the output directory:
+#   index.html                 ← templated dashboard (templates/dashboard.html + brand.json)
+#   FULL-AUDIT-REPORT.docx     ← findings + scoring narrative
+#   ACTION-PLAN.docx           ← prioritized remediation tasks
+#   tasks.csv                  ← same tasks in CSV form (Jira/Linear/Asana-ready)
+#   assets/                    ← agency logo and any other branded assets
 ```
 
 ### Step 5 — Delegate to Specialist Agents
@@ -237,13 +247,13 @@ Use numeric scores as guidance, not as a replacement for evidence quality and ju
 
 ### Step 8 — Mandatory Deliverables
 
-For `seo audit`, `seo page`, and generic `perform seo analysis on <url>` flows:
+For `seo audit`, `seo page`, and generic `perform seo analysis on <url>` flows, **all** outputs below are required by default — none optional:
 
 1. Create `FULL-AUDIT-REPORT.md` in the current working directory at the start of the audit, then update it as evidence is collected.
 2. Create `ACTION-PLAN.md` in the current working directory at the start of the audit, then update it with prioritized fixes.
-3. If `generate_report.py` was run, include the exact saved paths for the HTML dashboard (`SEO-REPORT.html`), the remediation CSV (`SEO-REPORT-REMEDIATION-TASKS.csv`), and the client DOCX (`SEO-REPORT-CLIENT-REPORT.docx`). All three are written together by the script.
-4. In the final response, explicitly list generated artifacts and paths.
-5. If technical checks are blocked by environment limits, still write both markdown files and include an "Environment Limitations" section.
+3. **Always run `python3 <SKILL_DIR>/scripts/generate_report.py <url>`** before finalizing. This writes the client bundle directory `web/<domain>-seo-audit-<YYYY-MM-DD>/` containing `index.html`, `FULL-AUDIT-REPORT.docx`, `ACTION-PLAN.docx`, `tasks.csv`, and `assets/`. All four artifacts are written together by the script. Skip only if Python or required deps are unavailable — then report explicit `Environment Limitation` and continue.
+4. In the final response, explicitly list every generated artifact and absolute path: both markdown files + bundle directory + each file inside.
+5. If technical checks or `generate_report.py` are blocked by environment limits, still write both markdown files and include an "Environment Limitations" section naming what failed and why.
 
 #### Score Interpretation
 | Score | Rating |
@@ -332,7 +342,7 @@ Structure reports as:
 7. **Location page limits** — Warning at 30+ pages, hard stop at 50+ pages. Enforce unique content requirements.
 8. **AI crawler management** — Check robots.txt for GPTBot, ClaudeBot, PerplexityBot, Applebot-Extended, Google-Extended, Bytespider, CCBot.
 9. **LLM-first, resilient pipeline** — Start by reading the page with `read_url_content`, then always run relevant scripts for structured evidence. Scripts are the **preferred** evidence source — use them actively. However, if any script fails (timeout, network, parsing), the LLM MUST still produce a complete analysis using its own reasoning (confidence: `Likely`). Never block a report on a single script failure.
-10. **Always produce file artifacts for audit flows** — `FULL-AUDIT-REPORT.md` and `ACTION-PLAN.md` are required outputs for full/page audit requests.
+10. **Always produce file artifacts for audit flows** — `FULL-AUDIT-REPORT.md`, `ACTION-PLAN.md`, **and** the full client bundle (`index.html` + `FULL-AUDIT-REPORT.docx` + `ACTION-PLAN.docx` + `tasks.csv` + `assets/`) via `generate_report.py` are required outputs for every full/page/generic audit. Bundle generation is default behavior, not opt-in. Only skip if `generate_report.py` itself fails — note as `Environment Limitation`.
 11. **Bound evidence retries** — Avoid long search/retry loops. If core checks fail due DNS/network, finalize promptly with confidence labels and file outputs.
 12. **Avoid redundant web fallbacks** — If direct fetch/scripts fail and one fallback also fails, stop retrying and finish the report with explicit limitations.
 13. **Signal freshness tracking** — Every reference file should contain a `<!-- Updated: YYYY-MM-DD -->` comment. Flag any reference file older than 90 days for review. When Google announces algorithm changes, verify affected reference files within 7 days. Key dates to track: core updates (quarterly), schema deprecations (schema-types.md), CWV threshold changes (cwv-thresholds.md).

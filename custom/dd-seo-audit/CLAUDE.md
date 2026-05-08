@@ -31,9 +31,11 @@ python3 scripts/validate_schema.py path/to/file.html
 bash scripts/pre_commit_seo_check.sh
 
 # End-to-end audit dashboard (drives many other scripts internally).
-# Also writes <basename>-REMEDIATION-TASKS.csv and <basename>-CLIENT-REPORT.docx
-# next to the HTML, mirroring dd-a11y / dd-vreg deliverables.
-python3 scripts/generate_report.py <url> --output SEO-REPORT.html
+# Writes a client bundle: index.html + FULL-AUDIT-REPORT.docx + ACTION-PLAN.docx
+# + tasks.csv + assets/, mirroring dd-a11y / dd-vreg deliverables.
+python3 scripts/generate_report.py <url>
+# default output: web/<domain>-seo-audit-<YYYY-MM-DD>/
+# override with --output-dir <path>/
 ```
 
 GitHub-repo scripts (`github_*.py`) require `GITHUB_TOKEN`/`GH_TOKEN` env var **or** an authenticated `gh` CLI; they accept `--provider auto|api|gh`.
@@ -63,7 +65,7 @@ scripts/*.py                   ← deterministic evidence collectors invoked by 
 
 Mandatory artifacts for any full / page / generic audit are **`FULL-AUDIT-REPORT.md`** and **`ACTION-PLAN.md`** in CWD, created at audit start and updated as evidence arrives. Don't move these names — they are referenced from multiple sub-skill files and are the public contract.
 
-When `generate_report.py` is invoked, three sibling files are written together: `<basename>.html`, `<basename>-REMEDIATION-TASKS.csv`, and `<basename>-CLIENT-REPORT.docx`. The basename derives from the `--output` argument (default: `seo-report-<domain>.html`). The CSV/DOCX are produced by `build_seo_tasks` / `write_seo_csv` / `build_seo_docx` in `scripts/generate_report.py` and follow the same severity vocabulary (Critical / Warning / Info) as the rest of the skill — keep those labels stable.
+When `generate_report.py` is invoked, a bundle directory is written: `web/<domain>-seo-audit-<YYYY-MM-DD>/` (override with `--output-dir`). It contains `index.html` (rendered from `templates/dashboard.html` + `templates/brand.json`), `FULL-AUDIT-REPORT.docx`, `ACTION-PLAN.docx`, `tasks.csv`, and a copied `assets/` folder. The DOCX/CSV are produced by `build_seo_tasks` / `write_seo_csv` / `build_full_audit_docx` / `build_action_plan_docx` in `scripts/generate_report.py` and follow the same severity vocabulary (Critical / Warning / Info / Pass) as the rest of the skill — keep those labels stable.
 
 `scripts/github_seo_report.py` writes four artifacts together: `GITHUB-SEO-REPORT.md`, `GITHUB-ACTION-PLAN.md`, `GITHUB-REMEDIATION-TASKS.csv`, `GITHUB-CLIENT-REPORT.docx` (override via `--markdown` / `--action-plan` / `--csv` / `--docx`). The CSV/DOCX are produced by `build_github_tasks` / `write_github_csv` / `build_github_docx` from the same verified findings the markdown report uses, so severity normalization (`_gh_normalize_severity`) maps to the project-wide `Critical` / `Warning` / `Info` / `Pass` vocabulary — keep the mapping in sync if new severities are introduced upstream.
 

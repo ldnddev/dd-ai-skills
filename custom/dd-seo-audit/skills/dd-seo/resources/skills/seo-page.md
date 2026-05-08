@@ -55,12 +55,15 @@ Apply `resources/references/llm-audit-rubric.md` for evidence standards, confide
 
 ## Output
 
-### Output Files (Required)
+### Output Files (Required — all mandatory by default)
 - `FULL-AUDIT-REPORT.md` — Full single-page findings with evidence, severity, and confidence labels
 - `ACTION-PLAN.md` — Prioritized implementation plan (Critical → High → Medium → Low)
-- `SEO-REPORT.html` — Optional interactive dashboard path (when `generate_report.py` is executed)
-- `SEO-REPORT-REMEDIATION-TASKS.csv` — Prioritized task list (written alongside the HTML dashboard)
-- `SEO-REPORT-CLIENT-REPORT.docx` — Client-ready Word report (written alongside the HTML dashboard)
+- `web/<domain>-seo-audit-<YYYY-MM-DD>/` — Client bundle (always produced via `generate_report.py` — required, not optional):
+  - `index.html` — Branded interactive dashboard (rendered from `templates/dashboard.html` + `templates/brand.json`)
+  - `FULL-AUDIT-REPORT.docx` — Findings + scoring narrative
+  - `ACTION-PLAN.docx` — Prioritized remediation tasks (P0/P1/P2 grouping)
+  - `tasks.csv` — Same tasks in CSV form (project-tracker-ready)
+  - `assets/` — Branded assets copied from `templates/assets/`
 
 ### Page Score Card
 ```
@@ -90,3 +93,4 @@ When invoked as an agent to analyze a specific URL, execute these steps:
 3. Run `scripts/pagespeed.py "$URL" --strategy mobile --json` for Core Web Vitals.
 4. If applicable, run `scripts/article_seo.py "$URL" --json` for a deeper dive on content scoring.
 5. Summarize all findings into the Page Score Card and Issues Found according to the evidence rules.
+6. **Mandatory** — run `python3 <SKILL_DIR>/scripts/generate_report.py "$URL"` to emit the client bundle (`index.html` + `FULL-AUDIT-REPORT.docx` + `ACTION-PLAN.docx` + `tasks.csv` + `assets/`). Required for every page audit. Only skip on environment failure (note as `Environment Limitation`).

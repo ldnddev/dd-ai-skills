@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{REPORT_TITLE}} — {{AUDIT_DOMAIN}}</title>
+  <meta name="description" content="{{REPORT_SUBTITLE}}">
+  <style>
+    :root {
+      --bg: {{BRAND_BG}};
+      --bg-top: {{BRAND_BG_TOP}};
+      --surface: {{BRAND_SURFACE}};
+      --ink: {{BRAND_TEXT}};
+      --muted: {{BRAND_MUTED}};
+      --accent: {{BRAND_ACCENT}};
+      --accent-2: {{BRAND_ACCENT_2}};
+      --line: {{BRAND_LINE}};
+      --shadow: {{BRAND_SHADOW}};
+      --glow-1: {{BRAND_GLOW_1}};
+      --glow-2: {{BRAND_GLOW_2}};
+      --hero-1: {{HERO_BG_1}};
+      --hero-2: {{HERO_BG_2}};
+      --table-head-bg: {{TABLE_HEAD_BG}};
+      --priority-bg: {{PRIORITY_BG}};
+      --priority-text: {{PRIORITY_TEXT}};
+      --critical-bg: #fde2e2;
+      --critical-text: #8a1a1a;
+      --warning-bg: #fff1cc;
+      --warning-text: #7a4a00;
+      --pass-bg: #d8f1de;
+      --pass-text: #1f5f33;
+      --info-bg: #e0eaf6;
+      --info-text: #1f3d6b;
+      --display-font: {{DISPLAY_FONT}};
+      --body-font: {{BODY_FONT}};
+      --ui-font: {{UI_FONT}};
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background:
+        radial-gradient(circle at top left, var(--glow-1), transparent 30%),
+        radial-gradient(circle at top right, var(--glow-2), transparent 28%),
+        linear-gradient(180deg, var(--bg-top), var(--bg));
+      color: var(--ink);
+      font-family: var(--body-font);
+      line-height: 1.55;
+    }
+
+    a { color: var(--accent); }
+    a:focus-visible {
+      outline: 3px solid var(--accent-2);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 8px;
+      background: var(--ink);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .skip-link:focus { left: 16px; z-index: 10; }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+
+    .hero {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 24px 60px var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 28px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, var(--hero-1), var(--hero-2));
+    }
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      width: 56px;
+      height: 56px;
+      object-fit: contain;
+      border-radius: 14px;
+      background: rgba(255,255,255,.85);
+      padding: 8px;
+      border: 1px solid rgba(255,255,255,.5);
+    }
+
+    .brand-kicker {
+      font: 600 12px/1.2 var(--ui-font);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .hero-title {
+      font: 700 38px/1.05 var(--display-font);
+      margin: 0;
+    }
+
+    .hero-subtitle {
+      margin: 12px 0 0;
+      max-width: 720px;
+      color: var(--muted);
+      font: 400 16px/1.6 var(--body-font);
+    }
+
+    .hero-score {
+      min-width: 220px;
+      padding: 20px;
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,.75);
+      border: 1px solid rgba(255,255,255,.6);
+      backdrop-filter: blur(12px);
+      text-align: right;
+    }
+
+    .score-label,
+    .stat-label,
+    .meta-label,
+    .section-kicker {
+      font: 600 12px/1.2 var(--ui-font);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .score-value {
+      margin-top: 8px;
+      font: 700 68px/0.9 var(--display-font);
+      color: var(--accent);
+    }
+
+    .score-rating {
+      margin-top: 10px;
+      font: 600 15px/1.2 var(--ui-font);
+    }
+
+    .hero-body { padding: 28px; }
+
+    .meta-grid,
+    .stats-grid,
+    .downloads-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .meta-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .stats-grid { grid-template-columns: repeat(4, 1fr); margin-top: 20px; }
+
+    @media (max-width: 720px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .meta-card,
+    .stat-card,
+    .panel {
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      box-shadow: 0 12px 30px rgba(0,0,0,.04);
+    }
+
+    .meta-card,
+    .stat-card { padding: 18px; }
+
+    .stat-card[data-severity="critical"] { border-color: var(--critical-text); }
+    .stat-card[data-severity="warning"]  { border-color: var(--warning-text); }
+    .stat-card[data-severity="pass"]     { border-color: var(--pass-text); }
+    .stat-card[data-severity="info"]     { border-color: var(--info-text); }
+
+    .meta-value {
+      margin-top: 8px;
+      font: 600 15px/1.45 var(--body-font);
+      word-break: break-word;
+    }
+
+    .stat-value {
+      margin-top: 10px;
+      font: 700 36px/1 var(--display-font);
+      color: var(--accent);
+    }
+    .stat-card[data-severity="critical"] .stat-value { color: var(--critical-text); }
+    .stat-card[data-severity="warning"]  .stat-value { color: var(--warning-text); }
+    .stat-card[data-severity="pass"]     .stat-value { color: var(--pass-text); }
+    .stat-card[data-severity="info"]     .stat-value { color: var(--info-text); }
+
+    .panel {
+      margin-top: 24px;
+      padding: 24px;
+    }
+
+    .section-title {
+      margin: 8px 0 0;
+      font: 700 28px/1.05 var(--display-font);
+    }
+
+    .section-note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font: 400 15px/1.6 var(--body-font);
+    }
+
+    .downloads-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 18px;
+    }
+
+    .download-link {
+      display: block;
+      padding: 16px 18px;
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .download-link:hover,
+    .download-link:focus-visible {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+      box-shadow: 0 10px 22px rgba(0,0,0,.08);
+    }
+
+    .download-label {
+      font: 700 15px/1.3 var(--ui-font);
+    }
+
+    .download-file {
+      margin-top: 8px;
+      color: var(--muted);
+      font: 400 13px/1.45 var(--body-font);
+      word-break: break-all;
+    }
+
+    .download-kind {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font: 700 11px/1 var(--ui-font);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      background: var(--priority-bg);
+      color: var(--priority-text);
+      margin-bottom: 8px;
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .category-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+      position: relative;
+    }
+
+    .category-name {
+      margin-top: 10px;
+      font: 600 14px/1.3 var(--ui-font);
+    }
+
+    .ring-wrap {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      margin: 0 auto;
+    }
+
+    .ring-wrap svg { width: 100%; height: 100%; }
+
+    .ring-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: 700 22px/1 var(--display-font);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 14px 12px;
+      background: var(--table-head-bg);
+      border-bottom: 1px solid var(--line);
+      font: 700 12px/1.2 var(--ui-font);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    tbody td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font: 400 14px/1.5 var(--body-font);
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+
+    .priority-pill {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font: 700 11px/1 var(--ui-font);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .priority-pill[data-severity="critical"] { background: var(--critical-bg); color: var(--critical-text); }
+    .priority-pill[data-severity="warning"]  { background: var(--warning-bg);  color: var(--warning-text); }
+    .priority-pill[data-severity="pass"]     { background: var(--pass-bg);     color: var(--pass-text); }
+    .priority-pill[data-severity="info"]     { background: var(--info-bg);     color: var(--info-text); }
+
+    .url-cell {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    details.section-detail {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-top: 12px;
+    }
+
+    details.section-detail > summary {
+      cursor: pointer;
+      font: 700 15px/1.3 var(--ui-font);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    details.section-detail > summary::-webkit-details-marker { display: none; }
+    details.section-detail > summary::after {
+      content: "+";
+      font: 700 18px/1 var(--display-font);
+      color: var(--accent);
+    }
+    details.section-detail[open] > summary::after { content: "−"; }
+    details.section-detail > .section-body {
+      margin-top: 12px;
+    }
+
+    .footer {
+      margin-top: 22px;
+      color: var(--muted);
+      font: 400 13px/1.6 var(--body-font);
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      .hero-top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .hero-score {
+        width: 100%;
+        text-align: left;
+      }
+      .hero-title { font-size: 30px; }
+      .score-value { font-size: 52px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .download-link { transition: none; }
+      .download-link:hover, .download-link:focus-visible { transform: none; }
+    }
+
+    @media print {
+      html, body { background: #fff; }
+      .panel, .meta-card, .stat-card { box-shadow: none; }
+      details.section-detail { break-inside: avoid; }
+      details.section-detail > summary::after { content: ""; }
+      details.section-detail:not([open]) > .section-body { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <main id="main-content" class="page">
+    <section class="hero" aria-labelledby="report-heading">
+      <div class="hero-top">
+        <div>
+          <div class="brand-lockup">
+            <img class="brand-logo" src="{{AGENCY_LOGO}}" alt="{{AGENCY_NAME}} logo" width="56" height="56">
+            <div>
+              <div class="brand-kicker">{{AGENCY_KICKER}}</div>
+              <h1 id="report-heading" class="hero-title">{{REPORT_TITLE}}</h1>
+            </div>
+          </div>
+          <p class="hero-subtitle">{{REPORT_SUBTITLE}}</p>
+        </div>
+        <aside class="hero-score" aria-label="Overall SEO score">
+          <div class="score-label">Overall SEO Score</div>
+          <div class="score-value">{{SCORE_VALUE}}</div>
+          <div class="score-rating">{{SCORE_RATING}}</div>
+        </aside>
+      </div>
+
+      <div class="hero-body">
+        <section class="meta-grid" aria-label="Audit metadata">
+          <article class="meta-card">
+            <div class="meta-label">Audited URL</div>
+            <div class="meta-value"><a href="{{AUDIT_URL}}" target="_blank" rel="noopener noreferrer">{{AUDIT_URL}}</a></div>
+          </article>
+          <article class="meta-card">
+            <div class="meta-label">Domain</div>
+            <div class="meta-value">{{AUDIT_DOMAIN}}</div>
+          </article>
+          <article class="meta-card">
+            <div class="meta-label">Audit Date</div>
+            <div class="meta-value">{{AUDIT_DATE}}</div>
+          </article>
+          <article class="meta-card">
+            <div class="meta-label">Detected Platform</div>
+            <div class="meta-value">{{ENV_PLATFORM}}</div>
+          </article>
+        </section>
+
+        <section class="stats-grid" aria-label="Findings by severity">
+          <article class="stat-card" data-severity="critical">
+            <div class="stat-label">Critical</div>
+            <div class="stat-value">{{CRITICAL_COUNT}}</div>
+          </article>
+          <article class="stat-card" data-severity="warning">
+            <div class="stat-label">Warning</div>
+            <div class="stat-value">{{WARNING_COUNT}}</div>
+          </article>
+          <article class="stat-card" data-severity="info">
+            <div class="stat-label">Info</div>
+            <div class="stat-value">{{INFO_COUNT}}</div>
+          </article>
+          <article class="stat-card" data-severity="pass">
+            <div class="stat-label">Pass</div>
+            <div class="stat-value">{{PASS_COUNT}}</div>
+          </article>
+        </section>
+
+        <section class="panel" aria-labelledby="categories-heading">
+          <div class="section-kicker">Scoring</div>
+          <h2 id="categories-heading" class="section-title">Category breakdown</h2>
+          <p class="section-note">Each category is scored 0–100. Use the links to jump to the detailed findings below.</p>
+          <div class="category-grid">
+            {{CATEGORY_CARDS}}
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="deliverables-heading">
+          <div class="section-kicker">Deliverables</div>
+          <h2 id="deliverables-heading" class="section-title">Download the report set</h2>
+          <p class="section-note">{{DOWNLOADS_NOTE}}</p>
+          <div class="downloads-grid">
+            {{DOWNLOAD_LINKS}}
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="tasks-heading">
+          <div class="section-kicker">Remediation</div>
+          <h2 id="tasks-heading" class="section-title">Prioritized task dashboard</h2>
+          <p class="section-note">{{TASKS_NOTE}}</p>
+          <div style="overflow-x:auto;">
+            <table>
+              <caption class="sr-only">Prioritized remediation tasks for {{AUDIT_DOMAIN}}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Finding</th>
+                  <th scope="col">Owner</th>
+                  <th scope="col">Timeline</th>
+                  <th scope="col">Effort</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{TASK_ROWS}}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="detail-heading" id="detailed-sections">
+          <div class="section-kicker">Detail</div>
+          <h2 id="detail-heading" class="section-title">Detailed findings</h2>
+          <p class="section-note">Each section below expands to show the underlying evidence collected by the audit scripts.</p>
+          {{DETAILED_SECTIONS}}
+        </section>
+      </div>
+    </section>
+
+    <p class="footer">{{FOOTER_TEXT}}</p>
+  </main>
+</body>
+</html>
