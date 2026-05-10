@@ -1,550 +1,516 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{REPORT_TITLE}} — {{AUDIT_DOMAIN}}</title>
-  <meta name="description" content="{{REPORT_SUBTITLE}}">
-  <style>
-    :root {
-      --bg: {{BRAND_BG}};
-      --bg-top: {{BRAND_BG_TOP}};
-      --surface: {{BRAND_SURFACE}};
-      --ink: {{BRAND_TEXT}};
-      --muted: {{BRAND_MUTED}};
-      --accent: {{BRAND_ACCENT}};
-      --accent-2: {{BRAND_ACCENT_2}};
-      --line: {{BRAND_LINE}};
-      --shadow: {{BRAND_SHADOW}};
-      --glow-1: {{BRAND_GLOW_1}};
-      --glow-2: {{BRAND_GLOW_2}};
-      --hero-1: {{HERO_BG_1}};
-      --hero-2: {{HERO_BG_2}};
-      --table-head-bg: {{TABLE_HEAD_BG}};
-      --priority-bg: {{PRIORITY_BG}};
-      --priority-text: {{PRIORITY_TEXT}};
-      --critical-bg: #fde2e2;
-      --critical-text: #8a1a1a;
-      --warning-bg: #fff1cc;
-      --warning-text: #7a4a00;
-      --pass-bg: #d8f1de;
-      --pass-text: #1f5f33;
-      --info-bg: #e0eaf6;
-      --info-text: #1f3d6b;
-      --display-font: {{DISPLAY_FONT}};
-      --body-font: {{BODY_FONT}};
-      --ui-font: {{UI_FONT}};
-      --radius-lg: 24px;
-      --radius-md: 18px;
-      --radius-sm: 12px;
-    }
+<html lang="en" class="light">
 
-    * { box-sizing: border-box; }
+  <head>
+    <script>
+      window.FontAwesomeConfig = {
+        autoReplaceSvg: 'nest'
+      };
+    </script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"
+      crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website SEO Audit Dashboard</title>
 
-    html, body {
-      margin: 0;
-      padding: 0;
-      background:
-        radial-gradient(circle at top left, var(--glow-1), transparent 30%),
-        radial-gradient(circle at top right, var(--glow-2), transparent 28%),
-        linear-gradient(180deg, var(--bg-top), var(--bg));
-      color: var(--ink);
-      font-family: var(--body-font);
-      line-height: 1.55;
-    }
+    <!--fav icons-->
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon/favicon-16x16.png" />
+    <link rel="manifest" href="assets/favicon/site.webmanifest" />
+    <link rel="mask-icon" href="assets/favicon/safari-pinned-tab.svg" color="#5bbad5" />
+    <link rel="shortcut icon" href="assets/favicon/favicon.ico" />
+    <link rel="canonical" href="https://www.ldnddev.com/" />
+    <meta name="msapplication-TileColor" content="#ffffff" />
+    <meta name="msapplication-config" content="assets/favicon/browserconfig.xml" />
+    <meta name="theme-color" content="#ffffff" />
 
-    a { color: var(--accent); }
-    a:focus-visible {
-      outline: 3px solid var(--accent-2);
-      outline-offset: 2px;
-      border-radius: 4px;
-    }
-
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    .skip-link {
-      position: absolute;
-      left: -9999px;
-      top: 8px;
-      background: var(--ink);
-      color: #fff;
-      padding: 8px 12px;
-      border-radius: 6px;
-      text-decoration: none;
-    }
-    .skip-link:focus { left: 16px; z-index: 10; }
-
-    .page {
-      max-width: 1240px;
-      margin: 0 auto;
-      padding: 28px 20px 64px;
-    }
-
-    .hero {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      box-shadow: 0 24px 60px var(--shadow);
-      overflow: hidden;
-    }
-
-    .hero-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
-      padding: 28px;
-      border-bottom: 1px solid var(--line);
-      background: linear-gradient(135deg, var(--hero-1), var(--hero-2));
-    }
-
-    .brand-lockup {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .brand-logo {
-      width: 56px;
-      height: 56px;
-      object-fit: contain;
-      border-radius: 14px;
-      background: rgba(255,255,255,.85);
-      padding: 8px;
-      border: 1px solid rgba(255,255,255,.5);
-    }
-
-    .brand-kicker {
-      font: 600 12px/1.2 var(--ui-font);
-      letter-spacing: .16em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    .hero-title {
-      font: 700 38px/1.05 var(--display-font);
-      margin: 0;
-    }
-
-    .hero-subtitle {
-      margin: 12px 0 0;
-      max-width: 720px;
-      color: var(--muted);
-      font: 400 16px/1.6 var(--body-font);
-    }
-
-    .hero-score {
-      min-width: 220px;
-      padding: 20px;
-      border-radius: var(--radius-md);
-      background: rgba(255,255,255,.75);
-      border: 1px solid rgba(255,255,255,.6);
-      backdrop-filter: blur(12px);
-      text-align: right;
-    }
-
-    .score-label,
-    .stat-label,
-    .meta-label,
-    .section-kicker {
-      font: 600 12px/1.2 var(--ui-font);
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .score-value {
-      margin-top: 8px;
-      font: 700 68px/0.9 var(--display-font);
-      color: var(--accent);
-    }
-
-    .score-rating {
-      margin-top: 10px;
-      font: 600 15px/1.2 var(--ui-font);
-    }
-
-    .hero-body { padding: 28px; }
-
-    .meta-grid,
-    .stats-grid,
-    .downloads-grid {
-      display: grid;
-      gap: 16px;
-    }
-
-    .meta-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-    .stats-grid { grid-template-columns: repeat(4, 1fr); margin-top: 20px; }
-
-    @media (max-width: 720px) {
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    .meta-card,
-    .stat-card,
-    .panel {
-      background: rgba(255,255,255,.72);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
-      box-shadow: 0 12px 30px rgba(0,0,0,.04);
-    }
-
-    .meta-card,
-    .stat-card { padding: 18px; }
-
-    .stat-card[data-severity="critical"] { border-color: var(--critical-text); }
-    .stat-card[data-severity="warning"]  { border-color: var(--warning-text); }
-    .stat-card[data-severity="pass"]     { border-color: var(--pass-text); }
-    .stat-card[data-severity="info"]     { border-color: var(--info-text); }
-
-    .meta-value {
-      margin-top: 8px;
-      font: 600 15px/1.45 var(--body-font);
-      word-break: break-word;
-    }
-
-    .stat-value {
-      margin-top: 10px;
-      font: 700 36px/1 var(--display-font);
-      color: var(--accent);
-    }
-    .stat-card[data-severity="critical"] .stat-value { color: var(--critical-text); }
-    .stat-card[data-severity="warning"]  .stat-value { color: var(--warning-text); }
-    .stat-card[data-severity="pass"]     .stat-value { color: var(--pass-text); }
-    .stat-card[data-severity="info"]     .stat-value { color: var(--info-text); }
-
-    .panel {
-      margin-top: 24px;
-      padding: 24px;
-    }
-
-    .section-title {
-      margin: 8px 0 0;
-      font: 700 28px/1.05 var(--display-font);
-    }
-
-    .section-note {
-      margin: 10px 0 0;
-      color: var(--muted);
-      font: 400 15px/1.6 var(--body-font);
-    }
-
-    .downloads-grid {
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      margin-top: 18px;
-    }
-
-    .download-link {
-      display: block;
-      padding: 16px 18px;
-      text-decoration: none;
-      color: var(--ink);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      background: #fff;
-      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
-    }
-
-    .download-link:hover,
-    .download-link:focus-visible {
-      transform: translateY(-1px);
-      border-color: var(--accent);
-      box-shadow: 0 10px 22px rgba(0,0,0,.08);
-    }
-
-    .download-label {
-      font: 700 15px/1.3 var(--ui-font);
-    }
-
-    .download-file {
-      margin-top: 8px;
-      color: var(--muted);
-      font: 400 13px/1.45 var(--body-font);
-      word-break: break-all;
-    }
-
-    .download-kind {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 999px;
-      font: 700 11px/1 var(--ui-font);
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      background: var(--priority-bg);
-      color: var(--priority-text);
-      margin-bottom: 8px;
-    }
-
-    .category-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 14px;
-      margin-top: 18px;
-    }
-
-    .category-card {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      padding: 16px;
-      text-align: center;
-      position: relative;
-    }
-
-    .category-name {
-      margin-top: 10px;
-      font: 600 14px/1.3 var(--ui-font);
-    }
-
-    .ring-wrap {
-      position: relative;
-      width: 90px;
-      height: 90px;
-      margin: 0 auto;
-    }
-
-    .ring-wrap svg { width: 100%; height: 100%; }
-
-    .ring-label {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font: 700 22px/1 var(--display-font);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 18px;
-    }
-
-    thead th {
-      text-align: left;
-      padding: 14px 12px;
-      background: var(--table-head-bg);
-      border-bottom: 1px solid var(--line);
-      font: 700 12px/1.2 var(--ui-font);
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-
-    tbody td {
-      padding: 14px 12px;
-      border-bottom: 1px solid var(--line);
-      vertical-align: top;
-      font: 400 14px/1.5 var(--body-font);
-    }
-
-    tbody tr:last-child td { border-bottom: 0; }
-
-    .priority-pill {
-      display: inline-block;
-      padding: 5px 10px;
-      border-radius: 999px;
-      font: 700 11px/1 var(--ui-font);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-    }
-    .priority-pill[data-severity="critical"] { background: var(--critical-bg); color: var(--critical-text); }
-    .priority-pill[data-severity="warning"]  { background: var(--warning-bg);  color: var(--warning-text); }
-    .priority-pill[data-severity="pass"]     { background: var(--pass-bg);     color: var(--pass-text); }
-    .priority-pill[data-severity="info"]     { background: var(--info-bg);     color: var(--info-text); }
-
-    .url-cell {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 13px;
-      word-break: break-all;
-    }
-
-    details.section-detail {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      padding: 14px 18px;
-      margin-top: 12px;
-    }
-
-    details.section-detail > summary {
-      cursor: pointer;
-      font: 700 15px/1.3 var(--ui-font);
-      list-style: none;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    details.section-detail > summary::-webkit-details-marker { display: none; }
-    details.section-detail > summary::after {
-      content: "+";
-      font: 700 18px/1 var(--display-font);
-      color: var(--accent);
-    }
-    details.section-detail[open] > summary::after { content: "−"; }
-    details.section-detail > .section-body {
-      margin-top: 12px;
-    }
-
-    .footer {
-      margin-top: 22px;
-      color: var(--muted);
-      font: 400 13px/1.6 var(--body-font);
-      text-align: center;
-    }
-
-    @media (max-width: 860px) {
-      .hero-top {
-        flex-direction: column;
-        align-items: flex-start;
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-3.1.1.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+      rel="stylesheet">
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme:
+        {
+          extend:
+          {
+            fontFamily:
+            {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors:
+            {
+              brand:
+              {
+                500: '#84D814',
+                600: '#73BC11',
+                900: '#1C1C1C',
+              },
+              dark:
+              {
+                bg: '#121212',
+                surface: '#1E1E1E',
+                border: '#333333'
+              }
+            },
+            boxShadow:
+            {
+              'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+              'dark-soft': '0 4px 20px -2px rgba(0, 0, 0, 0.2)',
+            }
+          }
+        }
       }
-      .hero-score {
-        width: 100%;
-        text-align: left;
+    </script>
+    <style>
+      body
+      {
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+        padding: 0;
       }
-      .hero-title { font-size: 30px; }
-      .score-value { font-size: 52px; }
-    }
 
-    @media (prefers-reduced-motion: reduce) {
-      .download-link { transition: none; }
-      .download-link:hover, .download-link:focus-visible { transform: none; }
-    }
+      ::-webkit-scrollbar
+      {
+        width: 6px;
+        height: 6px;
+      }
 
-    @media print {
-      html, body { background: #fff; }
-      .panel, .meta-card, .stat-card { box-shadow: none; }
-      details.section-detail { break-inside: avoid; }
-      details.section-detail > summary::after { content: ""; }
-      details.section-detail:not([open]) > .section-body { display: block; }
-    }
-  </style>
-</head>
-<body>
-  <a href="#main-content" class="skip-link">Skip to main content</a>
-  <main id="main-content" class="page">
-    <section class="hero" aria-labelledby="report-heading">
-      <div class="hero-top">
+      ::-webkit-scrollbar-track
+      {
+        background: transparent;
+      }
+
+      ::-webkit-scrollbar-thumb
+      {
+        background: #E5E7EB;
+        border-radius: 10px;
+      }
+
+      .dark ::-webkit-scrollbar-thumb
+      {
+        background: #374151;
+      }
+    </style>
+  </head>
+
+  <body
+    class="bg-[#F3F4F6] dark:bg-dark-bg text-gray-900 dark:text-gray-100 min-h-screen flex transition-colors duration-200">
+    <!-- Sidebar -->
+    <aside id="sidebar"
+      class="bg-[#1C1C1C] text-white flex-shrink-0 flex flex-col h-screen sticky top-0 border-r border-[#2A2A2A] transition-all duration-300"
+      style="width: 280px;">
+      <div class="p-6 flex items-center justify-between">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <div
+            class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-[#1C1C1C] font-bold text-sm flex-shrink-0">
+            {{AGENCY_LOGO_INITIAL}}
+          </div><div id="sidebarText" class="font-semibold text-lg whitespace-nowrap">{{AGENCY_NAME}}</div>
+        </div><button id="sidebarToggle"
+          class="text-gray-400 hover:text-white transition-colors flex-shrink-0"><i
+            class="fa-solid fa-chevron-left text-sm border border-gray-600 rounded p-1"></i></button>
+      </div>
+      <div class="px-6 mb-6"></div>
+      <div class="px-4 flex-1 overflow-y-auto">
+        <div id="menuLabel"
+          class="text-xs font-semibold text-gray-500 mb-3 px-4 uppercase tracking-wider whitespace-nowrap">
+          Main Menu</div>
+        <nav class="space-y-1"><a href="#"
+            class="flex items-center gap-3 px-4 py-3 bg-brand-500 text-[#1C1C1C] rounded-full font-medium transition-colors group"><i
+              class="fa-solid fa-chart-pie w-5 text-center flex-shrink-0"></i>
+            <span class="sidebar-text whitespace-nowrap">Audit Overview</span>
+          </a><a href="#issues"
+            class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors group"><i
+              class="fa-solid fa-triangle-exclamation w-5 text-center flex-shrink-0"></i>
+            <span class="sidebar-text whitespace-nowrap">Issue Distribution</span>
+          </a><a href="#pages"
+            class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors group"><i
+              class="fa-solid fa-file-lines w-5 text-center flex-shrink-0"></i>
+            <span class="sidebar-text whitespace-nowrap">Page Previews</span>
+          </a><a href="#tasks"
+            class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors group"><i
+              class="fa-solid fa-list-check w-5 text-center flex-shrink-0"></i>
+            <span class="sidebar-text whitespace-nowrap">Task Dashboard</span>
+          </a></nav>
+      </div>
+      <div class="p-6">
+        <div class="bg-[#2A2A2A] rounded-xl p-4 relative overflow-hidden">
+          <div class="sidebar-text text-xs text-gray-400 font-medium mb-1">{{AGENCY_KICKER}}
+          </div>
+          <div class="sidebar-text text-sm font-semibold text-white mb-2">{{REPORT_SUBTITLE}}
+          </div><a href="#download"
+            class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-brand-500 text-[#1C1C1C] hover:bg-brand-600 transition-colors mt-2"><i
+              class="fa-solid fa-arrow-down"></i></a>
+        </div>
+      </div>
+    </aside>
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+      <!-- Header -->
+      <header id="header"
+        class="bg-white dark:bg-dark-surface sticky top-0 z-10 px-8 py-5 flex items-center justify-between border-b border-gray-100 dark:border-dark-border shadow-sm dark:shadow-none">
         <div>
-          <div class="brand-lockup">
-            <img class="brand-logo" src="{{AGENCY_LOGO}}" alt="{{AGENCY_NAME}} logo" width="56" height="56">
-            <div>
-              <div class="brand-kicker">{{AGENCY_KICKER}}</div>
-              <h1 id="report-heading" class="hero-title">{{REPORT_TITLE}}</h1>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            {{REPORT_TITLE}}</h1>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Comprehensive
+            SEO analysis and recommendations</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <button id="themeToggle"
+            class="w-10 h-10 rounded-full bg-gray-100 dark:bg-dark-bg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-border transition-colors">
+            <i class="fa-solid fa-sun dark:hidden"></i>
+            <i class="fa-solid fa-moon hidden dark:inline-block"></i>
+          </button>
+        </div>
+      </header>
+      <div class="p-8 space-y-8 max-w-[1600px] mx-auto w-full">
+        <!-- KPIs Section -->
+        <section id="overview"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- SEO Score Card -->
+          <div
+            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <h3
+                  class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Overall SEO Score</h3>
+                <div
+                  class="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+                  {{SCORE_VALUE}}</div>
+              </div>
+              <div
+                class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <i class="fa-solid fa-trophy"></i></div>
+            </div>
+            <div
+              class="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 dark:text-brand-500 bg-brand-50 dark:bg-brand-500/10 px-2.5 py-1 rounded-md w-fit">
+              <i
+                class="fa-solid fa-arrow-up text-xs"></i><span>{{SCORE_RATING}}</span>
+            </div>
+          </div><!-- Audited URL -->
+          <div
+            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
+            <div class="flex justify-between items-start mb-4">
+              <div class="flex-1">
+                <h3
+                  class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Audited URL</h3>
+                <div
+                  class="text-lg font-semibold text-gray-900 dark:text-white mt-1 truncate max-w-[180px]">
+                  {{AUDIT_URL}}</div>
+              </div>
+              <div
+                class="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                <i class="fa-solid fa-globe"></i></div>
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Domain: <span
+                class="font-medium text-gray-900 dark:text-white">{{AUDIT_DOMAIN}}</span>
+            </div>
+          </div><!-- Audit Date -->
+          <div
+            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <h3
+                  class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Audit Date</h3>
+                <div
+                  class="text-lg font-semibold text-gray-900 dark:text-white mt-1">
+                  {{AUDIT_DATE}}</div>
+              </div>
+              <div
+                class="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                <i class="fa-regular fa-calendar"></i></div>
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Platform:
+              <span
+                class="font-medium text-gray-900 dark:text-white">{{ENV_PLATFORM}}</span>
+            </div>
+          </div><!-- Issue Summary -->
+          <div
+            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <h3
+                  class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Total Issues</h3>
+                <div
+                  class="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+                  {{CRITICAL_COUNT}}</div>
+              </div>
+              <div
+                class="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600 dark:text-red-400">
+                <i class="fa-solid fa-bug"></i></div>
+            </div>
+            <div
+              class="inline-flex items-center gap-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2.5 py-1 rounded-md w-fit">
+              <i class="fa-solid fa-arrow-down text-xs"></i><span>Needs
+                Attention</span></div>
+          </div>
+        </section><!-- Scoring & Issue Distribution -->
+        <section id="scoring" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Category Breakdown Chart -->
+          <div
+            class="lg:col-span-2 bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+                  Category Breakdown</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Each
+                  category scored 0-100</p>
+              </div><button
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"><i
+                  class="fa-solid fa-ellipsis-vertical"></i></button>
+            </div>
+            <div id="categoryChart" class="h-[320px] w-full"></div>
+          </div><!-- Issue Status Breakdown -->
+          <div
+            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white">Issue
+                Status</h2>
+            </div>
+            <div class="space-y-4">
+              <div
+                class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-3 h-3 rounded-full bg-red-500"></div><span
+                    class="font-medium text-gray-700 dark:text-gray-200">Critical</span>
+                </div><span
+                  class="font-bold text-gray-900 dark:text-white text-lg">{{CRITICAL_COUNT}}</span>
+              </div>
+              <div
+                class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-3 h-3 rounded-full bg-yellow-500"></div><span
+                    class="font-medium text-gray-700 dark:text-gray-200">Warning</span>
+                </div><span
+                  class="font-bold text-gray-900 dark:text-white text-lg">{{WARNING_COUNT}}</span>
+              </div>
+              <div
+                class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-3 h-3 rounded-full bg-blue-500"></div><span
+                    class="font-medium text-gray-700 dark:text-gray-200">Info</span>
+                </div><span
+                  class="font-bold text-gray-900 dark:text-white text-lg">{{INFO_COUNT}}</span>
+              </div>
+              <div
+                class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="w-3 h-3 rounded-full bg-green-500"></div><span
+                    class="font-medium text-gray-700 dark:text-gray-200">Pass</span>
+                </div><span
+                  class="font-bold text-gray-900 dark:text-white text-lg">{{PASS_COUNT}}</span>
+              </div>
             </div>
           </div>
-          <p class="hero-subtitle">{{REPORT_SUBTITLE}}</p>
-        </div>
-        <aside class="hero-score" aria-label="Overall SEO score">
-          <div class="score-label">Overall SEO Score</div>
-          <div class="score-value">{{SCORE_VALUE}}</div>
-          <div class="score-rating">{{SCORE_RATING}}</div>
-        </aside>
-      </div>
-
-      <div class="hero-body">
-        <section class="meta-grid" aria-label="Audit metadata">
-          <article class="meta-card">
-            <div class="meta-label">Audited URL</div>
-            <div class="meta-value"><a href="{{AUDIT_URL}}" target="_blank" rel="noopener noreferrer">{{AUDIT_URL}}</a></div>
-          </article>
-          <article class="meta-card">
-            <div class="meta-label">Domain</div>
-            <div class="meta-value">{{AUDIT_DOMAIN}}</div>
-          </article>
-          <article class="meta-card">
-            <div class="meta-label">Audit Date</div>
-            <div class="meta-value">{{AUDIT_DATE}}</div>
-          </article>
-          <article class="meta-card">
-            <div class="meta-label">Detected Platform</div>
-            <div class="meta-value">{{ENV_PLATFORM}}</div>
-          </article>
-        </section>
-
-        <section class="stats-grid" aria-label="Findings by severity">
-          <article class="stat-card" data-severity="critical">
-            <div class="stat-label">Critical</div>
-            <div class="stat-value">{{CRITICAL_COUNT}}</div>
-          </article>
-          <article class="stat-card" data-severity="warning">
-            <div class="stat-label">Warning</div>
-            <div class="stat-value">{{WARNING_COUNT}}</div>
-          </article>
-          <article class="stat-card" data-severity="info">
-            <div class="stat-label">Info</div>
-            <div class="stat-value">{{INFO_COUNT}}</div>
-          </article>
-          <article class="stat-card" data-severity="pass">
-            <div class="stat-label">Pass</div>
-            <div class="stat-value">{{PASS_COUNT}}</div>
-          </article>
-        </section>
-
-        <section class="panel" aria-labelledby="categories-heading">
-          <div class="section-kicker">Scoring</div>
-          <h2 id="categories-heading" class="section-title">Category breakdown</h2>
-          <p class="section-note">Each category is scored 0–100. Use the links to jump to the detailed findings below.</p>
-          <div class="category-grid">
-            {{CATEGORY_CARDS}}
+        </section><!-- Category Cards -->
+        <section id="category-cards"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {{CATEGORY_CARDS}}
+        </section><!-- Task Dashboard -->
+        <section id="tasks"
+          class="bg-white dark:bg-dark-surface rounded-2xl shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border overflow-hidden">
+          <div class="p-6 border-b border-gray-100 dark:border-dark-border">
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+              Prioritized Task Dashboard</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {{TASKS_NOTE}}</p>
           </div>
-        </section>
-
-        <section class="panel" aria-labelledby="deliverables-heading">
-          <div class="section-kicker">Deliverables</div>
-          <h2 id="deliverables-heading" class="section-title">Download the report set</h2>
-          <p class="section-note">{{DOWNLOADS_NOTE}}</p>
-          <div class="downloads-grid">
-            {{DOWNLOAD_LINKS}}
-          </div>
-        </section>
-
-        <section class="panel" aria-labelledby="tasks-heading">
-          <div class="section-kicker">Remediation</div>
-          <h2 id="tasks-heading" class="section-title">Prioritized task dashboard</h2>
-          <p class="section-note">{{TASKS_NOTE}}</p>
-          <div style="overflow-x:auto;">
-            <table>
-              <caption class="sr-only">Prioritized remediation tasks for {{AUDIT_DOMAIN}}</caption>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
               <thead>
-                <tr>
-                  <th scope="col">ID</th>
-                  <th scope="col">Priority</th>
-                  <th scope="col">Category</th>
-                  <th scope="col">Finding</th>
-                  <th scope="col">Owner</th>
-                  <th scope="col">Timeline</th>
-                  <th scope="col">Effort</th>
+                <tr
+                  class="bg-gray-50 dark:bg-dark-bg text-xs uppercase tracking-wider text-gray-600 dark:text-gray-400 border-b border-gray-100 dark:border-dark-border">
+                  <th class="px-6 py-4 font-semibold">ID</th>
+                  <th class="px-6 py-4 font-semibold">Priority</th>
+                  <th class="px-6 py-4 font-semibold">Category</th>
+                  <th class="px-6 py-4 font-semibold">Finding</th>
+                  <th class="px-6 py-4 font-semibold">Owner</th>
+                  <th class="px-6 py-4 font-semibold">Timeline</th>
+                  <th class="px-6 py-4 font-semibold">Effort</th>
                 </tr>
               </thead>
-              <tbody>
-                {{TASK_ROWS}}
+              <tbody
+                class="text-sm divide-y divide-gray-100 dark:divide-dark-border">
               </tbody>
             </table>
           </div>
-        </section>
-
-        <section class="panel" aria-labelledby="detail-heading" id="detailed-sections">
-          <div class="section-kicker">Detail</div>
-          <h2 id="detail-heading" class="section-title">Detailed findings</h2>
-          <p class="section-note">Each section below expands to show the underlying evidence collected by the audit scripts.</p>
-          {{DETAILED_SECTIONS}}
-        </section>
+          <div
+            class="p-4 border-t border-gray-100 dark:border-dark-border flex items-center justify-between">
+            <span class="text-sm text-gray-500 dark:text-gray-400">Showing 1 to
+              3 of {{TASK_ROWS}} entries</span></div>
+        </section><!-- Detailed Findings Placeholder -->
+        <section id="detail"
+          class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
+          <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4">
+            Detailed Findings</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Each section
+            below expands to show the underlying evidence collected by the audit
+            scripts.</p>
+          <div class="space-y-3">
+            {{DETAILED_SECTIONS}}
+          </div>
+        </section><!-- Download Section -->
+        <section id="download"
+          class="bg-gradient-to-r from-brand-500 to-brand-600 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between text-white shadow-lg">
+          <div class="mb-6 md:mb-0 max-w-2xl">
+            <h2 class="text-2xl font-bold mb-2">Download the Report Set</h2>
+            <p class="text-white/90 font-medium">{{DOWNLOADS_NOTE}}</p>
+          </div>
+          <div class="flex flex-wrap gap-4">
+            {{DOWNLOAD_LINKS}}
+          </div>
+        </section><!-- Footer -->
+        <footer
+          class="pt-8 pb-4 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-dark-border">
+          {{FOOTER_TEXT}}
+        </footer>
       </div>
-    </section>
+    </main>
+    <script>
+      // Sidebar Toggle Logic
+      const sidebar = document.getElementById('sidebar');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebarTexts = document.querySelectorAll('.sidebar-text');
+      const menuLabel = document.getElementById('menuLabel');
+      let isCollapsed = false;
 
-    <p class="footer">{{FOOTER_TEXT}}</p>
-  </main>
-</body>
+      sidebarToggle.addEventListener('click', () => {
+        isCollapsed = !isCollapsed;
+
+        if (isCollapsed) {
+          sidebar.style.width = '80px';
+          sidebarToggle.querySelector('i').classList.remove('fa-chevron-left');
+          sidebarToggle.querySelector('i').classList.add('fa-chevron-right');
+          sidebarTexts.forEach(text => text.style.opacity = '0');
+          menuLabel.style.opacity = '0';
+          setTimeout(() => {
+            sidebarTexts.forEach(text => text.style.display = 'none');
+            menuLabel.style.display = 'none';
+          }, 150);
+        } else {
+          sidebar.style.width = '280px';
+          sidebarToggle.querySelector('i').classList.remove('fa-chevron-right');
+          sidebarToggle.querySelector('i').classList.add('fa-chevron-left');
+          sidebarTexts.forEach(text => text.style.display = 'block');
+          menuLabel.style.display = 'block';
+          setTimeout(() => {
+            sidebarTexts.forEach(text => text.style.opacity = '1');
+            menuLabel.style.opacity = '1';
+          }, 50);
+        }
+      });
+
+      // Theme Toggle Logic
+      const themeToggleBtn = document.getElementById('themeToggle');
+      const htmlElement = document.documentElement;
+
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window
+          .matchMedia('(prefers-color-scheme: dark)').matches))
+      {
+        htmlElement.classList.add('dark');
+      }
+      else
+      {
+        htmlElement.classList.remove('dark');
+      }
+
+      themeToggleBtn.addEventListener('click', () =>
+      {
+        htmlElement.classList.toggle('dark');
+        if (htmlElement.classList.contains('dark'))
+        {
+          localStorage.theme = 'dark';
+        }
+        else
+        {
+          localStorage.theme = 'light';
+        }
+        setTimeout(initializeCharts, 100);
+      });
+
+      function initializeCharts()
+      {
+        const isDark = document.documentElement.classList.contains('dark');
+        const textColor = isDark ? '#E5E7EB' : '#374151';
+        const gridColor = isDark ? '#334155' : '#F3F4F6';
+        const bgColor = 'transparent';
+
+        const categoryData = [
+        {
+          type: 'bar',
+          x: ['Performance', 'SEO', 'Accessibility', 'Best Practices',
+            'Mobile'
+          ],
+          y: [78, 85, 92, 88, 81],
+          marker:
+          {
+            color: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899']
+          },
+          width: 0.6
+        }];
+
+        const categoryLayout = {
+          paper_bgcolor: bgColor,
+          plot_bgcolor: bgColor,
+          margin:
+          {
+            t: 20,
+            r: 20,
+            b: 60,
+            l: 50
+          },
+          xaxis:
+          {
+            tickfont:
+            {
+              color: textColor,
+              family: 'Inter, sans-serif'
+            },
+            showgrid: false,
+            fixedrange: true
+          },
+          yaxis:
+          {
+            tickfont:
+            {
+              color: textColor,
+              family: 'Inter, sans-serif'
+            },
+            gridcolor: gridColor,
+            zerolinecolor: gridColor,
+            fixedrange: true,
+            range: [0, 100]
+          },
+          showlegend: false,
+          bargap: 0.3
+        };
+
+        const config = {
+          responsive: true,
+          displayModeBar: false
+        };
+
+        try
+        {
+          Plotly.newPlot('categoryChart', categoryData, categoryLayout, config);
+        }
+        catch (e)
+        {
+          console.error("Chart rendering failed", e);
+        }
+      }
+
+      window.addEventListener('load', initializeCharts);
+    </script>
+  </body>
+
 </html>

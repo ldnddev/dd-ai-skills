@@ -1,164 +1,201 @@
-# SEO Action Plan — ldnddev.com
+# SEO Action Plan — threeriversinspection.com
 
-**Source audit:** `FULL-AUDIT-REPORT.md` (2026-05-06)
-**Scoring basis:** Impact × Effort. Do P0s this week, P1s this month, P2s this quarter.
+- **Source audit**: `FULL-AUDIT-REPORT.md` (2026-05-07)
+- **Bundle**: `web/threeriversinspection.com-seo-audit-2026-05-07/`
+- **Stack**: WordPress + Yoast SEO + Cloudflare
+
+## Priority Buckets
+
+| P | Effort | When | Impact |
+|---|---|---|---|
+| **P0** | <1 day | Week 1 | Direct ranking + AI visibility unlock |
+| **P1** | 1–3 days | Weeks 2–3 | Local pack + E-E-A-T uplift |
+| **P2** | Backlog | Month 2 | Content depth + UX polish |
 
 ---
 
-## P0 — Critical, fix this week
+## P0 — Week 1 (do first)
 
-### 1. Stop client-rendering the homepage main content
-**Problem:** `<main hx-trigger="load" hx-get="/home.html">` and `<header hx-get="/includes/header.html">` defer the actual content to a second HTTP round-trip on every page. Non-JS crawlers (GPTBot, ClaudeBot, PerplexityBot, plain text fetchers) see an empty shell.
-**Fix:** Server-side include the homepage hero/sections and the header/footer before sending HTML. Keep HTMX for in-page interactions (forms, filtering), not for the initial frame. If a static site generator is in play, render the layout into every page at build time.
-**Verify:** `curl -A "Mozilla/5.0" https://www.ldnddev.com/ | grep -c "<h1>"` should return `1` (or more), not `0`.
+### 1. Write meta descriptions for all 5 pages (C-1)
+**Where**: WP admin → Pages → Yoast SEO box → "Meta description"
+**Length**: 140–160 chars each
+**Drafts**:
+- `/` → `Pittsburgh home inspections led by a licensed Professional Engineer. 15,000+ inspections completed across Southwestern PA. Schedule today.`
+- `/home-page/` → `Thorough home inspections in Pittsburgh, PA. PE-trained inspectors, narrative reports designed to strengthen your buyer negotiation.`
+- `/she-engineering-home-page-2/` → `Structural engineering assessments by a PA-licensed PE. Settlement, foundation cracks, wall-anchor reviews across Southwestern Pennsylvania.`
+- `/about-us/` → `Three Rivers Inspections is led by Russell Kowalik, PE — Carnegie Mellon engineer with 15,000+ home inspections across Pittsburgh, PA.`
+- `/real-estate-agents/` → `Trusted home inspection partner for Pittsburgh-area real estate agents. PE-led, narrative reports, fast scheduling, agent referral support.`
 
-### 2. Add JSON-LD structured data
-**Problem:** Zero schema across audited pages.
-**Fix:** Add three schema blocks to the appropriate templates (use JSON-LD only — no Microdata/RDFa):
+### 2. Fix `/real-estate-agents/` H1 (C-2)
+Add at top of page body: `<h1>Inspections Built for Real Estate Agents in Southwestern PA</h1>`. Remove any duplicate H2 covering the same topic.
 
-- **Site-wide (in `<head>` of every page):** `Organization` + `WebSite` (with `SearchAction`).
-- **Blog index:** `Blog` + `BreadcrumbList`.
-- **Blog post template:** `BlogPosting` (with `author` → `Person`, `datePublished`, `dateModified`, `image`, `mainEntityOfPage`) + `BreadcrumbList`. Reference an `@id`'d `Person` for Jared Lyvers with `sameAs` linking to LinkedIn/GitHub.
+### 3. Unblock AI crawlers (W-1, GEO)
+**Edit `robots.txt`** — remove these `Disallow: /` lines:
+```
+User-agent: GPTBot       # remove Disallow: /
+User-agent: ClaudeBot    # remove Disallow: /
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: PerplexityBot # add explicit Allow if not already
+```
+Keep blocks only for crawlers you intentionally want excluded. For a local-service biz courting AI-assistant referrals, all major LLM crawlers should be allowed.
 
-Templates exist at `<dd-seo skill>/resources/schema/templates.json`. **Do not** use `FAQPage` (commercial-restricted) or `HowTo` (deprecated). Validate with `python3 <dd-seo>/scripts/validate_schema.py <file>` before deploy.
+### 4. Add `og:image` (C-6)
+WP admin → Yoast → Social → Facebook → upload 1200×630 default OG image. Same image works for Twitter Card.
 
-### 3. Add Open Graph + Twitter Card tags
-**Problem:** 0/7 OG, 0/6 Twitter on both audited URLs.
-**Fix:** Add to the base `<head>` template:
+### 5. Fix sitemap protocol (C-5)
+WP admin → Settings → General → confirm Site Address (URL) and WordPress Address (URL) both `https://threeriversinspection.com`. Save. Yoast → Tools → File editor → flush. Re-fetch `https://threeriversinspection.com/sitemap_index.xml` — every `<loc>` must be `https://`.
 
+### 6. Rewrite all 5 page titles (W-2)
+Replace the all-caps "THREE RIVERS — X PAGE — Three Rivers Inspections and Engineering" template. Use the per-page rewrites in FULL-AUDIT-REPORT W-2.
+
+### 7. Fix broken email-protection link (W-7)
+Cloudflare dashboard → Scrape Shield → toggle Email Address Obfuscation **off** (or fix the static `[email protected]` anchor in the menu/footer to a proper `mailto:`).
+
+---
+
+## P1 — Weeks 2–3
+
+### 8. Add `HomeAndConstructionBusiness` schema (C-3)
+Use Yoast → Site → Knowledge Graph, set Organization → switch to LocalBusiness subtype. If Yoast lacks the subtype, add a custom JSON-LD block via a snippet plugin or `functions.php`:
 ```html
-<meta property="og:type" content="website">
-<meta property="og:title" content="{{ page_title }}">
-<meta property="og:description" content="{{ meta_description }}">
-<meta property="og:url" content="{{ canonical_url }}">
-<meta property="og:image" content="{{ social_image_1200x630 }}">
-<meta property="og:site_name" content="ldnddev">
-<meta property="og:locale" content="en_US">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ page_title }}">
-<meta name="twitter:description" content="{{ meta_description }}">
-<meta name="twitter:image" content="{{ social_image_1200x630 }}">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HomeAndConstructionBusiness",
+  "@id": "https://threeriversinspection.com/#localbusiness",
+  "name": "Three Rivers Inspections and Engineering",
+  "url": "https://threeriversinspection.com/",
+  "image": "https://threeriversinspection.com/wp-content/uploads/2022/02/ThreeRivInspectEngin_logo_color_nobkgnd.png",
+  "telephone": "+1-412-331-5665",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "4885-A McKnight Rd, Suite 292",
+    "addressLocality": "Pittsburgh",
+    "addressRegion": "PA",
+    "postalCode": "15237",
+    "addressCountry": "US"
+  },
+  "geo": { "@type": "GeoCoordinates", "latitude": 40.5246, "longitude": -80.0223 },
+  "openingHoursSpecification": [{
+    "@type": "OpeningHoursSpecification",
+    "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+    "opens": "09:00", "closes": "17:00"
+  }],
+  "areaServed": "Southwestern Pennsylvania",
+  "priceRange": "$$",
+  "sameAs": [
+    "https://www.facebook.com/ThreeRiversInspection",
+    "https://www.linkedin.com/in/russell-kowalik-23b8058/"
+  ]
+}
+</script>
 ```
 
-For blog posts use `og:type="article"` plus `article:published_time`, `article:author`, `article:tag`. Generate 1200×630 social images per post (the existing `hero-lg.webp` is close — just confirm crop ratio).
-
-### 4. Fix the blog index meta description
-**Problem:** `<meta name="description" content="ldndddev insights." />` — typo (`ldndddev` has three `d`s) and only 18 chars.
-**Fix:** Replace with 140–160 chars of real copy, e.g.:
-
-> Insights on Drupal, WordPress, AI-driven development, accessibility, and modern web tooling — written by the ldnddev team for builders and decision-makers.
-
-### 5. Add the missing security headers
-**Problem:** `security_headers.py` scored 25/100. Missing HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
-**Fix:** Set these via Cloudflare → Rules → Transform Rules → Modify Response Headers (no origin change needed):
-
+### 9. Add `Person` schema for Russell Kowalik (C-4)
+On `/about-us/`:
+```html
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "@id": "https://threeriversinspection.com/about-us/#russ-kowalik",
+  "name": "Russell Kowalik, PE",
+  "jobTitle": "Owner, Lead Engineer & Home Inspector Trainer",
+  "worksFor": { "@id": "https://threeriversinspection.com/#localbusiness" },
+  "alumniOf": "Carnegie Mellon University",
+  "hasCredential": [
+    { "@type": "EducationalOccupationalCredential", "name": "Professional Engineer (Pennsylvania)" }
+  ],
+  "sameAs": ["https://www.linkedin.com/in/russell-kowalik-23b8058/"]
+}
+</script>
 ```
-Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-X-Content-Type-Options: nosniff
-X-Frame-Options: SAMEORIGIN
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=()
-Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'
-```
+Add similar `Person` blocks for Natalie Hanchett and Max Echard.
 
-Tighten the CSP after a one-week report-only trial (`Content-Security-Policy-Report-Only:` first). Drop `'unsafe-inline'` once inline scripts/styles are removed or hashed.
+### 10. Expand About page to 600–900 words (W-3)
+Add per-team-member detail: PE license number, inspection count, certifications (ASHI / InterNACHI / state license), notable structural projects, headshots with descriptive `alt`. Restate NAP with city/state/zip.
+
+### 11. Link to orphan pages (W-4)
+Add visible CTAs on `/`, `/home-page/`, `/she-engineering-home-page-2/`, `/real-estate-agents/`:
+- "📄 See a sample home inspection report" → `/three-rivers-sample-home-inspection-report/`
+- "📐 View a sample engineering report" → `/engineering-report-sample/`
+
+### 12. Rename engineering page slug (W per-URL p3)
+Change `/she-engineering-home-page-2/` → `/structural-engineering/`. Add 301 in Yoast → Redirects.
+
+### 13. Fix logo `alt` (W-8)
+Theme/header.php or theme customizer: `alt="Three Rivers Inspections and Engineering — Pittsburgh, PA"`.
+
+### 14. Fix address formatting (per-URL p4)
+On About page replace `4885-A McKnight Rd, 292 Pittsburgh 15237` with `4885-A McKnight Rd, Suite 292 · Pittsburgh, PA 15237`.
 
 ---
 
-## P1 — Important, fix this month
+## P2 — Month 2 (depth)
 
-### 6. Populate `llms.txt`
-**Problem:** Score 5/100 — empty file. AI search engines treat this as a low-quality signal.
-**Fix:** Replace with a populated file matching the [llmstxt.org](https://llmstxt.org) spec:
+### 15. Create `/llms.txt` (W-6)
+File served at `https://threeriversinspection.com/llms.txt`:
+```
+# Three Rivers Inspections and Engineering
+> PE-led home inspections and structural engineering across Southwestern Pennsylvania.
 
-```markdown
-# ldnddev
+## About
+- Owner: Russell Kowalik, PE (Carnegie Mellon, PA Professional Engineer)
+- Address: 4885-A McKnight Rd, Suite 292, Pittsburgh, PA 15237
+- Phone: 412-331-5665
+- Hours: Mon–Fri 9:00–17:00 ET; Sat–Sun by appointment
 
-> ldnddev is a B2B web development studio specializing in Drupal and WordPress for healthcare, outreach, and service-industry brands. SOC2 / HIPAA-aware delivery.
-
-## Core pages
-- [Services](https://www.ldnddev.com/services/): Drupal & WordPress engagement models
-- [Experience](https://www.ldnddev.com/experience/): Sectors and case-study highlights
-- [Results](https://www.ldnddev.com/results/): Client outcomes
-- [Brands](https://www.ldnddev.com/brands/): Brands we partner with
-- [Contact](https://www.ldnddev.com/contact-us/): Get in touch
-
-## Blog
-- [Blog index](https://www.ldnddev.com/blog/): Insights from the ldnddev team
-
-## Optional
-- [Sitemap](https://www.ldnddev.com/sitemap.xml)
+## Key pages
+- [Home Inspections](https://threeriversinspection.com/home-page/)
+- [Structural Engineering](https://threeriversinspection.com/structural-engineering/)
+- [About](https://threeriversinspection.com/about-us/)
+- [Real Estate Agents](https://threeriversinspection.com/real-estate-agents/)
+- [Sample Home Inspection Report](https://threeriversinspection.com/three-rivers-sample-home-inspection-report/)
+- [Sample Engineering Report](https://threeriversinspection.com/engineering-report-sample/)
 ```
 
-### 7. Tighten anchor text on the blog index
-**Problem:** Card anchors are flavor text ("GIT Workflows.", "Diff Away.", "Arch BTW."). Search engines and screen readers can't tell what each link leads to.
-**Fix:** Use the post title as anchor text (or a descriptive variant). Keep the flavor line as visible card copy if you like the voice — just wrap the title in the `<a>` instead.
+### 16. Add CSP + Permissions-Policy (W-5)
+Cloudflare → Rules → Transform Rules → Modify Response Header:
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- `Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.google-analytics.com https://connect.facebook.net; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; report-uri /csp-report` (tune after observing reports for 1–2 weeks, then promote to enforce).
 
-### 8. De-duplicate blog thumbnail alt text
-**Problem:** Four cards reuse the alt `"What Developers Need to Know"`.
-**Fix:** Make each alt describe its specific post (e.g. "Headless vs traditional CMS comparison illustration", "AI-game-changer SEO email-marketing chart"). No two thumbnails on the same page should share alt text.
-
-### 9. Fix heading hierarchy on the blog index
-**Problem:** Page goes H1 → 23 × H3 with no H2.
-**Fix:** Either (a) wrap card sections in an H2 like "Latest insights" / "Featured" / "All posts", or (b) promote each card title to H2 if there is no group hierarchy. Pick one — don't mix.
-
-### 10. Get Core Web Vitals data
-**Problem:** PSI was rate-limited; no confirmed LCP/INP/CLS numbers.
-**Fix:** Run the page through PSI manually (`https://pagespeed.web.dev/?url=https%3A%2F%2Fwww.ldnddev.com%2F`) and check Search Console → Core Web Vitals (real-user CrUX data, more authoritative). Once homepage main content is no longer HTMX-deferred (P0 #1), LCP should drop materially. Expected wins: ≥30% LCP improvement on mobile.
-
-### 11. Add `Person` schema for the author
-**Problem:** No author entity exists for E-E-A-T attribution.
-**Fix:** Create `/about-jared/` (or `/team/jared-lyvers/`) with `Person` JSON-LD, `sameAs` to LinkedIn/GitHub, role at ldnddev, areas of expertise. Reference its `@id` from every `BlogPosting.author`.
-
----
-
-## P2 — Optimize, fix this quarter
-
-### 12. Expand homepage word count to ≥800
-**Problem:** Rendered homepage is ~460 words.
-**Fix:** Add a services overview block with three to five service cards (Drupal builds, WordPress builds, accessibility, performance, ongoing care), a proof block (logos / metrics / testimonials), and a brief FAQ section (without `FAQPage` schema — that type is restricted to gov/healthcare authorities).
-
-### 13. Add `BreadcrumbList` schema globally
-**Problem:** No breadcrumbs appear in document HTML or JSON-LD.
-**Fix:** Render a visible breadcrumb on interior pages (`Home > Blog > Post Title`) and emit matching `BreadcrumbList` JSON-LD. This drives the breadcrumb path display in Google SERPs.
-
-### 14. Add a populated FAQ section to `/services/`
-Without `FAQPage` schema, you still get user-answer benefits and AI-overview attribution. Aim for 5–8 questions that match real client objections (cost ranges, timelines, accessibility/HIPAA scope, headless vs traditional, ongoing-care models).
-
-### 15. Build out a topic cluster around "Drupal accessibility" and "WordPress for healthcare"
-You already have `dd_wcag` content — turn it into a cluster page (`/services/accessibility/`) that links out to all the WCAG/APCA posts. Same for HIPAA / healthcare CMS. This concentrates topical authority on commercial-intent landing pages.
-
-### 16. Set up GSC + Bing Webmaster + IndexNow
-- Submit `sitemap.xml` to Google Search Console and Bing Webmaster Tools.
-- Wire up IndexNow (`<dd-seo>/scripts/indexnow_checker.py`) — publish, ping, and Bing/Yandex crawl within minutes.
-
-### 17. Plan a competitive entity sweep
-Run `<dd-seo>/scripts/competitor_gap.py` and `entity_checker.py` against two or three peer studios (e.g. Lullabot, Mediacurrent, 10up) to find topical gaps and entity coverage holes for the cluster pages above.
-
----
-
-## Acceptance Tests (run after each P0/P1 batch lands)
-
+### 17. Run PageSpeed Insights with API key
+Get a free key at https://developers.google.com/speed/docs/insights/v5/get-started, then re-run:
 ```bash
-SKILL=/home/jlyvers/.claude/plugins/cache/dd-skills/dd-seo/1.0.0/skills/dd-seo
-python3 $SKILL/scripts/social_meta.py https://www.ldnddev.com           # expect 7/7 OG
-python3 $SKILL/scripts/social_meta.py https://www.ldnddev.com/blog/     # expect 7/7 OG
-python3 $SKILL/scripts/security_headers.py https://www.ldnddev.com      # expect ≥85/100
-python3 $SKILL/scripts/llms_txt_checker.py https://www.ldnddev.com      # expect ≥70/100
-curl -sA "Mozilla/5.0" https://www.ldnddev.com/ | grep -c "application/ld+json"  # expect ≥1
-curl -sA "Mozilla/5.0" https://www.ldnddev.com/ | grep -c "<h1"                  # expect ≥1 (no JS render)
-python3 $SKILL/scripts/pagespeed.py https://www.ldnddev.com --strategy mobile    # rerun w/ API key
+python3 scripts/pagespeed.py https://threeriversinspection.com/ --strategy mobile --api-key $PSI_KEY
 ```
+Address LCP/INP/CLS findings (likely image lazy-loading, hero image dimensions, render-blocking Yoast/Cloudflare scripts).
+
+### 18. Improve readability (W-9)
+Edit homepage and About to shorten sentences (target ≤20 words avg). Replace passive phrasing. Aim Flesch 60+.
+
+### 19. Sitemap hygiene (W-10)
+Yoast → flush. If author archive is noindex, exclude `author-sitemap.xml`. If kept, ensure regen happens on publish.
+
+### 20. Add `Service` schema per service page
+Add `Service` JSON-LD on `/home-page/`, `/she-engineering-home-page-2/`, `/real-estate-agents/`, with `provider` referring to the LocalBusiness `@id`.
+
+### 21. Expand homepage to 800+ words
+Cover: services overview, service area (cities/counties), why-a-PE-matters, sample reports, testimonials, FAQ. Pair with internal links to all P1/P2 destinations.
+
+### 22. Set up Google Business Profile + Search Console
+If not already, claim GBP, link to website, add business hours, photos, and request reviews. Connect Search Console (HTTPS property) to monitor index coverage and CWV field data.
 
 ---
 
-## Quick Reference — Severity Budget
+## Verification After Implementation
 
-| Severity | Count | Examples |
+| Check | Command | Pass criterion |
 |---|---|---|
-| 🔴 Critical | 8 | HTMX-deferred main, missing schema, missing OG, security headers, blog meta typo |
-| ⚠️ Warning | 7 | Heading hierarchy, anchor text, duplicate alt, llms.txt empty, thin homepage |
-| ✅ Pass | 9 | HTTPS clean, sitemap valid, alt coverage, WebP, canonical, robots, etc. |
-| ℹ️ Info / Hypothesis | 2 | CWV (rate-limited), readability paragraph heuristic |
+| Meta desc present | `python3 scripts/parse_html.py` | All 5 pages → `meta_description` length 120–160 |
+| H1 fixed | `grep -c '<h1' p5.html` | ≥1 |
+| Schema | https://validator.schema.org/ | No errors; LocalBusiness + Person nodes present |
+| Sitemap | `curl https://.../sitemap_index.xml` | All `<loc>` start with `https://` |
+| AI crawlers | `python3 scripts/robots_checker.py` | `Allow` (or no `Disallow: /`) for GPTBot, ClaudeBot, Google-Extended |
+| OG image | `python3 scripts/social_meta.py` | Score ≥80, og:image present |
+| Headers | `python3 scripts/security_headers.py` | Score ≥90, CSP + Permissions-Policy present |
+| Broken links | `python3 scripts/broken_links.py` | 0 internal 4xx |
+| CWV | `python3 scripts/pagespeed.py --api-key …` | LCP <2.5s, INP <200ms, CLS <0.1 (mobile) |
 
-Generated artifacts: `FULL-AUDIT-REPORT.md`, `ACTION-PLAN.md`.
+Re-run `python3 scripts/generate_report.py https://threeriversinspection.com/` after P0+P1 to confirm overall score moves from 65 → 85+.

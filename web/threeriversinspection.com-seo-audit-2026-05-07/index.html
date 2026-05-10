@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SEO Audit Dashboard — threeriversinspection.com</title>
+  <meta name="description" content="Client-facing audit summary with downloadable remediation artifacts.">
+  <style>
+    :root {
+      --bg: #f4efe8;
+      --bg-top: #ebe0cf;
+      --surface: #fcfcfc;
+      --ink: #121212;
+      --muted: #665f57;
+      --accent: #007DA3;
+      --accent-2: #7F507A;
+      --line: #dfd3c3;
+      --shadow: rgba(32, 22, 12, 0.12);
+      --glow-1: rgba(182, 90, 46, 0.14);
+      --glow-2: rgba(15, 118, 110, 0.12);
+      --hero-1: #fcfcfc;
+      --hero-2: #fcfcfc;
+      --table-head-bg: #f3eadb;
+      --priority-bg: #f8e0d7;
+      --priority-text: #8d3f1e;
+      --critical-bg: #fde2e2;
+      --critical-text: #8a1a1a;
+      --warning-bg: #fff1cc;
+      --warning-text: #7a4a00;
+      --pass-bg: #d8f1de;
+      --pass-text: #1f5f33;
+      --info-bg: #e0eaf6;
+      --info-text: #1f3d6b;
+      --display-font: "Instrument Serif", Georgia, serif;
+      --body-font: "Inter", "Avenir Next", Arial, sans-serif;
+      --ui-font: "Inter", "Avenir Next", Arial, sans-serif;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background:
+        radial-gradient(circle at top left, var(--glow-1), transparent 30%),
+        radial-gradient(circle at top right, var(--glow-2), transparent 28%),
+        linear-gradient(180deg, var(--bg-top), var(--bg));
+      color: var(--ink);
+      font-family: var(--body-font);
+      line-height: 1.55;
+    }
+
+    a { color: var(--accent); }
+    a:focus-visible {
+      outline: 3px solid var(--accent-2);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 8px;
+      background: var(--ink);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .skip-link:focus { left: 16px; z-index: 10; }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+
+    .hero {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 24px 60px var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 28px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, var(--hero-1), var(--hero-2));
+    }
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      width: 56px;
+      height: 56px;
+      object-fit: contain;
+      border-radius: 14px;
+      background: rgba(255,255,255,.85);
+      padding: 8px;
+      border: 1px solid rgba(255,255,255,.5);
+    }
+
+    .brand-kicker {
+      font: 600 12px/1.2 var(--ui-font);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .hero-title {
+      font: 700 38px/1.05 var(--display-font);
+      margin: 0;
+    }
+
+    .hero-subtitle {
+      margin: 12px 0 0;
+      max-width: 720px;
+      color: var(--muted);
+      font: 400 16px/1.6 var(--body-font);
+    }
+
+    .hero-score {
+      min-width: 220px;
+      padding: 20px;
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,.75);
+      border: 1px solid rgba(255,255,255,.6);
+      backdrop-filter: blur(12px);
+      text-align: right;
+    }
+
+    .score-label,
+    .stat-label,
+    .meta-label,
+    .section-kicker {
+      font: 600 12px/1.2 var(--ui-font);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .score-value {
+      margin-top: 8px;
+      font: 700 68px/0.9 var(--display-font);
+      color: var(--accent);
+    }
+
+    .score-rating {
+      margin-top: 10px;
+      font: 600 15px/1.2 var(--ui-font);
+    }
+
+    .hero-body { padding: 28px; }
+
+    .meta-grid,
+    .stats-grid,
+    .downloads-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .meta-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .stats-grid { grid-template-columns: repeat(4, 1fr); margin-top: 20px; }
+
+    @media (max-width: 720px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .meta-card,
+    .stat-card,
+    .panel {
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      box-shadow: 0 12px 30px rgba(0,0,0,.04);
+    }
+
+    .meta-card,
+    .stat-card { padding: 18px; }
+
+    .stat-card[data-severity="critical"] { border-color: var(--critical-text); }
+    .stat-card[data-severity="warning"]  { border-color: var(--warning-text); }
+    .stat-card[data-severity="pass"]     { border-color: var(--pass-text); }
+    .stat-card[data-severity="info"]     { border-color: var(--info-text); }
+
+    .meta-value {
+      margin-top: 8px;
+      font: 600 15px/1.45 var(--body-font);
+      word-break: break-word;
+    }
+
+    .stat-value {
+      margin-top: 10px;
+      font: 700 36px/1 var(--display-font);
+      color: var(--accent);
+    }
+    .stat-card[data-severity="critical"] .stat-value { color: var(--critical-text); }
+    .stat-card[data-severity="warning"]  .stat-value { color: var(--warning-text); }
+    .stat-card[data-severity="pass"]     .stat-value { color: var(--pass-text); }
+    .stat-card[data-severity="info"]     .stat-value { color: var(--info-text); }
+
+    .panel {
+      margin-top: 24px;
+      padding: 24px;
+    }
+
+    .section-title {
+      margin: 8px 0 0;
+      font: 700 28px/1.05 var(--display-font);
+    }
+
+    .section-note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font: 400 15px/1.6 var(--body-font);
+    }
+
+    .downloads-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 18px;
+    }
+
+    .download-link {
+      display: block;
+      padding: 16px 18px;
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .download-link:hover,
+    .download-link:focus-visible {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+      box-shadow: 0 10px 22px rgba(0,0,0,.08);
+    }
+
+    .download-label {
+      font: 700 15px/1.3 var(--ui-font);
+    }
+
+    .download-file {
+      margin-top: 8px;
+      color: var(--muted);
+      font: 400 13px/1.45 var(--body-font);
+      word-break: break-all;
+    }
+
+    .download-kind {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font: 700 11px/1 var(--ui-font);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      background: var(--priority-bg);
+      color: var(--priority-text);
+      margin-bottom: 8px;
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .category-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+      position: relative;
+    }
+
+    .category-name {
+      margin-top: 10px;
+      font: 600 14px/1.3 var(--ui-font);
+    }
+
+    .ring-wrap {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      margin: 0 auto;
+    }
+
+    .ring-wrap svg { width: 100%; height: 100%; }
+
+    .ring-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: 700 22px/1 var(--display-font);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 14px 12px;
+      background: var(--table-head-bg);
+      border-bottom: 1px solid var(--line);
+      font: 700 12px/1.2 var(--ui-font);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    tbody td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font: 400 14px/1.5 var(--body-font);
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+
+    .priority-pill {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font: 700 11px/1 var(--ui-font);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .priority-pill[data-severity="critical"] { background: var(--critical-bg); color: var(--critical-text); }
+    .priority-pill[data-severity="warning"]  { background: var(--warning-bg);  color: var(--warning-text); }
+    .priority-pill[data-severity="pass"]     { background: var(--pass-bg);     color: var(--pass-text); }
+    .priority-pill[data-severity="info"]     { background: var(--info-bg);     color: var(--info-text); }
+
+    .url-cell {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    details.section-detail {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-top: 12px;
+    }
+
+    details.section-detail > summary {
+      cursor: pointer;
+      font: 700 15px/1.3 var(--ui-font);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    details.section-detail > summary::-webkit-details-marker { display: none; }
+    details.section-detail > summary::after {
+      content: "+";
+      font: 700 18px/1 var(--display-font);
+      color: var(--accent);
+    }
+    details.section-detail[open] > summary::after { content: "−"; }
+    details.section-detail > .section-body {
+      margin-top: 12px;
+    }
+
+    .footer {
+      margin-top: 22px;
+      color: var(--muted);
+      font: 400 13px/1.6 var(--body-font);
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      .hero-top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .hero-score {
+        width: 100%;
+        text-align: left;
+      }
+      .hero-title { font-size: 30px; }
+      .score-value { font-size: 52px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .download-link { transition: none; }
+      .download-link:hover, .download-link:focus-visible { transform: none; }
+    }
+
+    @media print {
+      html, body { background: #fff; }
+      .panel, .meta-card, .stat-card { box-shadow: none; }
+      details.section-detail { break-inside: avoid; }
+      details.section-detail > summary::after { content: ""; }
+      details.section-detail:not([open]) > .section-body { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <main id="main-content" class="page">
+    <section class="hero" aria-labelledby="report-heading">
+      <div class="hero-top">
+        <div>
+          <div class="brand-lockup">
+            <img class="brand-logo" src="assets/agency-logo.svg" alt="ldnddev, LLC logo" width="56" height="56">
+            <div>
+              <div class="brand-kicker">SEO Audit</div>
+              <h1 id="report-heading" class="hero-title">SEO Audit Dashboard</h1>
+            </div>
+          </div>
+          <p class="hero-subtitle">Client-facing audit summary with downloadable remediation artifacts.</p>
+        </div>
+        <aside class="hero-score" aria-label="Overall SEO score">
+          <div class="score-label">Overall SEO Score</div>
+          <div class="score-value">65</div>
+          <div class="score-rating">Needs Improvement</div>
+        </aside>
+      </div>
+
+      <div class="hero-body">
+        <section class="meta-grid" aria-label="Audit metadata">
+          <article class="meta-card">
+            <div class="meta-label">Audited URL</div>
+            <div class="meta-value"><a href="https://threeriversinspection.com/" target="_blank" rel="noopener noreferrer">https://threeriversinspection.com/</a></div>
+          </article>
+          <article class="meta-card">
+            <div class="meta-label">Domain</div>
+            <div class="meta-value">threeriversinspection.com</div>
+          </article>
+          <article class="meta-card">
+            <div class="meta-label">Audit Date</div>
+            <div class="meta-value">2026-05-07</div>
+          </article>
+          <article class="meta-card">
+            <div class="meta-label">Detected Platform</div>
+            <div class="meta-value">WordPress</div>
+          </article>
+        </section>
+
+        <section class="stats-grid" aria-label="Findings by severity">
+          <article class="stat-card" data-severity="critical">
+            <div class="stat-label">Critical</div>
+            <div class="stat-value">3</div>
+          </article>
+          <article class="stat-card" data-severity="warning">
+            <div class="stat-label">Warning</div>
+            <div class="stat-value">20</div>
+          </article>
+          <article class="stat-card" data-severity="info">
+            <div class="stat-label">Info</div>
+            <div class="stat-value">10</div>
+          </article>
+          <article class="stat-card" data-severity="pass">
+            <div class="stat-label">Pass</div>
+            <div class="stat-value">0</div>
+          </article>
+        </section>
+
+        <section class="panel" aria-labelledby="categories-heading">
+          <div class="section-kicker">Scoring</div>
+          <h2 id="categories-heading" class="section-title">Category breakdown</h2>
+          <p class="section-note">Each category is scored 0–100. Use the links to jump to the detailed findings below.</p>
+          <div class="category-grid">
+            <a class="category-card" href="#section-security" aria-label="Security Headers: 75 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#7a4a00" stroke-width="6" stroke-dasharray="188.5 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">75</div></div><div class="category-name">🔒 Security Headers</div></a>
+<a class="category-card" href="#section-social" aria-label="Social Meta: 54 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#7a4a00" stroke-width="6" stroke-dasharray="135.7 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">54</div></div><div class="category-name">📱 Social Meta</div></a>
+<a class="category-card" href="#section-robots" aria-label="Robots &amp; Crawlers: 94 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#1f5f33" stroke-width="6" stroke-dasharray="236.2 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">94</div></div><div class="category-name">🤖 Robots &amp; Crawlers</div></a>
+<a class="category-card" href="#section-broken_links" aria-label="Broken Links: 58 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#7a4a00" stroke-width="6" stroke-dasharray="145.8 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">58</div></div><div class="category-name">🔗 Broken Links</div></a>
+<a class="category-card" href="#section-internal_links" aria-label="Internal Links: 60 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#7a4a00" stroke-width="6" stroke-dasharray="150.8 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">60</div></div><div class="category-name">🕸️ Internal Links</div></a>
+<a class="category-card" href="#section-redirects" aria-label="Redirects: 100 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#1f5f33" stroke-width="6" stroke-dasharray="251.3 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">100</div></div><div class="category-name">↪️ Redirects</div></a>
+<a class="category-card" href="#section-llms_txt" aria-label="AI Search (llms.txt): 0 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#8a1a1a" stroke-width="6" stroke-dasharray="0.0 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">0</div></div><div class="category-name">🧠 AI Search (llms.txt)</div></a>
+<a class="category-card" href="#section-pagespeed" aria-label="Performance (CWV): 0 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#8a1a1a" stroke-width="6" stroke-dasharray="0.0 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">0</div></div><div class="category-name">⚡ Performance (CWV)</div></a>
+<a class="category-card" href="#section-onpage" aria-label="On-Page SEO: 85 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#1f5f33" stroke-width="6" stroke-dasharray="213.6 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">85</div></div><div class="category-name">📝 On-Page SEO</div></a>
+<a class="category-card" href="#section-readability" aria-label="Readability: 64 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#7a4a00" stroke-width="6" stroke-dasharray="160.8 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">64</div></div><div class="category-name">📖 Readability</div></a>
+<a class="category-card" href="#section-article" aria-label="Article Extractor: 75 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#7a4a00" stroke-width="6" stroke-dasharray="188.5 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">75</div></div><div class="category-name">📄 Article Extractor</div></a>
+<a class="category-card" href="#section-entity" aria-label="Entity SEO: 0 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#8a1a1a" stroke-width="6" stroke-dasharray="0.0 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">0</div></div><div class="category-name">🏛️ Entity SEO</div></a>
+<a class="category-card" href="#section-link_profile" aria-label="Link Profile: 70 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#7a4a00" stroke-width="6" stroke-dasharray="175.9 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">70</div></div><div class="category-name">🔗 Link Profile</div></a>
+<a class="category-card" href="#section-hreflang" aria-label="Hreflang: 0 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#8a1a1a" stroke-width="6" stroke-dasharray="0.0 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">0</div></div><div class="category-name">🌍 Hreflang</div></a>
+<a class="category-card" href="#section-duplicate_content" aria-label="Content Uniqueness: 100 of 100"><div class="ring-wrap"><svg viewBox="0 0 90 90" aria-hidden="true"><circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="45" cy="45" r="40" fill="none" stroke="#1f5f33" stroke-width="6" stroke-dasharray="251.3 251.327" stroke-linecap="round" transform="rotate(-90 45 45)"/></svg><div class="ring-label">100</div></div><div class="category-name">📋 Content Uniqueness</div></a>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="deliverables-heading">
+          <div class="section-kicker">Deliverables</div>
+          <h2 id="deliverables-heading" class="section-title">Download the report set</h2>
+          <p class="section-note">Word documents are formatted for client delivery; the CSV is ready for project trackers (Jira / Linear / Asana).</p>
+          <div class="downloads-grid">
+            <a class="download-link" href="FULL-AUDIT-REPORT.docx" download><span class="download-kind">DOCX</span><div class="download-label">Full Audit Report</div><div class="download-file">FULL-AUDIT-REPORT.docx</div></a>
+<a class="download-link" href="ACTION-PLAN.docx" download><span class="download-kind">DOCX</span><div class="download-label">Action Plan</div><div class="download-file">ACTION-PLAN.docx</div></a>
+<a class="download-link" href="tasks.csv" download><span class="download-kind">CSV</span><div class="download-label">Remediation Tasks</div><div class="download-file">tasks.csv</div></a>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="tasks-heading">
+          <div class="section-kicker">Remediation</div>
+          <h2 id="tasks-heading" class="section-title">Prioritized task dashboard</h2>
+          <p class="section-note">Tasks are prioritized by impact and ordered from Critical to Info. Owners and timelines are starting recommendations — adjust to your team.</p>
+          <div style="overflow-x:auto;">
+            <table>
+              <caption class="sr-only">Prioritized remediation tasks for threeriversinspection.com</caption>
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Finding</th>
+                  <th scope="col">Owner</th>
+                  <th scope="col">Timeline</th>
+                  <th scope="col">Effort</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>SEO-001</td><td><span class="priority-pill" data-severity="critical">Critical</span></td><td>Broken Links</td><td>🔴 2 broken link(s) found</td><td>Technical SEO</td><td>Week 1</td><td>2.0h</td></tr>
+<tr><td>SEO-002</td><td><span class="priority-pill" data-severity="critical">Critical</span></td><td>Link Profile</td><td>3 orphan page(s) with zero inbound internal links.</td><td>Technical SEO</td><td>Week 1</td><td>2.0h</td></tr>
+<tr><td>SEO-003</td><td><span class="priority-pill" data-severity="critical">Critical</span></td><td>Social Meta</td><td>🔴 Missing required: og:image</td><td>Content / SEO</td><td>Week 1</td><td>2.0h</td></tr>
+<tr><td>SEO-004</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Entity SEO</td><td>No Wikidata entry found for &#x27;Three Rivers Inspections and Engineering&#x27;.</td><td>Content / SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-005</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Entity SEO</td><td>Missing sameAs link to Wikipedia (Primary KG signal).</td><td>Content / SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-006</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Entity SEO</td><td>Missing sameAs link to Wikidata (Primary KG signal).</td><td>Content / SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-007</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Environment / Platform</td><td>Meta description is missing or out of range</td><td>Web Engineering</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-008</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Environment / Platform</td><td>Title tag needs optimization</td><td>Web Engineering</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-009</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Environment / Platform</td><td>2 security headers missing</td><td>Web Engineering</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-010</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Environment / Platform</td><td>No llms.txt found</td><td>Web Engineering</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-011</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Environment / Platform</td><td>2 broken links detected</td><td>Web Engineering</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-012</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Environment / Platform</td><td>Social meta tags are incomplete</td><td>Web Engineering</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-013</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Environment / Platform</td><td>Content readability is difficult</td><td>Web Engineering</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-014</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Internal Links</td><td>⚠️ 2 potential orphan page(s) (≤1 internal link pointing to them)</td><td>Technical SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-015</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Internal Links</td><td>⚠️ 10 link(s) have no anchor text</td><td>Technical SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-016</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Readability</td><td>⚠️ Content is difficult to read (Flesch: 38.9) — may reduce engagement</td><td>Content / SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-017</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Readability</td><td>⚠️ 22.7% complex words (3+ syllables) — consider simplifying</td><td>Content / SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-018</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Readability</td><td>⚠️ Average paragraph length (15.0 sentences) — aim for 2-4</td><td>Content / SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-019</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Readability</td><td>⚠️ Thin content (299 words) — may rank poorly</td><td>Content / SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-020</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Robots &amp; Crawlers</td><td>⚠️ 4 AI crawlers not explicitly managed: ChatGPT-User, PerplexityBot, anthropic-ai, FacebookBot</td><td>Technical SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-021</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Security Headers</td><td>⚠️ 2 security header(s) missing</td><td>Web Engineering</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-022</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Social Meta</td><td>⚠️ og:title is too long (70 chars, max 60)</td><td>Content / SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-023</td><td><span class="priority-pill" data-severity="warning">Warning</span></td><td>Social Meta</td><td>⚠️ og:description is too long (421 chars, max 200)</td><td>Content / SEO</td><td>Month 1</td><td>1.0h</td></tr>
+<tr><td>SEO-024</td><td><span class="priority-pill" data-severity="info">Info</span></td><td>Entity SEO</td><td>No Wikipedia article found for &#x27;Three Rivers Inspections and Engineering&#x27;.</td><td>Content / SEO</td><td>Month 2-3</td><td>0.5h</td></tr>
+<tr><td>SEO-025</td><td><span class="priority-pill" data-severity="info">Info</span></td><td>Entity SEO</td><td>Missing sameAs link to Twitter/X (Strong KG signal).</td><td>Content / SEO</td><td>Month 2-3</td><td>0.5h</td></tr>
+<tr><td>SEO-026</td><td><span class="priority-pill" data-severity="info">Info</span></td><td>Entity SEO</td><td>Could not verify sameAs URL: https://www.linkedin.com/in/russell-kowalik-23b8058/</td><td>Content / SEO</td><td>Month 2-3</td><td>0.5h</td></tr>
+<tr><td>SEO-027</td><td><span class="priority-pill" data-severity="info">Info</span></td><td>Environment / Platform</td><td>Performance measurement incomplete</td><td>Web Engineering</td><td>Month 2-3</td><td>0.5h</td></tr>
+<tr><td>SEO-028</td><td><span class="priority-pill" data-severity="info">Info</span></td><td>Internal Links</td><td>Add internal links pointing to orphan pages from related content</td><td>Technical SEO</td><td>Month 2-3</td><td>0.5h</td></tr>
+<tr><td>SEO-029</td><td><span class="priority-pill" data-severity="info">Info</span></td><td>Readability</td><td>Simplify vocabulary and shorten sentences</td><td>Content / SEO</td><td>Month 2-3</td><td>0.5h</td></tr>
+<tr><td>SEO-030</td><td><span class="priority-pill" data-severity="info">Info</span></td><td>Readability</td><td>Break long paragraphs into smaller ones</td><td>Content / SEO</td><td>Month 2-3</td><td>0.5h</td></tr>
+<tr><td>SEO-031</td><td><span class="priority-pill" data-severity="info">Info</span></td><td>Readability</td><td>Rewrite the flagged long sentences below using the suggested replacements.</td><td>Content / SEO</td><td>Month 2-3</td><td>0.5h</td></tr>
+<tr><td>SEO-032</td><td><span class="priority-pill" data-severity="info">Info</span></td><td>Security Headers</td><td>Content-Security-Policy (CSP): Add a Content-Security-Policy header restricting script/style sources.</td><td>Web Engineering</td><td>Month 2-3</td><td>0.5h</td></tr>
+<tr><td>SEO-033</td><td><span class="priority-pill" data-severity="info">Info</span></td><td>Security Headers</td><td>Permissions-Policy: Add header: Permissions-Policy: camera=(), microphone=(), geolocation=()</td><td>Web Engineering</td><td>Month 2-3</td><td>0.5h</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="detail-heading" id="detailed-sections">
+          <div class="section-kicker">Detail</div>
+          <h2 id="detail-heading" class="section-title">Detailed findings</h2>
+          <p class="section-note">Each section below expands to show the underlying evidence collected by the audit scripts.</p>
+          <details class="section-detail" id="section-environment"><summary>Environment detection </summary><div class="section-body"><p><strong>Primary platform:</strong> WordPress · <strong>Runtime:</strong> Managed CMS · <strong>Confidence:</strong> high</p><h4 style="margin:12px 0 6px;">Detection signals</h4><ul><li style="margin:4px 0;">WordPress core paths detected</li><li style="margin:4px 0;">WordPress generator meta detected</li></ul></div></details>
+<details class="section-detail" id="section-env_fixes"><summary>Environment-specific fix plan </summary><div class="section-body"><div class="issue-item warning"><span class="issue-badge">WARNING</span><div><strong>Meta description is missing or out of range</strong><br><span style="color:var(--text-muted)">This can reduce SERP CTR and snippet quality.</span><br><span><strong>Fix:</strong> Use your SEO plugin (Yoast/RankMath/AIOSEO) or theme templates to set title/meta and OG/Twitter tags.</span></div></div><div class="issue-item warning"><span class="issue-badge">WARNING</span><div><strong>Title tag needs optimization</strong><br><span style="color:var(--text-muted)">Title length/content is likely suboptimal for rankings and click-through.</span><br><span><strong>Fix:</strong> Use your SEO plugin (Yoast/RankMath/AIOSEO) or theme templates to set title/meta and OG/Twitter tags.</span></div></div><div class="issue-item warning"><span class="issue-badge">WARNING</span><div><strong>2 security headers missing</strong><br><span style="color:var(--text-muted)">Missing headers reduce trust and can expose the site to browser/security risks.</span><br><span><strong>Fix:</strong> Set headers via server config (Nginx/Apache) or CDN edge rules.</span></div></div><div class="issue-item warning"><span class="issue-badge">WARNING</span><div><strong>No llms.txt found</strong><br><span style="color:var(--text-muted)">AI crawlers and assistants have no curated machine-readable guidance for key pages.</span><br><span><strong>Fix:</strong> Create /llms.txt at web root or route it through your web server.</span></div></div><div class="issue-item warning"><span class="issue-badge">WARNING</span><div><strong>2 broken links detected</strong><br><span style="color:var(--text-muted)">Broken internal links hurt crawl flow and user trust.</span><br><span><strong>Fix:</strong> Fix links in menus, content blocks, and internal link plugin data.</span></div></div><div class="issue-item warning"><span class="issue-badge">WARNING</span><div><strong>Social meta tags are incomplete</strong><br><span style="color:var(--text-muted)">Missing OG/Twitter tags weakens social previews and share quality.</span><br><span><strong>Fix:</strong> Use your SEO plugin (Yoast/RankMath/AIOSEO) or theme templates to set title/meta and OG/Twitter tags.</span></div></div><div class="issue-item warning"><span class="issue-badge">WARNING</span><div><strong>Content readability is difficult</strong><br><span style="color:var(--text-muted)">Long, complex text can reduce engagement and comprehension.</span><br><span><strong>Fix:</strong> Rewrite key sections with shorter sentences (15-20 words), shorter paragraphs (2-4 sentences), and clearer subheadings.</span></div></div><div class="issue-item info"><span class="issue-badge">INFO</span><div><strong>Performance measurement incomplete</strong><br><span style="color:var(--text-muted)">PageSpeed API returned an error, so CWV recommendations are less reliable.</span><br><span><strong>Fix:</strong> Rerun `pagespeed.py` with `--api-key` and then prioritize LCP/INP/CLS fixes from that output.</span></div></div></div></details>
+<details class="section-detail" id="section-security"><summary>Security headers <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">75/100</span></summary><div class="section-body"><table><thead><tr><th scope="col">Header</th><th scope="col">Status</th><th scope="col">Value / Description</th></tr></thead><tbody><tr><td>HSTS (Strict-Transport-Security)</td><td><span class="priority-pill" data-severity="pass">Present</span></td><td class="url-cell">max-age=31536000; includeSubDomains</td></tr><tr><td>X-Frame-Options</td><td><span class="priority-pill" data-severity="pass">Present</span></td><td class="url-cell">SAMEORIGIN</td></tr><tr><td>X-Content-Type-Options</td><td><span class="priority-pill" data-severity="pass">Present</span></td><td class="url-cell">nosniff</td></tr><tr><td>Referrer-Policy</td><td><span class="priority-pill" data-severity="pass">Present</span></td><td class="url-cell">strict-origin-when-cross-origin</td></tr><tr><td>Content-Security-Policy (CSP)</td><td><span class="priority-pill" data-severity="critical">Missing</span></td><td>Prevents XSS, clickjacking, and code injection.</td></tr><tr><td>Permissions-Policy</td><td><span class="priority-pill" data-severity="critical">Missing</span></td><td>Controls browser feature access (camera, microphone, geolocation).</td></tr></tbody></table></div></details>
+<details class="section-detail" id="section-social"><summary>Social meta tags <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">54/100</span></summary><div class="section-body"><table><thead><tr><th scope="col">Tag</th><th scope="col">Status</th><th scope="col">Value</th></tr></thead><tbody><tr><td>og:title</td><td><span class="priority-pill" data-severity="pass">Present</span></td><td>THREE RIVERS - LANDING PAGE - Three Rivers Inspections and Engineering</td></tr><tr><td>og:description</td><td><span class="priority-pill" data-severity="pass">Present</span></td><td>Home Inspections and Structural Engineering Home Inspection Thorough home inspec</td></tr><tr><td>og:image</td><td><span class="priority-pill" data-severity="critical">Missing</span></td><td>—</td></tr><tr><td>og:url</td><td><span class="priority-pill" data-severity="pass">Present</span></td><td>https://threeriversinspection.com/</td></tr><tr><td>og:type</td><td><span class="priority-pill" data-severity="pass">Present</span></td><td>website</td></tr><tr><td>og:site_name</td><td><span class="priority-pill" data-severity="pass">Present</span></td><td>Three Rivers Inspections and Engineering</td></tr><tr><td>twitter:card</td><td><span class="priority-pill" data-severity="pass">Present</span></td><td>summary_large_image</td></tr><tr><td>twitter:title</td><td><span class="priority-pill" data-severity="warning">Missing</span></td><td>—</td></tr><tr><td>twitter:description</td><td><span class="priority-pill" data-severity="warning">Missing</span></td><td>—</td></tr><tr><td>twitter:image</td><td><span class="priority-pill" data-severity="warning">Missing</span></td><td>—</td></tr></tbody></table></div></details>
+<details class="section-detail" id="section-robots"><summary>Robots &amp; AI crawlers <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">94/100</span></summary><div class="section-body"><p><strong>robots.txt:</strong> HTTP 200 · <strong>Sitemaps:</strong> 1 · <strong>User-agents:</strong> 10</p><table><thead><tr><th scope="col">Crawler</th><th scope="col">Status</th><th scope="col">Detail</th></tr></thead><tbody><tr><td>GPTBot</td><td><span class="priority-pill" data-severity="pass">Blocked</span></td><td>fully blocked</td></tr><tr><td>ChatGPT-User</td><td><span class="priority-pill" data-severity="warning">Unmanaged</span></td><td>not managed (inherits * rules)</td></tr><tr><td>ClaudeBot</td><td><span class="priority-pill" data-severity="pass">Blocked</span></td><td>fully blocked</td></tr><tr><td>PerplexityBot</td><td><span class="priority-pill" data-severity="warning">Unmanaged</span></td><td>not managed (inherits * rules)</td></tr><tr><td>Google-Extended</td><td><span class="priority-pill" data-severity="pass">Blocked</span></td><td>fully blocked</td></tr><tr><td>Applebot-Extended</td><td><span class="priority-pill" data-severity="pass">Blocked</span></td><td>fully blocked</td></tr><tr><td>Bytespider</td><td><span class="priority-pill" data-severity="pass">Blocked</span></td><td>fully blocked</td></tr><tr><td>CCBot</td><td><span class="priority-pill" data-severity="pass">Blocked</span></td><td>fully blocked</td></tr><tr><td>anthropic-ai</td><td><span class="priority-pill" data-severity="warning">Unmanaged</span></td><td>not managed (inherits * rules)</td></tr><tr><td>FacebookBot</td><td><span class="priority-pill" data-severity="warning">Unmanaged</span></td><td>not managed (inherits * rules)</td></tr><tr><td>Amazonbot</td><td><span class="priority-pill" data-severity="pass">Blocked</span></td><td>fully blocked</td></tr></tbody></table></div></details>
+<details class="section-detail" id="section-broken_links"><summary>Broken links <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">58/100</span></summary><div class="section-body"><p><strong>Total:</strong> 14 · <strong>Healthy:</strong> 12 · <strong>Broken:</strong> 2 · <strong>Redirected:</strong> 0</p><table><thead><tr><th scope="col">Type</th><th scope="col">Status</th><th scope="col">URL</th><th scope="col">Anchor</th></tr></thead><tbody><tr><td><span class="priority-pill" data-severity="critical">Internal</span></td><td>404</td><td class="url-cell">https://threeriversinspection.com/cdn-cgi/l/email-protection</td><td>[email protected]</td></tr><tr><td><span class="priority-pill" data-severity="warning">External</span></td><td>999</td><td class="url-cell">https://www.linkedin.com/in/russell-kowalik-23b8058/</td><td>Linkedin</td></tr></tbody></table></div></details>
+<details class="section-detail" id="section-internal_links"><summary>Internal link structure <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">60/100</span></summary><div class="section-body"><p><strong>Pages crawled:</strong> 11 · <strong>Internal links:</strong> 115 · <strong>Avg per page:</strong> 11.5 · <strong>Orphans:</strong> 2</p><h4 style="margin:12px 0 6px;">Potential orphan pages</h4><table><thead><tr><th scope="col">URL</th><th scope="col">Incoming</th></tr></thead><tbody><tr><td class="url-cell">https://threeriversinspection.com/engineering-report-sample</td><td>1</td></tr><tr><td class="url-cell">https://threeriversinspection.com/three-rivers-sample-home-inspection-report</td><td>1</td></tr></tbody></table></div></details>
+<details class="section-detail" id="section-redirects"><summary>Redirect chain <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">100/100</span></summary><div class="section-body"><table><thead><tr><th scope="col">#</th><th scope="col">Status</th><th scope="col">URL</th><th scope="col">Time</th><th scope="col">Type</th></tr></thead><tbody><tr><td>1</td><td><span class="priority-pill" data-severity="pass">200</span></td><td class="url-cell">https://threeriversinspection.com/</td><td>193ms</td><td>FINAL</td></tr></tbody></table></div></details>
+<details class="section-detail" id="section-llms_txt"><summary>AI search readiness (llms.txt) <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">0/100</span></summary><div class="section-body"><p><strong>llms.txt:</strong> Not found · <strong>llms-full.txt:</strong> Not found · <strong>Quality score:</strong> 0/100</p><h4 style="margin:12px 0 6px;">Suggestions</h4><ul><li>Create /llms.txt with site name, description, and key page links</li></ul></div></details>
+<details class="section-detail" id="section-pagespeed"><summary>Performance &amp; Core Web Vitals <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">0/100</span></summary><div class="section-body"><p><strong>Performance score:</strong> None · <strong>LCP:</strong> ? · <strong>INP/TBT:</strong> ? · <strong>CLS:</strong> ?</p><p style="color:var(--warning-text)"><strong>Note:</strong> PageSpeed API returned an error or was rate-limited. Re-run pagespeed.py with --api-key for confirmed values.</p></div></details>
+<details class="section-detail" id="section-onpage"><summary>On-page SEO <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">85/100</span></summary><div class="section-body"><table><thead><tr><th scope="col">Element</th><th scope="col">Value</th><th scope="col">Length</th></tr></thead><tbody><tr><td>Title</td><td>THREE RIVERS - LANDING PAGE - Three Rivers Inspections and Engineering</td><td>70</td></tr><tr><td>Meta description</td><td>—</td><td>0</td></tr><tr><td>H1</td><td>Home Inspections and Structural Engineering</td><td>—</td></tr><tr><td>Canonical</td><td class="url-cell">https://threeriversinspection.com/</td><td>—</td></tr></tbody></table></div></details>
+<details class="section-detail" id="section-readability"><summary>Readability <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">64/100</span></summary><div class="section-body"><p><strong>Flesch ease:</strong> 38.9 · <strong>Grade:</strong> 12.8 · <strong>Words:</strong> 299 · <strong>Read time:</strong> 1.5 min</p><div style="margin-top:16px"><h3 style="font-size:0.95rem;margin-bottom:8px;">💡 Recommendations</h3><div class="issue-item info"><span class="issue-badge">FIX</span> Simplify vocabulary and shorten sentences</div><div class="issue-item info"><span class="issue-badge">FIX</span> Break long paragraphs into smaller ones</div><div class="issue-item info"><span class="issue-badge">FIX</span> Rewrite the flagged long sentences below using the suggested replacements.</div><div class="issue-item info"><span class="issue-badge">FIX</span> ⚠️ Content is difficult to read (Flesch: 38.9) — may reduce engagement</div><div class="issue-item info"><span class="issue-badge">FIX</span> ⚠️ 22.7% complex words (3+ syllables) — consider simplifying</div><div class="issue-item info"><span class="issue-badge">FIX</span> ⚠️ Average paragraph length (15.0 sentences) — aim for 2-4</div><div class="issue-item info"><span class="issue-badge">FIX</span> ⚠️ Thin content (299 words) — may rank poorly</div></div><div style="margin-top:16px"><h3 style="font-size:0.95rem;margin-bottom:8px;">✍️ What To Replace (Before/After)</h3><div class="issue-item warning"><span class="issue-badge">SENTENCE (40w)</span><div><div><strong>Current:</strong> The home’s structure can be assessed by our in-house engineer while the Three Rivers inspector is conducting the home inspection, or seamless and quickly thereafter, for instance, if a significant structural issue is identified during the home inspection.</div><div style="margin-top:6px;"><strong>Replace with:</strong> The home’s structure can be assessed by our in-house engineer while the Three Rivers inspector is conducting the home. Inspection, or seamless and quickly thereafter, for instance, if a significant structural issue is identified during the home inspection..</div></div></div><div class="issue-item warning"><span class="issue-badge">SENTENCE (34w)</span><div><div><strong>Current:</strong> On the donation page, click on the high impact project of your choosing, then enter the code provided in the Three Rivers email sent after your engineering or home inspection project has been completed.</div><div style="margin-top:6px;"><strong>Replace with:</strong> On the donation page, click on the high impact project of your. Choosing, then enter the code provided in the Three Rivers email sent after your engineering or home inspection project has been completed..</div></div></div></div></div></details>
+<details class="section-detail" id="section-article"><summary>Article info &amp; keywords <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">75/100</span></summary><div class="section-body"><p><strong>Words:</strong> ? · <strong>H2s:</strong> 1 · <strong>Images:</strong> 7</p><table><thead><tr><th scope="col">Target keyword</th><th scope="col">LSI / related</th></tr></thead><tbody><tr><td>provided three rivers</td><td>—</td></tr></tbody></table></div></details>
+<details class="section-detail" id="section-entity"><summary>Entity SEO <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">0/100</span></summary><div class="section-body"><p><strong>Wikidata:</strong> Missing · <strong>Wikipedia:</strong> Missing · <strong>sameAs links:</strong> 2</p><div style="margin-top:16px"><h3 style="font-size:0.95rem;margin-bottom:8px;">🔍 Issues Found</h3><div class="issue-item warning"><span class="issue-badge">WARNING</span><div><strong>No Wikidata entry found for &#x27;Three Rivers Inspections and Engineering&#x27;.</strong><br><span style=&quot;color:var(--text-muted)&quot;>Fix: Create a Wikidata item for your entity with accurate properties to improve Knowledge Graph presence.</span></div></div><div class="issue-item info"><span class="issue-badge">INFO</span><div><strong>No Wikipedia article found for &#x27;Three Rivers Inspections and Engineering&#x27;.</strong><br><span style=&quot;color:var(--text-muted)&quot;>Fix: Pursue notability through press coverage and third-party references. Wikipedia articles significantly boost Knowledge Panel eligibility.</span></div></div><div class="issue-item warning"><span class="issue-badge">WARNING</span><div><strong>Missing sameAs link to Wikipedia (Primary KG signal).</strong><br><span style=&quot;color:var(--text-muted)&quot;>Fix: Add &#x27;wikipedia.org&#x27; profile URL to sameAs array in your entity schema.</span></div></div><div class="issue-item warning"><span class="issue-badge">WARNING</span><div><strong>Missing sameAs link to Wikidata (Primary KG signal).</strong><br><span style=&quot;color:var(--text-muted)&quot;>Fix: Add &#x27;wikidata.org&#x27; profile URL to sameAs array in your entity schema.</span></div></div><div class="issue-item info"><span class="issue-badge">INFO</span><div><strong>Missing sameAs link to Twitter/X (Strong KG signal).</strong><br><span style=&quot;color:var(--text-muted)&quot;>Fix: Add &#x27;x.com&#x27; profile URL to sameAs array in your entity schema.</span></div></div><div class="issue-item info"><span class="issue-badge">INFO</span><div><strong>Could not verify sameAs URL: https://www.linkedin.com/in/russell-kowalik-23b8058/</strong><br><span style=&quot;color:var(--text-muted)&quot;>Fix: Manually confirm this URL is accessible and correct.</span></div></div></div></div></details>
+<details class="section-detail" id="section-link_profile"><summary>Link profile <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">70/100</span></summary><div class="section-body"><p><strong>Pages crawled:</strong> 15 · <strong>Avg internal links:</strong> 14.0 · <strong>Orphans:</strong> 3 · <strong>Dead ends:</strong> 0</p><div style="margin-top:16px"><h3 style="font-size:0.95rem;margin-bottom:8px;">🔍 Issues Found</h3><div class="issue-item critical"><span class="issue-badge">HIGH</span><div><strong>3 orphan page(s) with zero inbound internal links.</strong><br><span style=&quot;color:var(--text-muted)&quot;>Fix: Add internal links from relevant content pages to these orphan pages.</span></div></div></div></div></details>
+<details class="section-detail" id="section-hreflang"><summary>Hreflang / international SEO <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">0/100</span></summary><div class="section-body"><p><strong>Implementation:</strong> none · <strong>Tags found:</strong> 0</p><p style="color:var(--muted)">No hreflang tags found — expected for single-language sites.</p></div></details>
+<details class="section-detail" id="section-duplicate_content"><summary>Content uniqueness <span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">100/100</span></summary><div class="section-body"><p><strong>Pages analyzed:</strong> 13 · <strong>Near-duplicates:</strong> 0 · <strong>Thin pages:</strong> 0</p></div></details>
+<details class="section-detail" id="section-recommendations"><summary>All recommendations </summary><div class="section-body"><h3 style="font-size:0.95rem;margin:16px 0 8px;">🛠️ Environment-Specific Fixes</h3><div class="issue-item info"><span class="issue-badge">FIX</span> <strong>Meta description is missing or out of range</strong>: Use your SEO plugin (Yoast/RankMath/AIOSEO) or theme templates to set title/meta and OG/Twitter tags.</div><div class="issue-item info"><span class="issue-badge">FIX</span> <strong>Title tag needs optimization</strong>: Use your SEO plugin (Yoast/RankMath/AIOSEO) or theme templates to set title/meta and OG/Twitter tags.</div><div class="issue-item info"><span class="issue-badge">FIX</span> <strong>2 security headers missing</strong>: Set headers via server config (Nginx/Apache) or CDN edge rules.</div><div class="issue-item info"><span class="issue-badge">FIX</span> <strong>No llms.txt found</strong>: Create /llms.txt at web root or route it through your web server.</div><div class="issue-item info"><span class="issue-badge">FIX</span> <strong>2 broken links detected</strong>: Fix links in menus, content blocks, and internal link plugin data.</div><div class="issue-item info"><span class="issue-badge">FIX</span> <strong>Social meta tags are incomplete</strong>: Use your SEO plugin (Yoast/RankMath/AIOSEO) or theme templates to set title/meta and OG/Twitter tags.</div><div class="issue-item info"><span class="issue-badge">FIX</span> <strong>Performance measurement incomplete</strong>: Rerun `pagespeed.py` with `--api-key` and then prioritize LCP/INP/CLS fixes from that output.</div><div class="issue-item info"><span class="issue-badge">FIX</span> <strong>Content readability is difficult</strong>: Rewrite key sections with shorter sentences (15-20 words), shorter paragraphs (2-4 sentences), and clearer subheadings.</div><h3 style="font-size:0.95rem;margin:16px 0 8px;">🔒 Security</h3><div class="issue-item info"><span class="issue-badge">FIX</span> Content-Security-Policy (CSP): Add a Content-Security-Policy header restricting script/style sources.</div><div class="issue-item info"><span class="issue-badge">FIX</span> Permissions-Policy: Add header: Permissions-Policy: camera=(), microphone=(), geolocation=()</div><h3 style="font-size:0.95rem;margin:16px 0 8px;">🕸️ Internal Links</h3><div class="issue-item info"><span class="issue-badge">FIX</span> Add internal links pointing to orphan pages from related content</div><h3 style="font-size:0.95rem;margin:16px 0 8px;">📖 Readability</h3><div class="issue-item info"><span class="issue-badge">FIX</span> Simplify vocabulary and shorten sentences</div><div class="issue-item info"><span class="issue-badge">FIX</span> Break long paragraphs into smaller ones</div><div class="issue-item info"><span class="issue-badge">FIX</span> Rewrite the flagged long sentences below using the suggested replacements.</div><div class="issue-item info"><span class="issue-badge">FIX</span> ⚠️ Content is difficult to read (Flesch: 38.9) — may reduce engagement</div><div class="issue-item info"><span class="issue-badge">FIX</span> ⚠️ 22.7% complex words (3+ syllables) — consider simplifying</div><div class="issue-item info"><span class="issue-badge">FIX</span> ⚠️ Average paragraph length (15.0 sentences) — aim for 2-4</div><div class="issue-item info"><span class="issue-badge">FIX</span> ⚠️ Thin content (299 words) — may rank poorly</div><div class="issue-item info"><span class="issue-badge">FIX</span> Rewrite: The home’s structure can be assessed by our in-house engineer while the Three Rivers inspector is conducting the home inspection, or seamless and quickly thereafter, for instance,  → The home’s structure can be assessed by our in-house engineer while the Three Rivers inspector is conducting the home. Inspection, or seamless and quickly thereafter, for instance,</div><div class="issue-item info"><span class="issue-badge">FIX</span> Rewrite: On the donation page, click on the high impact project of your choosing, then enter the code provided in the Three Rivers email sent after your engineering or home inspection proje → On the donation page, click on the high impact project of your. Choosing, then enter the code provided in the Three Rivers email sent after your engineering or home inspection proj</div></div></details>
+        </section>
+      </div>
+    </section>
+
+    <p class="footer">Prepared by © ldnddev, LLC</p>
+  </main>
+</body>
+</html>
