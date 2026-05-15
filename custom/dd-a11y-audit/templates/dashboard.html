@@ -1,32 +1,13 @@
 <html lang="en" class="light">
 
   <head>
-    <script>
-      window.FontAwesomeConfig = {
-        autoReplaceSvg: 'nest'
-      };
-    </script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"
-      crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Website A11Y Audit Dashboard</title>
-
-    <!--fav icons-->
-    <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon/favicon-16x16.png" />
-    <link rel="manifest" href="assets/favicon/site.webmanifest" />
-    <link rel="mask-icon" href="assets/favicon/safari-pinned-tab.svg" color="#5bbad5" />
-    <link rel="shortcut icon" href="assets/favicon/favicon.ico" />
-    <link rel="canonical" href="https://www.ldnddev.com/" />
-    <meta name="msapplication-TileColor" content="#ffffff" />
-    <meta name="msapplication-config" content="assets/favicon/browserconfig.xml" />
+    <title>{{REPORT_TITLE}}</title>
+    <link rel="icon" href="data:," />
     <meta name="theme-color" content="#ffffff" />
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.plot.ly/plotly-3.1.1.min.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
       rel="stylesheet">
@@ -101,54 +82,68 @@
 
   <body
     class="bg-[#F3F4F6] dark:bg-dark-bg text-gray-900 dark:text-gray-100 min-h-screen flex transition-colors duration-200">
+    <a href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-brand-500 focus:text-[#1C1C1C] focus:px-4 focus:py-2 focus:rounded-md focus:font-semibold focus:shadow-lg">Skip
+      to main content</a>
     <!-- Sidebar -->
     <aside id="sidebar"
+      aria-label="Audit navigation"
       class="w-[280px] bg-[#1C1C1C] text-white flex-shrink-0 flex flex-col h-screen sticky top-0 border-r border-[#2A2A2A]">
       <div class="p-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div
+          <div aria-hidden="true"
             class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-[#1C1C1C] font-bold text-sm">
             {{AGENCY_LOGO_INITIAL}}
-          </div><div class="font-semibold text-lg">{{AGENCY_NAME}}</div>
+          </div><div class="font-semibold text-lg sidebar-text">{{AGENCY_NAME}}</div>
         </div><button id="sidebarToggle"
+          type="button"
+          aria-label="Collapse sidebar"
+          aria-expanded="true"
+          aria-controls="sidebar"
           class="text-gray-400 hover:text-white transition-colors flex-shrink-0"><i
-            class="fa-solid fa-chevron-left text-sm border border-gray-600 rounded p-1"></i></button>
+            class="fa-solid fa-chevron-left text-sm border border-gray-600 rounded p-1" aria-hidden="true"></i></button>
       </div>
       <div class="px-6 mb-6"></div>
       <div class="px-4 flex-1 overflow-y-auto">
-        <div
-          class="text-xs font-semibold text-gray-500 mb-3 px-4 uppercase tracking-wider">
+        <div id="menuLabel"
+          class="text-xs font-semibold text-gray-400 mb-3 px-4 uppercase tracking-wider sidebar-text">
           Main Menu</div>
-        <nav class="space-y-1"><a href="#"
+        <nav aria-label="Main" class="space-y-1"><a href="#kpis"
+            aria-current="page"
+            aria-label="Audit Overview"
             class="flex items-center gap-3 px-4 py-3 bg-brand-500 text-[#1C1C1C] rounded-full font-medium transition-colors"><i
-              class="fa-solid fa-chart-pie w-5 text-center"></i>
-            Audit Overview
+              class="fa-solid fa-chart-pie w-5 text-center" aria-hidden="true"></i>
+            <span class="sidebar-text">Audit Overview</span>
           </a><a href="#issues"
+            aria-label="Issue Distribution"
             class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors"><i
-              class="fa-solid fa-triangle-exclamation w-5 text-center"></i>
-            Issue Distribution
+              class="fa-solid fa-triangle-exclamation w-5 text-center" aria-hidden="true"></i>
+            <span class="sidebar-text">Issue Distribution</span>
           </a><a href="#pages"
+            aria-label="Page Previews"
             class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors"><i
-              class="fa-solid fa-file-lines w-5 text-center"></i>
-            Page Previews
+              class="fa-solid fa-file-lines w-5 text-center" aria-hidden="true"></i>
+            <span class="sidebar-text">Page Previews</span>
           </a><a href="#tasks"
+            aria-label="Task Dashboard"
             class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors"><i
-              class="fa-solid fa-list-check w-5 text-center"></i>
-            Task Dashboard
+              class="fa-solid fa-list-check w-5 text-center" aria-hidden="true"></i>
+            <span class="sidebar-text">Task Dashboard</span>
           </a></nav>
       </div>
-      <div class="p-6">
+      <div class="p-6 sidebar-text">
         <div class="bg-[#2A2A2A] rounded-xl p-4 relative overflow-hidden">
           <div class="text-xs text-gray-400 font-medium mb-1">{{AGENCY_KICKER}}
           </div>
           <div class="text-sm font-semibold text-white mb-2">{{REPORT_SUBTITLE}}
           </div><a href="#download"
+            aria-label="Jump to download section"
             class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-brand-500 text-[#1C1C1C] hover:bg-brand-600 transition-colors mt-2"><i
-              class="fa-solid fa-arrow-down"></i></a>
+              class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>
         </div>
       </div>
     </aside><!-- Main Content -->
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+    <main id="main-content" tabindex="-1" class="flex-1 flex flex-col h-screen overflow-y-auto">
       <!-- Top Header -->
       <header
         class="bg-white dark:bg-dark-surface sticky top-0 z-10 px-8 py-5 flex items-center justify-between border-b border-gray-100 dark:border-dark-border shadow-sm dark:shadow-none">
@@ -161,16 +156,20 @@
         </div>
         <div class="flex items-center gap-4">
           <button id="themeToggle"
+            type="button"
+            aria-label="Toggle dark mode"
+            aria-pressed="false"
             class="w-10 h-10 rounded-full bg-gray-100 dark:bg-dark-bg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-border transition-colors">
-            <i class="fa-solid fa-sun dark:hidden"></i>
-            <i class="fa-solid fa-moon hidden dark:inline-block"></i>
+            <i class="fa-solid fa-sun dark:hidden" aria-hidden="true"></i>
+            <i class="fa-solid fa-moon hidden dark:inline-block" aria-hidden="true"></i>
           </button>
         </div>
       </header>
       <div class="p-8 space-y-8 max-w-[1600px] mx-auto w-full">
         <!-- KPIs Row -->
-        <section id="kpis"
+        <section id="kpis" aria-labelledby="kpis-heading"
           class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <h2 id="kpis-heading" class="sr-only">Audit Overview</h2>
           <!-- Score Card -->
           <div
             class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border flex flex-col justify-between relative overflow-hidden">
@@ -184,13 +183,13 @@
                   {{SCORE_VALUE}}
                 </div>
               </div>
-              <div
+              <div aria-hidden="true"
                 class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
                 <i class="fa-solid fa-ranking-star"></i></div>
             </div>
             <div
-              class="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 dark:text-brand-500 bg-brand-50 dark:bg-brand-500/10 px-2.5 py-1 rounded-md w-fit">
-              <i
+              class="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-md w-fit">
+              <i aria-hidden="true"
                 class="fa-solid fa-arrow-up text-xs"></i><span>{{SCORE_RATING}}</span>
             </div>
           </div><!-- Audit Details Cards -->
@@ -206,7 +205,7 @@
                   {{AUDIT_URL}}
                 </div>
               </div>
-              <div
+              <div aria-hidden="true"
                 class="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
                 <i class="fa-solid fa-globe"></i></div>
             </div>
@@ -226,7 +225,7 @@
                   {{AUDIT_DATE}}
                 </div>
               </div>
-              <div
+              <div aria-hidden="true"
                 class="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
                 <i class="fa-regular fa-calendar"></i></div>
             </div>
@@ -244,33 +243,30 @@
                   Total Issues</h3>
                 <div
                   class="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                  142</div>
+                  {{TOTAL_ISSUES}}</div>
               </div>
-              <div
+              <div aria-hidden="true"
                 class="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600 dark:text-red-400">
                 <i class="fa-solid fa-bug"></i></div>
             </div>
             <div
-              class="inline-flex items-center gap-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2.5 py-1 rounded-md w-fit">
-              <i class="fa-solid fa-arrow-down text-xs"></i><span>Needs
+              class="inline-flex items-center gap-1.5 text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2.5 py-1 rounded-md w-fit">
+              <i aria-hidden="true" class="fa-solid fa-arrow-down text-xs"></i><span>Needs
                 Attention</span></div>
           </div>
-        </section><!-- Charts & Issues Row -->
-        <section id="issues"
-          class="lg:grid-cols-3 gap-6 flex flex-row items-center">
-          <!-- Issues Breakdown Chart -->
-          <!-- Issue Counts List -->
-          <div id="i26kzx"
-            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border block flex-1 w-auto h-auto">
+        </section><!-- Severity Breakdown -->
+        <section id="issues" aria-labelledby="severity-heading">
+          <div
+            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
             <div class="flex items-center justify-between mb-6">
-              <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+              <h2 id="severity-heading" class="text-lg font-bold text-gray-900 dark:text-white">
                 Severity Breakdown</h2>
             </div>
             <div class="space-y-4 flex-1">
               <div
                 class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#2A2A2A] transition-colors">
                 <div class="flex items-center gap-3">
-                  <div class="w-3 h-3 rounded-full bg-red-500"></div><span
+                  <div aria-hidden="true" class="w-3 h-3 rounded-full bg-red-500"></div><span
                     class="font-medium text-gray-700 dark:text-gray-200">Critical</span>
                 </div><span
                   class="font-bold text-gray-900 dark:text-white">{{CRITICAL_COUNT}}</span>
@@ -278,7 +274,7 @@
               <div
                 class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#2A2A2A] transition-colors">
                 <div class="flex items-center gap-3">
-                  <div class="w-3 h-3 rounded-full bg-orange-500"></div><span
+                  <div aria-hidden="true" class="w-3 h-3 rounded-full bg-orange-500"></div><span
                     class="font-medium text-gray-700 dark:text-gray-200">Serious</span>
                 </div><span
                   class="font-bold text-gray-900 dark:text-white">{{SERIOUS_COUNT}}</span>
@@ -286,7 +282,7 @@
               <div
                 class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#2A2A2A] transition-colors">
                 <div class="flex items-center gap-3">
-                  <div class="w-3 h-3 rounded-full bg-yellow-500"></div><span
+                  <div aria-hidden="true" class="w-3 h-3 rounded-full bg-yellow-500"></div><span
                     class="font-medium text-gray-700 dark:text-gray-200">Moderate</span>
                 </div><span
                   class="font-bold text-gray-900 dark:text-white">{{MODERATE_COUNT}}</span>
@@ -294,7 +290,7 @@
               <div
                 class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#2A2A2A] transition-colors">
                 <div class="flex items-center gap-3">
-                  <div class="w-3 h-3 rounded-full bg-blue-500"></div><span
+                  <div aria-hidden="true" class="w-3 h-3 rounded-full bg-blue-500"></div><span
                     class="font-medium text-gray-700 dark:text-gray-200">Minor</span>
                 </div><span
                   class="font-bold text-gray-900 dark:text-white">{{MINOR_COUNT}}</span>
@@ -315,49 +311,49 @@
             </div>
             <div class="flex items-center gap-3"></div>
           </div>
-          <div class="overflow-x-auto">
+          <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Task dashboard table (scrollable)">
             <table class="w-full text-left border-collapse whitespace-nowrap">
+              <caption class="sr-only">Accessibility issues by page, priority, and remediation owner</caption>
               <thead>
                 <tr
                   class="bg-gray-50 dark:bg-[#1C1C1C] text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-dark-border">
-                  <th class="px-6 py-4 font-semibold">ID</th>
-                  <th class="px-6 py-4 font-semibold">Page</th>
-                  <th class="px-6 py-4 font-semibold">Priority</th>
-                  <th class="px-6 py-4 font-semibold">Issue</th>
-                  <th class="px-6 py-4 font-semibold">Owner</th>
-                  <th class="px-6 py-4 font-semibold">Timeline</th>
-                  <th class="px-6 py-4 font-semibold">Selector</th>
+                  <th scope="col" class="px-6 py-4 font-semibold">ID</th>
+                  <th scope="col" class="px-6 py-4 font-semibold">Page</th>
+                  <th scope="col" class="px-6 py-4 font-semibold">Priority</th>
+                  <th scope="col" class="px-6 py-4 font-semibold">Issue</th>
+                  <th scope="col" class="px-6 py-4 font-semibold">Owner</th>
+                  <th scope="col" class="px-6 py-4 font-semibold">Timeline</th>
+                  <th scope="col" class="px-6 py-4 font-semibold">Selector</th>
                 </tr>
               </thead>
               <tbody
                 class="text-sm divide-y divide-gray-100 dark:divide-dark-border">
-                <!-- Sample Row 1 -->
-                <!-- Sample Row 2 -->
-                <!-- Sample Row 3 -->
+                {{TASK_ROWS}}
               </tbody>
             </table>
           </div>
           <div
             class="p-4 border-t border-gray-100 dark:border-dark-border flex items-center justify-between">
-            <span class="text-sm text-gray-500 dark:text-gray-400">Showing 1 to
-              3 of {{TASK_ROWS}} entries</span></div>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{TASK_COUNT}} entries</span></div>
         </section><!-- Download Section -->
         <section id="download"
           class="bg-gradient-to-r from-brand-500 to-brand-600 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between text-[#1C1C1C] shadow-lg">
           <div class="mb-6 md:mb-0 max-w-2xl">
             <h2 class="text-2xl font-bold mb-2">Download the report set</h2>
-            <p class="text-[#1C1C1C]/80 font-medium">{{DOWNLOADS_NOTE}}</p>
+            <p class="text-[#1C1C1C] font-medium">{{DOWNLOADS_NOTE}}</p>
           </div>
-          <div class="flex flex-wrap gap-4"><button
+          <div class="flex flex-wrap gap-4"><a
+              href="A11Y-CLIENT-REPORT.docx" download
               class="px-6 py-3 bg-[#1C1C1C] text-white rounded-xl font-semibold hover:bg-black transition-colors flex items-center gap-2 shadow-md"><i
-                class="fa-solid fa-file-pdf"></i> Full PDF Report
-            </button><button
+                class="fa-solid fa-file-word" aria-hidden="true"></i> Full Report (DOCX)
+            </a><a
+              href="REMEDIATION-TASKS.csv" download
               class="px-6 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl font-semibold transition-colors flex items-center gap-2"><i
-                class="fa-solid fa-file-csv"></i> CSV Export
-            </button></div>
+                class="fa-solid fa-file-csv" aria-hidden="true"></i> Remediation Tasks (CSV)
+            </a></div>
         </section><!-- Footer -->
         <footer
-          class="pt-8 pb-4 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-800 mt-auto">
+          class="pt-8 pb-4 text-center text-sm text-gray-600 dark:text-gray-300 border-t border-gray-200 dark:border-gray-800 mt-auto">
           {{FOOTER_TEXT}}
         </footer>
       </div>
@@ -372,26 +368,31 @@
 
       sidebarToggle.addEventListener('click', () => {
         isCollapsed = !isCollapsed;
+        const icon = sidebarToggle.querySelector('i');
 
         if (isCollapsed) {
           sidebar.style.width = '80px';
-          sidebarToggle.querySelector('i').classList.remove('fa-chevron-left');
-          sidebarToggle.querySelector('i').classList.add('fa-chevron-right');
+          icon.classList.remove('fa-chevron-left');
+          icon.classList.add('fa-chevron-right');
+          sidebarToggle.setAttribute('aria-expanded', 'false');
+          sidebarToggle.setAttribute('aria-label', 'Expand sidebar');
           sidebarTexts.forEach(text => text.style.opacity = '0');
-          menuLabel.style.opacity = '0';
+          if (menuLabel) menuLabel.style.opacity = '0';
           setTimeout(() => {
             sidebarTexts.forEach(text => text.style.display = 'none');
-            menuLabel.style.display = 'none';
+            if (menuLabel) menuLabel.style.display = 'none';
           }, 150);
         } else {
           sidebar.style.width = '280px';
-          sidebarToggle.querySelector('i').classList.remove('fa-chevron-right');
-          sidebarToggle.querySelector('i').classList.add('fa-chevron-left');
+          icon.classList.remove('fa-chevron-right');
+          icon.classList.add('fa-chevron-left');
+          sidebarToggle.setAttribute('aria-expanded', 'true');
+          sidebarToggle.setAttribute('aria-label', 'Collapse sidebar');
           sidebarTexts.forEach(text => text.style.display = 'block');
-          menuLabel.style.display = 'block';
+          if (menuLabel) menuLabel.style.display = 'block';
           setTimeout(() => {
             sidebarTexts.forEach(text => text.style.opacity = '1');
-            menuLabel.style.opacity = '1';
+            if (menuLabel) menuLabel.style.opacity = '1';
           }, 50);
         }
       });
@@ -416,87 +417,14 @@
         if (htmlElement.classList.contains('dark'))
         {
           localStorage.theme = 'dark';
+          themeToggleBtn.setAttribute('aria-pressed', 'true');
         }
         else
         {
           localStorage.theme = 'light';
+          themeToggleBtn.setAttribute('aria-pressed', 'false');
         }
-        setTimeout(initializeCharts, 100);
       });
-
-      function initializeCharts()
-      {
-        const isDark = document.documentElement.classList.contains('dark');
-        const textColor = isDark ? '#E5E7EB' : '#374151';
-        const gridColor = isDark ? '#334155' : '#F3F4F6';
-        const bgColor = 'transparent';
-
-        const categoryData = [
-        {
-          type: 'bar',
-          x: ['Performance', 'SEO', 'Accessibility', 'Best Practices',
-            'Mobile'
-          ],
-          y: [78, 85, 92, 88, 81],
-          marker:
-          {
-            color: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899']
-          },
-          width: 0.6
-        }];
-
-        const categoryLayout = {
-          paper_bgcolor: bgColor,
-          plot_bgcolor: bgColor,
-          margin:
-          {
-            t: 20,
-            r: 20,
-            b: 60,
-            l: 50
-          },
-          xaxis:
-          {
-            tickfont:
-            {
-              color: textColor,
-              family: 'Inter, sans-serif'
-            },
-            showgrid: false,
-            fixedrange: true
-          },
-          yaxis:
-          {
-            tickfont:
-            {
-              color: textColor,
-              family: 'Inter, sans-serif'
-            },
-            gridcolor: gridColor,
-            zerolinecolor: gridColor,
-            fixedrange: true,
-            range: [0, 100]
-          },
-          showlegend: false,
-          bargap: 0.3
-        };
-
-        const config = {
-          responsive: true,
-          displayModeBar: false
-        };
-
-        try
-        {
-          Plotly.newPlot('categoryChart', categoryData, categoryLayout, config);
-        }
-        catch (e)
-        {
-          console.error("Chart rendering failed", e);
-        }
-      }
-
-      window.addEventListener('load', initializeCharts);
     </script>
   </body>
 

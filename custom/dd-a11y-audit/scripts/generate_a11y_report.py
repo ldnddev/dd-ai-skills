@@ -50,6 +50,16 @@ def ensure_brand_asset(output_dir, relative_asset_path):
     return relative_asset_path
 
 
+def format_audit_date(timestamp):
+    if not timestamp:
+        return "—"
+    try:
+        ts = timestamp.replace("Z", "+00:00") if isinstance(timestamp, str) else timestamp
+        return datetime.fromisoformat(ts).strftime("%b %d, %Y")
+    except (ValueError, TypeError):
+        return str(timestamp)
+
+
 def score_label(score):
     if score >= 90:
         return "AA Compliant"
@@ -513,8 +523,12 @@ def build_dashboard(path, results, rows):
             "AGENCY_NAME": html.escape(brand.get("agency_name", "Accessibility Audit Team")),
             "AGENCY_KICKER": html.escape(brand.get("agency_kicker", "Accessibility Audit")),
             "AGENCY_LOGO": html.escape(logo_path),
+            "AGENCY_LOGO_INITIAL": html.escape(
+                (brand.get("agency_logo_initial")
+                 or brand.get("agency_name", "A")[:1]).upper()
+            ),
             "AUDIT_URL": html.escape(results["metadata"]["url"]),
-            "AUDIT_DATE": html.escape(results["metadata"]["timestamp"]),
+            "AUDIT_DATE": html.escape(format_audit_date(results["metadata"]["timestamp"])),
             "WCAG_TARGET": html.escape(f"Level {results['metadata']['wcag_level']}"),
             "SCORE_VALUE": html.escape(f"{score}"),
             "SCORE_RATING": html.escape(score_label(score)),
@@ -522,6 +536,13 @@ def build_dashboard(path, results, rows):
             "SERIOUS_COUNT": html.escape(str(results["summary"]["serious_violations"])),
             "MODERATE_COUNT": html.escape(str(results["summary"]["moderate_violations"])),
             "MINOR_COUNT": html.escape(str(results["summary"]["minor_violations"])),
+            "TOTAL_ISSUES": html.escape(str(results["summary"].get("total_violations", (
+                results["summary"]["critical_violations"]
+                + results["summary"]["serious_violations"]
+                + results["summary"]["moderate_violations"]
+                + results["summary"]["minor_violations"]
+            )))),
+            "TASK_COUNT": html.escape(str(len(rows))),
             "DOWNLOADS_NOTE": html.escape(
                 brand.get(
                     "downloads_note",
