@@ -1,6 +1,6 @@
 {
   "name": "dd-a11y",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "WCAG 2.2 accessibility audit skill — Playwright + axe-core, single or multi-page, generates client deliverables (MD/CSV/DOCX/HTML).",
   "license": "MIT",
   "author": {
