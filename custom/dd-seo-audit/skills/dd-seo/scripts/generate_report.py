@@ -756,6 +756,31 @@ def _render_category_cards(scores: dict) -> str:
     return "\n".join(cards)
 
 
+def _render_category_chart_data(scores: dict) -> str:
+    cats = scores.get("categories") or {
+        k: v for k, v in scores.items()
+        if k != "overall" and isinstance(v, (int, float))
+    }
+    label_map = {
+        "technical": "Technical",
+        "content": "Content",
+        "onpage": "On-page",
+        "schema": "Schema",
+        "performance": "Performance",
+        "images": "Images",
+        "geo": "GEO",
+    }
+    palette = ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#14B8A6", "#F43F5E"]
+    ordered_keys = ["technical", "content", "onpage", "schema", "performance", "images", "geo"]
+    keys = [k for k in ordered_keys if k in cats] or list(cats.keys())
+    payload = {
+        "labels": [label_map.get(k, k.title()) for k in keys],
+        "values": [int(cats[k]) for k in keys],
+        "colors": [palette[i % len(palette)] for i in range(len(keys))],
+    }
+    return json.dumps(payload)
+
+
 def _render_download_links(artifacts: list) -> str:
     chunks = []
     for art in artifacts:
@@ -1140,6 +1165,7 @@ def generate_html(data: dict, scores: dict, artifacts: list, rows: list) -> str:
         "AGENCY_NAME": brand.get("agency_name", ""),
         "AGENCY_KICKER": brand.get("agency_kicker", "SEO Audit"),
         "AGENCY_LOGO": brand.get("agency_logo", "assets/agency-logo.svg"),
+        "AGENCY_LOGO_INITIAL": (brand.get("agency_logo_initial") or brand.get("agency_name", "A")[:1]).upper(),
         "DOWNLOADS_NOTE": brand.get("downloads_note", ""),
         "TASKS_NOTE": brand.get("tasks_note", ""),
         "FOOTER_TEXT": brand.get("footer_text", ""),
@@ -1172,10 +1198,13 @@ def generate_html(data: dict, scores: dict, artifacts: list, rows: list) -> str:
         "WARNING_COUNT": str(warning_count),
         "INFO_COUNT": str(info_count),
         "PASS_COUNT": str(pass_count),
+        "TOTAL_ISSUES": str(critical_count + warning_count + info_count),
+        "TASK_COUNT": str(len(rows)),
         "CATEGORY_CARDS": _render_category_cards(scores),
         "DOWNLOAD_LINKS": _render_download_links(artifacts),
         "TASK_ROWS": _render_task_rows(rows),
         "DETAILED_SECTIONS": _render_detailed_sections(data, scores),
+        "CATEGORY_CHART_DATA": _render_category_chart_data(scores),
     }
 
     html = template
