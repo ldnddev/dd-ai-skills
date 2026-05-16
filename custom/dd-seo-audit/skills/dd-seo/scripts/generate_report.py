@@ -17,6 +17,7 @@ import json
 import os
 import re
 import subprocess
+import shutil
 import sys
 import tempfile
 import time
@@ -788,10 +789,15 @@ def _render_download_links(artifacts: list) -> str:
         label = html_lib.escape(art["label"])
         filename = html_lib.escape(art["filename"])
         chunks.append(
-            f'<a class="download-link" href="{filename}" download>'
-            f'<span class="download-kind">{kind}</span>'
-            f'<div class="download-label">{label}</div>'
-            f'<div class="download-file">{filename}</div>'
+            f'<a href="{filename}" download '
+            f'class="inline-flex items-center gap-3 px-5 py-3 bg-[#1C1C1C] text-white rounded-xl font-semibold '
+            f'hover:bg-black focus:outline-none focus-visible:ring-[3px] focus-visible:ring-white '
+            f'focus-visible:ring-offset-2 focus-visible:ring-offset-brand-600 transition-colors shadow-md">'
+            f'<i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i>'
+            f'<span class="flex flex-col items-start leading-tight">'
+            f'<span class="text-xs uppercase tracking-wider opacity-80">{kind}</span>'
+            f'<span class="text-sm">{label}</span>'
+            f'</span>'
             f'</a>'
         )
     return "\n".join(chunks)
@@ -1583,15 +1589,7 @@ def _copy_template_assets(output_dir: str) -> None:
     if not os.path.isdir(src):
         return
     dst = os.path.join(output_dir, "assets")
-    os.makedirs(dst, exist_ok=True)
-    for name in os.listdir(src):
-        s_path = os.path.join(src, name)
-        if not os.path.isfile(s_path):
-            continue
-        with open(s_path, "rb") as fr:
-            content = fr.read()
-        with open(os.path.join(dst, name), "wb") as fw:
-            fw.write(content)
+    shutil.copytree(src, dst, dirs_exist_ok=True)
 
 
 def main():
