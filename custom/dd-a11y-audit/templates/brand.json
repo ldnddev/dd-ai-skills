@@ -1,7 +1,7 @@
 {
   "agency_name": "ldnddev, LLC",
   "agency_kicker": "Accessibility Audit",
-  "agency_logo": "assets/imgs/agency-logo.svg",
+  "agency_logo": "assets/imgs/logo-mini.svg",
   "report_title": "Accessibility Audit Dashboard",
   "report_subtitle": "Client-facing audit summary with downloadable remediation artifacts.",
   "downloads_note": "Use these links to review the dashboard data and download the packaged report files.",

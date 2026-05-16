@@ -1,6 +1,6 @@
 {
   "name": "dd-a11y",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Sharable accessibility audit skill (Claude Code plugin + Codex skill) powered by Playwright and axe-core.",
   "license": "MIT",

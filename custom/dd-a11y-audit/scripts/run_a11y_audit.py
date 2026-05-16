@@ -289,6 +289,24 @@ def main():
     if len(urls) == 1:
         json_path = output_dir / "axe-results.json"
         audit_result = run_page_audit(urls[0], args.level, json_path)
+        if audit_result in (0, 2, 3) and json_path.exists():
+            screenshots_dir = output_dir / "screenshots"
+            shot_data = capture_screenshots(urls[0], json_path, screenshots_dir)
+            page_data = json.loads(json_path.read_text())
+            if not shot_data.get("error"):
+                page_data["screenshots"] = {
+                    "full_page": relpath(shot_data["full_page"], output_dir) if shot_data.get("full_page") else None,
+                    "issues": [
+                        {
+                            **item,
+                            "path": relpath(item["path"], output_dir) if item.get("path") else None,
+                        }
+                        for item in shot_data.get("issue_screenshots", [])
+                    ],
+                }
+            else:
+                page_data["screenshots"] = {"error": True, "message": shot_data.get("message", "")}
+            json_path.write_text(json.dumps(page_data, indent=2))
     else:
         json_path, audit_result = run_multi_audit(urls, args.level, output_dir)
 

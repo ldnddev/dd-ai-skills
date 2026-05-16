@@ -41,12 +41,12 @@ def render_template(template_text, replacements):
 
 
 def ensure_brand_asset(output_dir, relative_asset_path):
-    source = SKILL_DIR / relative_asset_path
-    if not source.exists():
-        return relative_asset_path
-    destination = output_dir / relative_asset_path
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, destination)
+    for candidate in (TEMPLATES_DIR / relative_asset_path, SKILL_DIR / relative_asset_path):
+        if candidate.exists():
+            destination = output_dir / relative_asset_path
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(candidate, destination)
+            return relative_asset_path
     return relative_asset_path
 
 
@@ -499,16 +499,28 @@ def build_dashboard(path, results, rows):
     for page in pages:
         page_url = page.get("page_url") or page.get("metadata", {}).get("url", "")
         full_page = page.get("screenshots", {}).get("full_page")
-        image = f'<img class="page-preview" src="{html.escape(full_page)}" alt="Screenshot of {html.escape(page_url)}">' if full_page else ""
+        score_val = page.get("metadata", {}).get("score", "n/a")
+        image = (
+            f'<a href="{html.escape(full_page)}" class="block mt-4 rounded-lg overflow-hidden border border-gray-100 dark:border-dark-border">'
+            f'<img src="{html.escape(full_page)}" alt="Full-page screenshot of {html.escape(page_url)}" '
+            f'class="w-full h-auto block">'
+            f'</a>'
+        ) if full_page else (
+            '<div class="mt-4 rounded-lg border border-dashed border-gray-200 dark:border-dark-border p-6 text-center text-sm text-gray-500 dark:text-gray-400">No screenshot captured</div>'
+        )
         page_sections.append(
             f"""
-            <article class="page-card">
-              <div class="meta-label">Audited Page</div>
-              <div class="meta-value">{html.escape(page_url)}</div>
-              <div class="meta-value">Score: {html.escape(str(page.get('metadata', {}).get('score', 'n/a')))} / 100</div>
+            <article class="rounded-xl border border-gray-100 dark:border-dark-border p-4">
+              <div class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Audited Page</div>
+              <div class="text-sm font-medium text-gray-900 dark:text-white break-all">{html.escape(page_url)}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">Score: <span class="font-semibold text-gray-900 dark:text-white">{html.escape(str(score_val))} / 100</span></div>
               {image}
             </article>
             """
+        )
+    if not page_sections:
+        page_sections.append(
+            '<div class="col-span-full text-sm text-gray-500 dark:text-gray-400">No page previews available for this audit.</div>'
         )
     html_doc = render_template(
         template_path.read_text(encoding="utf-8"),

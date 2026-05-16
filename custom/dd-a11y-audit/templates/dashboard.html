@@ -92,16 +92,10 @@
       <div class="p-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div aria-hidden="true"
-            class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-[#1C1C1C] font-bold text-sm">
-            {{AGENCY_LOGO_INITIAL}}
+            class="w-12 h-12 rounded-full bg-brand-500 flex items-center justify-center text-[#1C1C1C] font-bold text-sm">
+              <img src="{{AGENCY_LOGO}}" style="padding: 4px;" alt="{{AGENCY_LOGO_INITIAL}}" />
           </div><div class="font-semibold text-lg sidebar-text">{{AGENCY_NAME}}</div>
-        </div><button id="sidebarToggle"
-          type="button"
-          aria-label="Collapse sidebar"
-          aria-expanded="true"
-          aria-controls="sidebar"
-          class="text-gray-400 hover:text-white transition-colors flex-shrink-0"><i
-            class="fa-solid fa-chevron-left text-sm border border-gray-600 rounded p-1" aria-hidden="true"></i></button>
+        </div>
       </div>
       <div class="px-6 mb-6"></div>
       <div class="px-4 flex-1 overflow-y-auto">
@@ -297,6 +291,16 @@
               </div>
             </div>
           </div>
+        </section><!-- Page Previews -->
+        <section id="pages" aria-labelledby="pages-heading"
+          class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
+          <div class="flex items-center justify-between mb-6">
+            <h2 id="pages-heading" class="text-lg font-bold text-gray-900 dark:text-white">
+              Page Previews</h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {{PAGE_SUMMARY_SECTIONS}}
+          </div>
         </section><!-- Task Dashboard Table -->
         <section id="tasks"
           class="bg-white dark:bg-dark-surface rounded-2xl shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border overflow-hidden">
@@ -324,6 +328,7 @@
                   <th scope="col" class="px-6 py-4 font-semibold">Owner</th>
                   <th scope="col" class="px-6 py-4 font-semibold">Timeline</th>
                   <th scope="col" class="px-6 py-4 font-semibold">Selector</th>
+                  <th scope="col" class="px-6 py-4 font-semibold">Screenshot</th>
                 </tr>
               </thead>
               <tbody
@@ -366,36 +371,42 @@
       const menuLabel = document.getElementById('menuLabel');
       let isCollapsed = false;
 
-      sidebarToggle.addEventListener('click', () => {
-        isCollapsed = !isCollapsed;
-        const icon = sidebarToggle.querySelector('i');
+      if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+          isCollapsed = !isCollapsed;
+          const icon = sidebarToggle.querySelector('i');
 
-        if (isCollapsed) {
-          sidebar.style.width = '80px';
-          icon.classList.remove('fa-chevron-left');
-          icon.classList.add('fa-chevron-right');
-          sidebarToggle.setAttribute('aria-expanded', 'false');
-          sidebarToggle.setAttribute('aria-label', 'Expand sidebar');
-          sidebarTexts.forEach(text => text.style.opacity = '0');
-          if (menuLabel) menuLabel.style.opacity = '0';
-          setTimeout(() => {
-            sidebarTexts.forEach(text => text.style.display = 'none');
-            if (menuLabel) menuLabel.style.display = 'none';
-          }, 150);
-        } else {
-          sidebar.style.width = '280px';
-          icon.classList.remove('fa-chevron-right');
-          icon.classList.add('fa-chevron-left');
-          sidebarToggle.setAttribute('aria-expanded', 'true');
-          sidebarToggle.setAttribute('aria-label', 'Collapse sidebar');
-          sidebarTexts.forEach(text => text.style.display = 'block');
-          if (menuLabel) menuLabel.style.display = 'block';
-          setTimeout(() => {
-            sidebarTexts.forEach(text => text.style.opacity = '1');
-            if (menuLabel) menuLabel.style.opacity = '1';
-          }, 50);
-        }
-      });
+          if (isCollapsed) {
+            sidebar.style.width = '80px';
+            if (icon) {
+              icon.classList.remove('fa-chevron-left');
+              icon.classList.add('fa-chevron-right');
+            }
+            sidebarToggle.setAttribute('aria-expanded', 'false');
+            sidebarToggle.setAttribute('aria-label', 'Expand sidebar');
+            sidebarTexts.forEach(text => text.style.opacity = '0');
+            if (menuLabel) menuLabel.style.opacity = '0';
+            setTimeout(() => {
+              sidebarTexts.forEach(text => text.style.display = 'none');
+              if (menuLabel) menuLabel.style.display = 'none';
+            }, 150);
+          } else {
+            sidebar.style.width = '280px';
+            if (icon) {
+              icon.classList.remove('fa-chevron-right');
+              icon.classList.add('fa-chevron-left');
+            }
+            sidebarToggle.setAttribute('aria-expanded', 'true');
+            sidebarToggle.setAttribute('aria-label', 'Collapse sidebar');
+            sidebarTexts.forEach(text => text.style.display = 'block');
+            if (menuLabel) menuLabel.style.display = 'block';
+            setTimeout(() => {
+              sidebarTexts.forEach(text => text.style.opacity = '1');
+              if (menuLabel) menuLabel.style.opacity = '1';
+            }, 50);
+          }
+        });
+      }
 
       // Theme Toggle Logic
       const themeToggleBtn = document.getElementById('themeToggle');
