@@ -240,3 +240,84 @@ def test_list_blogs_root_missing_errors():
     code, _, err = run("list-blogs", "/nonexistent/path")
     assert code != 0
     assert "not found" in err.lower() or "no such" in err.lower()
+
+
+EMPTY_SITEMAP = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap-0.9">
+</urlset>
+"""
+
+POPULATED_SITEMAP = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap-0.9">
+  <url>
+    <loc>https://ldnddev.com/blog/aaa-first-post/</loc>
+    <lastmod>2026-01-01T12:13:00+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://ldnddev.com/blog/zzz-last-post/</loc>
+    <lastmod>2026-04-01T12:13:00+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+</urlset>
+"""
+
+
+def test_merge_sitemap_into_empty():
+    with tempfile.TemporaryDirectory() as tmp:
+        sm = Path(tmp) / "sitemap.xml"
+        sm.write_text(EMPTY_SITEMAP)
+        code, _, err = run("merge-sitemap", str(sm), "new-post", "2026-05-16")
+        assert code == 0, err
+        content = sm.read_text()
+        assert "https://ldnddev.com/blog/new-post/" in content
+        assert "2026-05-16T12:13:00+00:00" in content
+
+
+def test_merge_sitemap_sorted_insert():
+    with tempfile.TemporaryDirectory() as tmp:
+        sm = Path(tmp) / "sitemap.xml"
+        sm.write_text(POPULATED_SITEMAP)
+        code, _, err = run("merge-sitemap", str(sm), "middle-post", "2026-02-15")
+        assert code == 0, err
+        content = sm.read_text()
+        idx_aaa = content.index("aaa-first-post")
+        idx_mid = content.index("middle-post")
+        idx_zzz = content.index("zzz-last-post")
+        assert idx_aaa < idx_mid < idx_zzz
+
+
+def test_merge_sitemap_idempotent():
+    with tempfile.TemporaryDirectory() as tmp:
+        sm = Path(tmp) / "sitemap.xml"
+        sm.write_text(POPULATED_SITEMAP)
+        run("merge-sitemap", str(sm), "new-post", "2026-05-16")
+        content_first = sm.read_text()
+        run("merge-sitemap", str(sm), "new-post", "2026-05-16")
+        content_second = sm.read_text()
+        assert content_first.count("/blog/new-post/") == 1
+        assert content_second.count("/blog/new-post/") == 1
+
+
+def test_merge_sitemap_creates_backup():
+    with tempfile.TemporaryDirectory() as tmp:
+        sm = Path(tmp) / "sitemap.xml"
+        sm.write_text(POPULATED_SITEMAP)
+        bak = sm.with_suffix(".xml.bak")
+        run("merge-sitemap", str(sm), "new-post", "2026-05-16")
+        assert bak.exists()
+        assert bak.read_text() == POPULATED_SITEMAP
+
+
+def test_merge_sitemap_missing_file_errors():
+    code, _, err = run("merge-sitemap", "/nonexistent/sitemap.xml", "x", "2026-05-16")
+    assert code != 0
+    assert "not found" in err.lower() or "no such" in err.lower()
+
+
+def test_merge_sitemap_bad_date_errors():
+    with tempfile.TemporaryDirectory() as tmp:
+        sm = Path(tmp) / "sitemap.xml"
+        sm.write_text(EMPTY_SITEMAP)
+        code, _, err = run("merge-sitemap", str(sm), "x", "05/16/2026")
+        assert code != 0

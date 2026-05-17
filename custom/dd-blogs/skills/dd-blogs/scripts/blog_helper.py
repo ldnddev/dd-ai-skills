@@ -15,6 +15,7 @@ import json
 import re
 import sys
 import unicodedata
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
 
@@ -144,6 +145,63 @@ def cmd_list_blogs(args: list[str]) -> int:
     return 0
 
 
+SITEMAP_NS = "http://www.sitemaps.org/schemas/sitemap-0.9"
+LOC_PREFIX = "https://ldnddev.com/blog/"
+
+
+def cmd_merge_sitemap(args: list[str]) -> int:
+    if len(args) < 3:
+        print("merge-sitemap: <sitemap.xml> <slug> <YYYY-mm-dd> required", file=sys.stderr)
+        return 2
+    sitemap_path, slug, date_raw = args[0], args[1], args[2]
+    sm = Path(sitemap_path)
+    if not sm.exists():
+        print(f"merge-sitemap: file not found: {sm}", file=sys.stderr)
+        return 2
+    try:
+        d = datetime.strptime(date_raw, "%Y-%m-%d").date()
+    except ValueError:
+        print(f"merge-sitemap: invalid date: {date_raw} (expected YYYY-mm-dd)", file=sys.stderr)
+        return 2
+
+    new_loc = f"{LOC_PREFIX}{slug}/"
+    lastmod = f"{d.strftime('%Y-%m-%d')}T12:13:00+00:00"
+
+    backup = sm.with_suffix(sm.suffix + ".bak")
+    backup.write_text(sm.read_text(encoding="utf-8"), encoding="utf-8")
+
+    ET.register_namespace("", SITEMAP_NS)
+    tree = ET.parse(sm)
+    root = tree.getroot()
+    ns = {"sm": SITEMAP_NS}
+
+    for url in root.findall("sm:url", ns):
+        loc = url.find("sm:loc", ns)
+        if loc is not None and loc.text == new_loc:
+            return 0
+
+    new_url = ET.Element(f"{{{SITEMAP_NS}}}url")
+    loc_el = ET.SubElement(new_url, f"{{{SITEMAP_NS}}}loc")
+    loc_el.text = new_loc
+    lastmod_el = ET.SubElement(new_url, f"{{{SITEMAP_NS}}}lastmod")
+    lastmod_el.text = lastmod
+    priority_el = ET.SubElement(new_url, f"{{{SITEMAP_NS}}}priority")
+    priority_el.text = "0.80"
+
+    urls = list(root.findall("sm:url", ns))
+    insert_idx = len(list(root))
+    for i, url in enumerate(urls):
+        loc = url.find("sm:loc", ns)
+        if loc is not None and loc.text and loc.text > new_loc:
+            insert_idx = list(root).index(url)
+            break
+    root.insert(insert_idx, new_url)
+
+    ET.indent(tree, space="  ")
+    tree.write(sm, xml_declaration=True, encoding="UTF-8")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="blog_helper.py", add_help=True)
     parser.add_argument("subcommand", nargs="?", help="one of: " + ", ".join(sorted(SUBCOMMANDS)))
@@ -162,6 +220,7 @@ def main(argv: list[str]) -> int:
         "dates": cmd_dates,
         "wordcount": cmd_wordcount,
         "list-blogs": cmd_list_blogs,
+        "merge-sitemap": cmd_merge_sitemap,
     }
     handler = dispatch.get(ns.subcommand)
     if handler is None:
