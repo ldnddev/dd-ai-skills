@@ -176,3 +176,67 @@ def test_wordcount_missing_file_errors():
     code, _, err = run("wordcount", "/nonexistent/path.html")
     assert code != 0
     assert "not found" in err.lower() or "no such" in err.lower()
+
+
+SAMPLE_BLOG_HTML = """<!doctype html>
+<html>
+<head>
+<title>ldnddev, LLC. Insights | Why Drupal Still Wins in 2026</title>
+<link rel="canonical" href="https://www.ldnddev.com/blog/why-drupal-still-wins-in-2026" />
+<script type="application/ld+json">
+{
+  "@type": "BlogPosting",
+  "datePublished": "03-15-2026"
+}
+</script>
+</head>
+<body></body>
+</html>"""
+
+
+def test_list_blogs_empty_dir():
+    with tempfile.TemporaryDirectory() as tmp:
+        code, out, _ = run("list-blogs", tmp)
+        assert code == 0
+        assert json.loads(out) == []
+
+
+def test_list_blogs_finds_valid_blog():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        blog = root / "why-drupal-still-wins-in-2026"
+        blog.mkdir()
+        (blog / "index.html").write_text(SAMPLE_BLOG_HTML)
+        code, out, _ = run("list-blogs", tmp)
+        assert code == 0
+        entries = json.loads(out)
+        assert len(entries) == 1
+        e = entries[0]
+        assert e["slug"] == "why-drupal-still-wins-in-2026"
+        assert e["title"] == "Why Drupal Still Wins in 2026"
+        assert e["date"] == "2026-03-15"
+        assert e["path"].endswith("why-drupal-still-wins-in-2026")
+
+
+def test_list_blogs_skips_dirs_without_index():
+    with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / "no-index").mkdir()
+        code, out, _ = run("list-blogs", tmp)
+        assert code == 0
+        assert json.loads(out) == []
+
+
+def test_list_blogs_skips_malformed_index():
+    with tempfile.TemporaryDirectory() as tmp:
+        blog = Path(tmp) / "broken"
+        blog.mkdir()
+        (blog / "index.html").write_text("<html>no metadata</html>")
+        code, out, _ = run("list-blogs", tmp)
+        assert code == 0
+        assert json.loads(out) == []
+
+
+def test_list_blogs_root_missing_errors():
+    code, _, err = run("list-blogs", "/nonexistent/path")
+    assert code != 0
+    assert "not found" in err.lower() or "no such" in err.lower()

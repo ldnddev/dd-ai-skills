@@ -85,6 +85,65 @@ def cmd_wordcount(args: list[str]) -> int:
     return 0
 
 
+TITLE_RE = re.compile(r"<title>\s*ldnddev,\s*LLC\.\s*Insights\s*\|\s*(.+?)</title>", re.IGNORECASE | re.DOTALL)
+CANONICAL_RE = re.compile(r'<link\s+rel=["\']canonical["\']\s+href=["\']([^"\']+)["\']', re.IGNORECASE)
+DATE_PUBLISHED_RE = re.compile(r'"datePublished"\s*:\s*"([^"]+)"')
+
+
+def _normalize_date(raw: str) -> str | None:
+    """Accept mm-dd-YYYY or YYYY-mm-dd; return YYYY-mm-dd."""
+    for fmt in ("%m-%d-%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return None
+
+
+def _parse_blog_index(html: str, dir_name: str) -> dict | None:
+    title_m = TITLE_RE.search(html)
+    canon_m = CANONICAL_RE.search(html)
+    date_m = DATE_PUBLISHED_RE.search(html)
+    if not (title_m and canon_m and date_m):
+        return None
+    canonical = canon_m.group(1).rstrip("/")
+    slug = canonical.rsplit("/", 1)[-1]
+    if not slug:
+        slug = dir_name
+    date = _normalize_date(date_m.group(1).strip())
+    if not date:
+        return None
+    return {
+        "slug": slug,
+        "title": title_m.group(1).strip(),
+        "date": date,
+    }
+
+
+def cmd_list_blogs(args: list[str]) -> int:
+    if not args:
+        print("list-blogs: blog_root required", file=sys.stderr)
+        return 2
+    root = Path(args[0])
+    if not root.exists():
+        print(f"list-blogs: no such directory: {root}", file=sys.stderr)
+        return 2
+    entries = []
+    for child in sorted(root.iterdir()):
+        if not child.is_dir():
+            continue
+        index = child / "index.html"
+        if not index.exists():
+            continue
+        parsed = _parse_blog_index(index.read_text(encoding="utf-8"), child.name)
+        if parsed is None:
+            continue
+        parsed["path"] = str(child.resolve())
+        entries.append(parsed)
+    print(json.dumps(entries))
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="blog_helper.py", add_help=True)
     parser.add_argument("subcommand", nargs="?", help="one of: " + ", ".join(sorted(SUBCOMMANDS)))
@@ -102,6 +161,7 @@ def main(argv: list[str]) -> int:
         "slug": cmd_slug,
         "dates": cmd_dates,
         "wordcount": cmd_wordcount,
+        "list-blogs": cmd_list_blogs,
     }
     handler = dispatch.get(ns.subcommand)
     if handler is None:
