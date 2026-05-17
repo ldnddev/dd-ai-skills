@@ -13,6 +13,8 @@ mkdir -p "$TARGET_DIR"
 
 cp "$SCRIPT_DIR/skills/dd-blogs/SKILL.md" "$TARGET_DIR/SKILL.md"
 cp -R "$SCRIPT_DIR/skills/dd-blogs/references" "$TARGET_DIR/references"
+cp -R "$SCRIPT_DIR/skills/dd-blogs/scripts" "$TARGET_DIR/scripts"
+chmod +x "$TARGET_DIR/scripts/blog_helper.py"
 [ -f "$SCRIPT_DIR/README.md" ] && cp "$SCRIPT_DIR/README.md" "$TARGET_DIR/README.md"
 cp "$SCRIPT_DIR/install.sh" "$TARGET_DIR/install.sh"
 chmod +x "$TARGET_DIR/install.sh"
