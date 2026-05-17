@@ -72,6 +72,9 @@ def cmd_wordcount(args: list[str]) -> int:
     if not path.exists():
         print(f"wordcount: file not found: {path}", file=sys.stderr)
         return 2
+    if path.is_dir():
+        print(f"wordcount: path is a directory, not a file: {path}", file=sys.stderr)
+        return 2
     text = path.read_text(encoding="utf-8")
     stripped = re.sub(r"<[^>]+>", " ", text)
     words = stripped.split()
@@ -167,11 +170,12 @@ def cmd_merge_sitemap(args: list[str]) -> int:
     new_loc = f"{LOC_PREFIX}{slug}/"
     lastmod = f"{d.strftime('%Y-%m-%d')}T12:13:00+00:00"
 
-    backup = sm.with_suffix(sm.suffix + ".bak")
-    backup.write_text(sm.read_text(encoding="utf-8"), encoding="utf-8")
-
     ET.register_namespace("", SITEMAP_NS)
-    tree = ET.parse(sm)
+    try:
+        tree = ET.parse(sm)
+    except ET.ParseError as e:
+        print(f"merge-sitemap: failed to parse XML: {e}", file=sys.stderr)
+        return 2
     root = tree.getroot()
     ns = {"sm": SITEMAP_NS}
 
@@ -179,6 +183,9 @@ def cmd_merge_sitemap(args: list[str]) -> int:
         loc = url.find("sm:loc", ns)
         if loc is not None and loc.text == new_loc:
             return 0
+
+    backup = sm.with_suffix(sm.suffix + ".bak")
+    backup.write_text(sm.read_text(encoding="utf-8"), encoding="utf-8")
 
     new_url = ET.Element(f"{{{SITEMAP_NS}}}url")
     loc_el = ET.SubElement(new_url, f"{{{SITEMAP_NS}}}loc")

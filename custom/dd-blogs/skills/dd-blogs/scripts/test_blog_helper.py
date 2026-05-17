@@ -178,6 +178,13 @@ def test_wordcount_missing_file_errors():
     assert "not found" in err.lower() or "no such" in err.lower()
 
 
+def test_wordcount_directory_errors():
+    with tempfile.TemporaryDirectory() as tmp:
+        code, _, err = run("wordcount", tmp)
+        assert code != 0
+        assert "director" in err.lower()
+
+
 SAMPLE_BLOG_HTML = """<!doctype html>
 <html>
 <head>
@@ -321,3 +328,25 @@ def test_merge_sitemap_bad_date_errors():
         sm.write_text(EMPTY_SITEMAP)
         code, _, err = run("merge-sitemap", str(sm), "x", "05/16/2026")
         assert code != 0
+
+
+def test_merge_sitemap_malformed_xml_errors():
+    with tempfile.TemporaryDirectory() as tmp:
+        sm = Path(tmp) / "sitemap.xml"
+        sm.write_text("<not-xml")
+        code, _, err = run("merge-sitemap", str(sm), "x", "2026-05-16")
+        assert code != 0
+        assert "parse" in err.lower() or "xml" in err.lower()
+
+
+def test_merge_sitemap_idempotent_preserves_original_backup():
+    """Backup must remain the pre-merge original even after a no-op re-run."""
+    with tempfile.TemporaryDirectory() as tmp:
+        sm = Path(tmp) / "sitemap.xml"
+        sm.write_text(POPULATED_SITEMAP)
+        bak = sm.with_suffix(".xml.bak")
+        run("merge-sitemap", str(sm), "new-post", "2026-05-16")
+        first_bak = bak.read_text()
+        assert first_bak == POPULATED_SITEMAP
+        run("merge-sitemap", str(sm), "new-post", "2026-05-16")
+        assert bak.read_text() == first_bak
