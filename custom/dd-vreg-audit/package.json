@@ -1,6 +1,6 @@
 {
   "name": "dd-vreg",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "private": true,
   "description": "Visual regression reporter — Playwright + pixelmatch screenshot diffing.",
   "license": "MIT",
@@ -9,6 +9,7 @@
     "node": ">=18"
   },
   "dependencies": {
+    "jszip": "^3.10.1",
     "pixelmatch": "7.1.0",
     "playwright": "1.59.1",
     "pngjs": "7.0.0"

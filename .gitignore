@@ -1,1 +1,18 @@
 /.playwright-mcp
+
+# Node deps — regenerated via npm install
+node_modules/
+
+# Plugin SessionStart bootstrap sentinels (per-host state)
+.dd-*-bootstrap.ok
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated audit bundles (per-run client outputs)
+web/
+
+# Loose test/debug PNGs at repo root
+/*.png
