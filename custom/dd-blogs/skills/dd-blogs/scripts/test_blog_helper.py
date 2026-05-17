@@ -69,3 +69,41 @@ def test_slug_empty_title_errors():
     code, _, err = run("slug", "")
     assert code != 0
     assert "empty" in err.lower() or "required" in err.lower()
+
+
+def test_dates_basic():
+    code, out, _ = run("dates", "2026-05-16")
+    assert code == 0
+    data = json.loads(out)
+    assert data == {
+        "mmddYYYY": "05162026",
+        "mm-dd-YYYY": "05-16-2026",
+        "YYYY-mm-dd": "2026-05-16",
+        "long": "May 16, 2026",
+    }
+
+
+def test_dates_january_pads():
+    code, out, _ = run("dates", "2026-01-01")
+    assert code == 0
+    data = json.loads(out)
+    assert data["mmddYYYY"] == "01012026"
+    assert data["long"] == "January 1, 2026"
+
+
+def test_dates_leap_year_valid():
+    code, out, _ = run("dates", "2024-02-29")
+    assert code == 0
+    data = json.loads(out)
+    assert data["YYYY-mm-dd"] == "2024-02-29"
+
+
+def test_dates_invalid_format_errors():
+    code, _, err = run("dates", "05/16/2026")
+    assert code != 0
+    assert "invalid" in err.lower() or "format" in err.lower()
+
+
+def test_dates_invalid_day_errors():
+    code, _, err = run("dates", "2026-02-30")
+    assert code != 0

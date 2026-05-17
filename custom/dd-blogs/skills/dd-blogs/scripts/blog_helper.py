@@ -11,11 +11,11 @@ Subcommands:
 from __future__ import annotations
 
 import argparse
-import sys
-
-
+import json
 import re
+import sys
 import unicodedata
+from datetime import datetime
 
 
 SUBCOMMANDS = {"slug", "dates", "wordcount", "list-blogs", "merge-sitemap"}
@@ -39,6 +39,25 @@ def cmd_slug(args: list[str]) -> int:
     return 0
 
 
+def cmd_dates(args: list[str]) -> int:
+    if not args:
+        print("dates: YYYY-mm-dd argument required", file=sys.stderr)
+        return 2
+    try:
+        d = datetime.strptime(args[0], "%Y-%m-%d").date()
+    except ValueError as e:
+        print(f"dates: invalid date format ({e})", file=sys.stderr)
+        return 2
+    out = {
+        "mmddYYYY": d.strftime("%m%d%Y"),
+        "mm-dd-YYYY": d.strftime("%m-%d-%Y"),
+        "YYYY-mm-dd": d.strftime("%Y-%m-%d"),
+        "long": f"{d.strftime('%B')} {d.day}, {d.year}",
+    }
+    print(json.dumps(out))
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="blog_helper.py", add_help=True)
     parser.add_argument("subcommand", nargs="?", help="one of: " + ", ".join(sorted(SUBCOMMANDS)))
@@ -54,6 +73,7 @@ def main(argv: list[str]) -> int:
 
     dispatch = {
         "slug": cmd_slug,
+        "dates": cmd_dates,
     }
     handler = dispatch.get(ns.subcommand)
     if handler is None:
