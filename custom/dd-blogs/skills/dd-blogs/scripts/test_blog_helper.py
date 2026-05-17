@@ -107,3 +107,72 @@ def test_dates_invalid_format_errors():
 def test_dates_invalid_day_errors():
     code, _, err = run("dates", "2026-02-30")
     assert code != 0
+
+
+import tempfile
+
+
+def _write_tmp(content: str) -> str:
+    f = tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False)
+    f.write(content)
+    f.close()
+    return f.name
+
+
+def test_wordcount_strips_html_tags():
+    path = _write_tmp("<p>Hello <strong>brave</strong> new world</p>")
+    code, out, _ = run("wordcount", path)
+    assert code == 0
+    data = json.loads(out)
+    assert data["count"] == 4
+
+
+def test_wordcount_in_range_true():
+    body = "word " * 1900
+    path = _write_tmp(f"<p>{body}</p>")
+    code, out, _ = run("wordcount", path)
+    data = json.loads(out)
+    assert data["count"] == 1900
+    assert data["in_range"] is True
+    assert data["min"] == 1800
+    assert data["max"] == 2200
+
+
+def test_wordcount_below_range():
+    body = "word " * 1799
+    path = _write_tmp(f"<p>{body}</p>")
+    code, out, _ = run("wordcount", path)
+    data = json.loads(out)
+    assert data["count"] == 1799
+    assert data["in_range"] is False
+
+
+def test_wordcount_above_range():
+    body = "word " * 2201
+    path = _write_tmp(f"<p>{body}</p>")
+    code, out, _ = run("wordcount", path)
+    data = json.loads(out)
+    assert data["count"] == 2201
+    assert data["in_range"] is False
+
+
+def test_wordcount_lower_boundary_inclusive():
+    body = "word " * 1800
+    path = _write_tmp(f"<p>{body}</p>")
+    code, out, _ = run("wordcount", path)
+    data = json.loads(out)
+    assert data["in_range"] is True
+
+
+def test_wordcount_upper_boundary_inclusive():
+    body = "word " * 2200
+    path = _write_tmp(f"<p>{body}</p>")
+    code, out, _ = run("wordcount", path)
+    data = json.loads(out)
+    assert data["in_range"] is True
+
+
+def test_wordcount_missing_file_errors():
+    code, _, err = run("wordcount", "/nonexistent/path.html")
+    assert code != 0
+    assert "not found" in err.lower() or "no such" in err.lower()

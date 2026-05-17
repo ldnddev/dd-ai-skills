@@ -16,6 +16,7 @@ import re
 import sys
 import unicodedata
 from datetime import datetime
+from pathlib import Path
 
 
 SUBCOMMANDS = {"slug", "dates", "wordcount", "list-blogs", "merge-sitemap"}
@@ -58,6 +59,32 @@ def cmd_dates(args: list[str]) -> int:
     return 0
 
 
+WC_MIN = 1800
+WC_MAX = 2200
+
+
+def cmd_wordcount(args: list[str]) -> int:
+    if not args:
+        print("wordcount: file path required", file=sys.stderr)
+        return 2
+    path = Path(args[0])
+    if not path.exists():
+        print(f"wordcount: file not found: {path}", file=sys.stderr)
+        return 2
+    text = path.read_text(encoding="utf-8")
+    stripped = re.sub(r"<[^>]+>", " ", text)
+    words = stripped.split()
+    count = len(words)
+    out = {
+        "count": count,
+        "in_range": WC_MIN <= count <= WC_MAX,
+        "min": WC_MIN,
+        "max": WC_MAX,
+    }
+    print(json.dumps(out))
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="blog_helper.py", add_help=True)
     parser.add_argument("subcommand", nargs="?", help="one of: " + ", ".join(sorted(SUBCOMMANDS)))
@@ -74,6 +101,7 @@ def main(argv: list[str]) -> int:
     dispatch = {
         "slug": cmd_slug,
         "dates": cmd_dates,
+        "wordcount": cmd_wordcount,
     }
     handler = dispatch.get(ns.subcommand)
     if handler is None:
