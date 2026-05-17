@@ -14,7 +14,30 @@ import argparse
 import sys
 
 
+import re
+import unicodedata
+
+
 SUBCOMMANDS = {"slug", "dates", "wordcount", "list-blogs", "merge-sitemap"}
+
+
+def cmd_slug(args: list[str]) -> int:
+    if not args or not args[0].strip():
+        print("slug: title required and must not be empty", file=sys.stderr)
+        return 2
+    title = args[0]
+    normalized = unicodedata.normalize("NFKD", title)
+    ascii_only = normalized.encode("ascii", "ignore").decode("ascii")
+    lowered = ascii_only.lower()
+    no_apostrophes = re.sub(r"['’]", "", lowered)
+    hyphenated = re.sub(r"[^a-z0-9]+", "-", no_apostrophes)
+    collapsed = re.sub(r"-+", "-", hyphenated)
+    stripped = collapsed.strip("-")
+    if not stripped:
+        print("slug: title produced empty slug after normalization", file=sys.stderr)
+        return 2
+    print(stripped)
+    return 0
 
 
 def main(argv: list[str]) -> int:
@@ -30,9 +53,14 @@ def main(argv: list[str]) -> int:
         print(f"unknown subcommand: {ns.subcommand}", file=sys.stderr)
         return 2
 
-    # Subcommand dispatch added in later tasks.
-    print(f"subcommand {ns.subcommand} not yet implemented", file=sys.stderr)
-    return 2
+    dispatch = {
+        "slug": cmd_slug,
+    }
+    handler = dispatch.get(ns.subcommand)
+    if handler is None:
+        print(f"subcommand {ns.subcommand} not yet implemented", file=sys.stderr)
+        return 2
+    return handler(ns.args)
 
 
 if __name__ == "__main__":
