@@ -1,7 +1,7 @@
 {
   "name": "dd-blogs",
-  "version": "1.0.0",
-  "description": "ldnddev brand-tone copywriting skill for blog posts on ldnddev.com \u2014 produces HTML markup, ld+json, SEO meta, and social posts.",
+  "version": "2.0.0",
+  "description": "ldnddev brand-tone blog generator \u2014 guided Q&A intake, mandatory research, draft review, full index.html + hero + social + sitemap output.",
   "license": "MIT",
   "author": {
     "name": "Jared Lyvers",
