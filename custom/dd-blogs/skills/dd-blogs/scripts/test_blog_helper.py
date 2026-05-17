@@ -350,3 +350,66 @@ def test_merge_sitemap_idempotent_preserves_original_backup():
         assert first_bak == POPULATED_SITEMAP
         run("merge-sitemap", str(sm), "new-post", "2026-05-16")
         assert bak.read_text() == first_bak
+
+
+def test_split_sections_single_h2():
+    body = "<h2>Only Section</h2><p>One paragraph.</p>"
+    path = _write_tmp(body)
+    code, out, _ = run("split-sections", path)
+    assert code == 0
+    chunks = json.loads(out)
+    assert chunks == ["<h2>Only Section</h2><p>One paragraph.</p>"]
+
+
+def test_split_sections_multiple_h2():
+    body = (
+        "<h2>First</h2><p>A.</p><p>B.</p>"
+        "<h2>Second</h2><p>C.</p>"
+        "<h2>Third</h2><p>D.</p><p>E.</p>"
+    )
+    path = _write_tmp(body)
+    code, out, _ = run("split-sections", path)
+    assert code == 0
+    chunks = json.loads(out)
+    assert len(chunks) == 3
+    assert chunks[0] == "<h2>First</h2><p>A.</p><p>B.</p>"
+    assert chunks[1] == "<h2>Second</h2><p>C.</p>"
+    assert chunks[2] == "<h2>Third</h2><p>D.</p><p>E.</p>"
+
+
+def test_split_sections_handles_h2_attributes():
+    body = '<h2 id="intro" class="x">First</h2><p>A.</p><h2>Second</h2><p>B.</p>'
+    path = _write_tmp(body)
+    code, out, _ = run("split-sections", path)
+    chunks = json.loads(out)
+    assert len(chunks) == 2
+    assert chunks[0].startswith('<h2 id="intro"')
+    assert chunks[1].startswith("<h2>Second")
+
+
+def test_split_sections_content_before_first_h2_is_own_chunk():
+    body = "<p>orphan intro</p><h2>First</h2><p>A.</p>"
+    path = _write_tmp(body)
+    code, out, _ = run("split-sections", path)
+    chunks = json.loads(out)
+    assert chunks == ["<p>orphan intro</p>", "<h2>First</h2><p>A.</p>"]
+
+
+def test_split_sections_empty_file():
+    path = _write_tmp("")
+    code, out, _ = run("split-sections", path)
+    assert code == 0
+    assert json.loads(out) == []
+
+
+def test_split_sections_missing_file_errors():
+    code, _, err = run("split-sections", "/nonexistent/body.html")
+    assert code != 0
+    assert "not found" in err.lower() or "no such" in err.lower()
+
+
+def test_split_sections_directory_errors():
+    with tempfile.TemporaryDirectory() as tmp:
+        code, _, err = run("split-sections", tmp)
+        assert code != 0
+        assert "director" in err.lower()

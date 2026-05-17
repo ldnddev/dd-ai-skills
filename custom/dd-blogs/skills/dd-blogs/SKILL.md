@@ -119,13 +119,28 @@ Use the returned formats:
 
 Substitute placeholders across the three reference templates:
 - `references/blog-header.md` → fills `[SEO_Title]`, `[SEO_Description]`, `[SEO_Keywords]`, `[blog_slug]`
-- `references/blog-markup.md` → fills `[hero_title]` (first 3 words of SEO_Title), `[hero_copy]` (remainder), `[blog_slug]`, `[blog_draft_date]` (long format), `[blog_draft]` (body HTML), `[blog_draft_end]` ("Until next time, Jared Lyvers")
+- `references/blog-markup.md` → multi-fragment template (hero, body wrapper, per-chunk fragment, spacer fragment) — see body assembly below
 - `references/ldjson-template.md` → fills `[SEO_Title]`, `[blog_slug]`, `[blog_date]` (mm-dd-YYYY), `[SEO_Description]`, `[SEO_Keywords]`
+
+**Body assembly (loop per `<h2>` section):**
+
+1. Write the approved draft body (h2 + paragraphs only, no byline, no sign-off) to `/tmp/blog-draft-body.html`.
+2. Run:
+   ```bash
+   python3 scripts/blog_helper.py split-sections /tmp/blog-draft-body.html
+   ```
+   Returns a JSON array of chunks — one chunk per `<h2>` section, each containing the H2 plus its sibling paragraphs up to the next H2.
+3. For each chunk at index `i` in the returned array, emit the "Chunk fragment" from `blog-markup.md`:
+   - First chunk (`i = 0`): prepend `<p><em>By Jared Lyvers, ldnddev — [blog_draft_date]</em></p>` before `[chunk_content]`.
+   - Last chunk (`i = len-1`): append `<p><em>Until next time, Jared Lyvers</em></p>` after `[chunk_content]`.
+   - All chunks EXCEPT the last: emit the "Spacer fragment" after the chunk fragment.
+   - Last chunk: emit NO spacer.
+4. Place the rendered chunk-loop inside the "Body section wrapper" from `blog-markup.md` (replace `[chunk_loop]`).
 
 Assemble single `index.html`:
 - Document type: `<!doctype html>` then `<html lang="en">`
 - `<head>` from blog-header template with the ld+json `<script>` block inserted before `</head>`
-- `<body>` containing the blog-markup template
+- `<body>` containing the hero section + the assembled body section
 
 Write to `<output_root>/<slug>/index.html`.
 

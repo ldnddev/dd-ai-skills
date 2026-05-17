@@ -20,7 +20,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-SUBCOMMANDS = {"slug", "dates", "wordcount", "list-blogs", "merge-sitemap"}
+SUBCOMMANDS = {"slug", "dates", "wordcount", "list-blogs", "merge-sitemap", "split-sections"}
 
 
 def cmd_slug(args: list[str]) -> int:
@@ -209,6 +209,31 @@ def cmd_merge_sitemap(args: list[str]) -> int:
     return 0
 
 
+def cmd_split_sections(args: list[str]) -> int:
+    """Split a blog body HTML file at each <h2> boundary.
+
+    Returns a JSON array of chunks. Each chunk contains one <h2> plus all
+    sibling content up to (but not including) the next <h2>. Any content
+    appearing before the first <h2> becomes its own leading chunk so the
+    caller can decide what to do with it.
+    """
+    if not args:
+        print("split-sections: file path required", file=sys.stderr)
+        return 2
+    path = Path(args[0])
+    if not path.exists():
+        print(f"split-sections: file not found: {path}", file=sys.stderr)
+        return 2
+    if path.is_dir():
+        print(f"split-sections: path is a directory, not a file: {path}", file=sys.stderr)
+        return 2
+    text = path.read_text(encoding="utf-8").strip()
+    parts = re.split(r"(?=<h2[\s>])", text)
+    chunks = [p.strip() for p in parts if p.strip()]
+    print(json.dumps(chunks))
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="blog_helper.py", add_help=True)
     parser.add_argument("subcommand", nargs="?", help="one of: " + ", ".join(sorted(SUBCOMMANDS)))
@@ -228,6 +253,7 @@ def main(argv: list[str]) -> int:
         "wordcount": cmd_wordcount,
         "list-blogs": cmd_list_blogs,
         "merge-sitemap": cmd_merge_sitemap,
+        "split-sections": cmd_split_sections,
     }
     handler = dispatch.get(ns.subcommand)
     if handler is None:

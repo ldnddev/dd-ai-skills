@@ -14,5 +14,8 @@ __pycache__/
 # Generated audit bundles (per-run client outputs)
 web/
 
+# Generated dd-blogs output (per-run blog directories)
+/blog/
+
 # Loose test/debug PNGs at repo root
 /*.png
