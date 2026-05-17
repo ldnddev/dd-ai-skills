@@ -31,8 +31,7 @@ def cmd_slug(args: list[str]) -> int:
     lowered = ascii_only.lower()
     no_apostrophes = re.sub(r"['’]", "", lowered)
     hyphenated = re.sub(r"[^a-z0-9]+", "-", no_apostrophes)
-    collapsed = re.sub(r"-+", "-", hyphenated)
-    stripped = collapsed.strip("-")
+    stripped = hyphenated.strip("-")
     if not stripped:
         print("slug: title produced empty slug after normalization", file=sys.stderr)
         return 2
