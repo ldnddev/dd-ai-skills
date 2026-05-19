@@ -20,7 +20,103 @@ from datetime import datetime
 from pathlib import Path
 
 
-SUBCOMMANDS = {"slug", "dates", "wordcount", "list-blogs", "merge-sitemap", "split-sections"}
+SUBCOMMANDS = {
+    "slug", "dates", "wordcount", "list-blogs", "merge-sitemap", "split-sections",
+    "list-dd-components", "validate-body",
+}
+
+
+def _find_dd_framework_helper() -> Path | None:
+    """Locate dd_framework_helper.py across common install locations.
+
+    Returns the helper path or None if dd-framework is not installed.
+    Probes (in order): CODEX_HOME, default Codex install, Claude Code plugin cache,
+    sibling worktree layout, repo layout. Returns the first match.
+    """
+    import os
+    candidates: list[Path] = []
+    rel = Path("skills/dd-framework/scripts/dd_framework_helper.py")
+
+    if codex := os.environ.get("CODEX_HOME"):
+        candidates.append(Path(codex) / "skills/dd-framework/scripts/dd_framework_helper.py")
+    candidates.append(Path.home() / ".codex/skills/dd-framework/scripts/dd_framework_helper.py")
+
+    # Walk up from this file looking for a sibling dd-framework
+    here = Path(__file__).resolve()
+    for parent in [here.parent, *here.parents]:
+        candidates.append(parent / "dd-framework" / rel)
+        candidates.append(parent / "custom" / "dd-framework" / rel)
+
+    # Claude Code plugin cache
+    candidates.append(Path.home() / ".claude/plugins/cache/dd-skills/dd-framework" / rel)
+
+    for c in candidates:
+        if c.exists():
+            return c
+    return None
+
+
+def cmd_list_dd_components(args: list[str]) -> int:
+    """Forward to dd_framework_helper.py list. Returns JSON or a graceful-degrade message."""
+    import subprocess
+    helper = _find_dd_framework_helper()
+    if helper is None:
+        print(json.dumps({
+            "available": False,
+            "reason": "dd-framework not installed. Install via /plugin install dd-framework@dd-skills or bash install.sh.",
+            "components": [],
+        }))
+        return 0
+    extra = ["--human"] if args and args[0] == "--human" else []
+    try:
+        result = subprocess.run([sys.executable, str(helper), "list", *extra],
+                                capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as exc:
+        print(f"list-dd-components: dd-framework helper failed: {exc.stderr}", file=sys.stderr)
+        return 2
+    sys.stdout.write(result.stdout)
+    return 0
+
+
+def cmd_validate_body(args: list[str]) -> int:
+    """Validate a blog body HTML file against dd-framework component contracts.
+
+    Graceful degrade: if dd-framework is not installed, returns a JSON note and
+    exits 0 — the blog can still be written, just without component validation.
+    Otherwise forwards to dd_framework_helper.py validate in --warn mode (we
+    surface issues as warnings; blog flow shouldn't hard-fail on a-framework
+    component misuse).
+    """
+    import subprocess
+    if not args:
+        print("validate-body: file path required", file=sys.stderr)
+        return 2
+    path = Path(args[0])
+    if not path.exists():
+        print(f"validate-body: file not found: {path}", file=sys.stderr)
+        return 2
+    helper = _find_dd_framework_helper()
+    if helper is None:
+        print(json.dumps({
+            "available": False,
+            "reason": "dd-framework not installed; skipping component validation.",
+            "file": str(path),
+            "findings": [],
+        }))
+        return 0
+    try:
+        result = subprocess.run(
+            [sys.executable, str(helper), "validate", str(path), "--warn"],
+            capture_output=True, text=True, check=False,
+        )
+    except OSError as exc:
+        print(f"validate-body: failed to invoke dd-framework helper: {exc}", file=sys.stderr)
+        return 2
+    sys.stdout.write(result.stdout)
+    if result.returncode not in (0, 1):
+        sys.stderr.write(result.stderr)
+        return result.returncode
+    return 0
 
 
 def cmd_slug(args: list[str]) -> int:
@@ -254,6 +350,8 @@ def main(argv: list[str]) -> int:
         "list-blogs": cmd_list_blogs,
         "merge-sitemap": cmd_merge_sitemap,
         "split-sections": cmd_split_sections,
+        "list-dd-components": cmd_list_dd_components,
+        "validate-body": cmd_validate_body,
     }
     handler = dispatch.get(ns.subcommand)
     if handler is None:

@@ -1,360 +1,201 @@
 ---
 name: dd-framework
-description: This skill enables AI agents to understand, use, and modify pages using the ldnddev Framework's component system. AI agents can add, configure, or update any framework component with proper parameters and best practices.
+description: Source of truth for the ldnddev Framework component system. Provides canonical component contracts (required/optional params, BEM classes, WCAG 2.2 AA accessibility rules, design tokens) plus a Python helper CLI for listing, fetching, and validating components. Consumed by AI agents and other skills (dd-blogs, page-builders) to author static HTML, Drupal Twig, or WordPress block markup that uses dd-framework components correctly. This skill does not render — render is the consumer CMS's job.
 license: MIT
 metadata:
     author: Jared Lyvers (ldnddev.com)
-    version: 1.0.0
+    version: 2.0.0
 ---
 
-# Framework Component Skill - AI Agent Guidelines for ldnddev Framework
+# dd-framework — Component Contracts for the ldnddev Framework
 
 ## Purpose
-This skill enables AI agents to understand, use, and modify pages using the ldnddev Framework's component system. AI agents can add, configure, or update any framework component with proper parameters and best practices.
 
-## Component Usage Pattern
-AI agents can add components to pages using this structured approach:
+dd-framework provides AI agents with the **contract** for using ldnddev Framework components: required params, BEM class structure, accessibility rules, design tokens, and platform translation guidance. Consumers (dd-blogs, future page-builder skills, external Codex/Cursor agents) read the contracts and emit platform-correct markup for static HTML sites, Drupal sites, or WordPress sites.
 
-```
-[Component Name] + [Required Parameters] + [Optional Parameters] + [Placement Context]
-```
+**This skill is reference + validation, not render.** A Python renderer for in-process substitution would not help: Drupal renders its own Twig, WordPress renders its own PHP/blocks, static sites copy markup verbatim. Each consumer renders natively.
 
-## Available Components & Parameters
+## When to use this skill
 
-### Hero Component (`dd-hero`)
-**File**: `/web/templates/components/dd-hero.html`
-**Usage Context**: Full-width hero sections (does NOT require dd-section wrapper)
+- An agent is adding, modifying, or auditing markup that uses `dd-*` classes.
+- A consumer skill needs to enumerate available components, fetch a spec, or validate emitted HTML.
+- A user asks "add a dd-hero", "build a card grid", "wrap this in a section", etc.
 
-**Required Parameters**:
-- `image`: Hero background image URL
-- `title`: Main heading text
-- `subtitle`: Supporting heading text
+## Trigger phrases
 
-**Optional Parameters**:
-- `copy`: Body text content
-- `cta_text`: Call-to-action button text
-- `cta_link`: Call-to-action button URL
-- `cta_target`: Button target (`_self`, `_blank`, `_parent`)
-- `image_alt`: Image alt text
-- `image_mobile`: Mobile-optimized image URL
-- `image_tablet`: Tablet-optimized image URL
-- `image_desktop`: Desktop-optimized image URL
+- "add a dd-hero with..."
+- "build a 3-column dd-card grid"
+- "wrap this in a dd-section"
+- "update the hero on /about"
+- "validate this page against dd-framework"
 
-**Usage Examples**:
-```html
-<!-- Basic Hero -->
-<section class="dd-hero" aria-label="Hero section">
-  <div class="dd-hero__image">
-    <picture>
-      <img src="[image]" alt="[image_alt]" class="dd-img" />
-    </picture>
-  </div>
-  <div class="dd-hero__content dd-g" data-aos="fade-in">
-    <div class="dd-hero__copy dd-u-1-1 dd-u-lg-12-24">
-      <div class="dd-hero__title"><h1>[title]</h1></div>
-      <div class="dd-hero__subtitle"><strong>[subtitle]</strong></div>
-      <div class="dd-hero__body"><p>[copy]</p></div>
-      [if cta_text]<div class="dd-hero__cta">
-        <a href="[cta_link]" target="[cta_target]" class="dd-button -primary">[cta_text]</a>
-      </div>[/if]
-    </div>
-  </div>
-</section>
-```
+## Components (17 total)
 
-### Card Component (`dd-card`)
-**File**: `/web/templates/components/dd-card.html`
-**Usage Context**: Grid/card layouts (requires dd-section wrapper)
+| Name | Wraps in `dd-section`? | Required params | Variants |
+|---|---|---|---|
+| `dd-accordion` | yes | `items` | — |
+| `dd-alert` | yes | `heading`, `copy` | `-info` `-success` `-warning` `-error` |
+| `dd-alternating` | yes | `items` | — |
+| `dd-banner` | **no** | `image_src`, `image_alt` | — |
+| `dd-blockquote` | yes | `quote`, `name` | — |
+| `dd-card` | yes | `items` | `-horizontal` |
+| `dd-cookie-consent` | **no** | — | — |
+| `dd-cta` | **no** | `title`, `image_src`, `image_alt` | `-top-left` `-top-right` `-bottom-left` `-bottom-right` `-center` |
+| `dd-filmstrip` | yes | `items` | `-reverse` |
+| `dd-hero` | **no** | `title`, `image_src`, `image_alt` | — |
+| `dd-milestones` | yes | `items` | — |
+| `dd-modal` | **no** | `id`, `content` | — |
+| `dd-section` | **no** | `content` | `-full-contained` `-full-bleed` `-narrow` |
+| `dd-slider` | yes | `title`, `slides` | — |
+| `dd-spacer` | **no** | `size` | `-sm` `-md` `-lg` `-xl` `-xxl` `-xxxl` `-divider` |
+| `dd-tabs` | yes | `id`, `tabs` | — |
+| `dd-timeline` | yes | `items` | — |
 
-**Required Parameters**:
-- `title`: card title text
-- `image`: card image URL
+Full per-component contract lives in `assets/components/dd-{name}.spec.md`. Static HTML examples live in `assets/components/dd-{name}.html`. Index in `assets/components.manifest.json`.
 
-**Optional Parameters**:
-- `subtitle`: card subtitle text
-- `copy`: card body text
-- `cta_text`: call-to-action button text
-- `cta_link`: call-to-action button URL
-- `image_alt`: image alt text
-- `columns`: number of columns (2, 3, 4)
-- `animate`: animation type (`fade-up`, `fade-in`, `slide-up`)
+## Helper CLI
 
-**Usage Examples**:
-```html
-<!-- Single Card -->
-<div class="dd-card">
-  <div class="dd-card__items dd-g">
-    <div class="dd-card__item l-box dd-u-1-1 dd-u-md-12-24" data-aos="[animate]">
-      <div class="dd-card__body dd-g">
-        <div class="dd-card__image">
-          <img src="[image]" alt="[image_alt]" class="dd-image" loading="lazy">
-        </div>
-        <div class="dd-card__copy l-box">
-          <div class="dd-card__title"><h3>[title]</h3></div>
-          [if subtitle]<div class="dd-card__sub-title"><strong>[subtitle]</strong></div>[/if]
-          [if copy]<p>[copy]</p>[/if]
-          [if cta_text]<div class="dd-card__links">
-            <a href="[cta_link]" class="dd-button -primary">[cta_text]</a>
-          </div>[/if]
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-```
+The Python helper is the programmatic interface for other skills. JSON output by default; `--human` flag for prose. Strict validation by default; `--warn` makes findings non-fatal.
 
-### Section Component (`dd-section`)
-**File**: `/web/templates/components/dd-section.html`
-**Usage Context**: Wrapper for most components, provides consistent spacing and layout
-
-**Required Parameters**:
-- `content`: component content to wrap
-
-**Optional Parameters**:
-- `background`: background color (`primary`, `secondary`, `tertiary`, `gray`, `white`, `black`)
-- `spacing`: vertical spacing (`tight`, `normal`, `loose`, `extra-loose`)
-- `width`: content width (`narrow`, `normal`, `wide`, `full`)
-- `align`: text alignment (`left`, `center`, `right`)
-
-**Usage Examples**:
-```html
-<!-- Section wrapper -->
-<section class="dd-section [background]" aria-label="Content section">
-  <div class="dd-section__container dd-g">
-    <div class="dd-section__item dd-u-1-1 [align] [width]">
-      [content]
-    </div>
-  </div>
-</section>
-```
-
-### Alert Component (`dd-alert`)
-**File**: `/web/templates/components/dd-alert.html`
-**Usage Context**: Success/error/info/warning messages (requires dd-section wrapper)
-
-**Required Parameters**:
-- `type`: alert type (`success`, `error`, `warning`, `info`)
-- `message`: alert message text
-
-**Optional Parameters**:
-- `title`: alert title
-- `dismissible`: add close button (`true/false`)
-
-### Banner Component (`dd-banner`)
-**File**: `/web/templates/components/dd-banner.html`
-**Usage Context**: Promotional or announcement banners
-
-**Required Parameters**:
-- `message`: banner text
-- `background`: banner background color
-
-**Optional Parameters**:
-- `link_text`: action link text
-- `link_url`: action link URL
-- `dismissible`: add close button
-
-### Tabs Component (`dd-tabs`)
-**File**: `/web/templates/components/dd-tabs.html`
-**Usage Context**: Tabbed content sections
-
-**Required Parameters**:
-- `tabs`: array of tab objects with `title` and `content`
-
-**Optional Parameters**:
-- `default_tab`: which tab to show initially (0-indexed)
-- `orientation`: tab orientation (`horizontal`, `vertical`)
-
-### Accordion Component (`dd-accordion`)
-**File**: `/web/templates/components/dd-accordion.html`
-**Usage Context**: Expandable/collapsible content sections
-
-**Required Parameters**:
-- `items`: array of accordion items with `title` and `content`
-
-**Optional Parameters**:
-- `multiple`: allow multiple open items (`true/false`)
-
-### CTA Component (`dd-cta`)
-**File**: `/web/templates/components/dd-cta.html`
-**Usage Context**: Call-to-action sections
-
-**Required Parameters**:
-- `title`: CTA heading
-- `copy`: CTA description
-- `cta_text`: button text
-- `cta_link`: button URL
-
-### Modal Component (`dd-modal`)
-**File**: `/web/templates/components/dd-modal.html`
-**Usage Context**: Popup/overlaid content
-
-**Required Parameters**:
-- `trigger_text`: button/link to open modal
-- `title`: modal title
-- `content`: modal content
-
-### Slider Component (`dd-slider`)
-**File**: `/web/templates/components/dd-slider.html`
-**Usage Context**: Carousel/sliding content
-
-**Required Parameters**:
-- `slides`: array of slide objects with `image`, `title`, `copy`
-
-**Optional Parameters**:
-- `autoplay`: auto-advance slides (`true/false`)
-- `speed`: transition speed (ms)
-
-### Spacer Component (`dd-spacer`)
-**File**: `/web/templates/components/dd-spacer.html`
-**Usage Context**: Vertical spacing control
-
-**Required Parameters**:
-- `height`: spacing size (`sm`, `md`, `lg`, `xl`, `xxl`,)
-
-### Timeline Component (`dd-timeline`)
-**File**: `/web/templates/components/dd-timeline.html`
-**Usage Context**: Chronological event displays
-
-**Required Parameters**:
-- `events`: array of timeline events with `date`, `title`, `description`
-
-## Color System & WCAG Compliance
-
-Reference `Agent-UI-Colors.md` and `Agent-UI-Theme-Builder.md` for color specifications:
-
-- **Primary**: `#88d9f7` (rgba(136, 217, 247, 1))
-- **Secondary**: `#ffca76` (rgba(255, 202, 118, 1))
-- **Tertiary**: `#f98971` (rgba(249, 137, 113, 1))
-- **Support**: `#46be8c` (rgba(70, 190, 140, 1))
-
-**Text Colors**:
-- Light mode: `#1c1e21` (primary text), `#5a5f66` (secondary text)
-- Dark mode: `#f5f6f7` (primary text), `#9ea3aa` (secondary text)
-
-### WCAG Compliance Guidelines
-- All interactive components must meet AA contrast (4.5:1 for normal text, 3:1 for large text)
-- Ensure focus indicators are visible (2px solid outline minimum)
-- Provide alt text for all images
-- Use semantic HTML elements for proper screen reader support
-
-## Development Workflow
-
-### Building Changes
-All commands must be run with `lando` prefix:
 ```bash
-lando grunt build        # Full build
-lando grunt dev          # Development build with watching
-lando grunt sync         # Sync assets to web directory
+# Path to helper (resolve from this skill's install location)
+DD=$(find . -path '*/dd-framework/skills/dd-framework/scripts/dd_framework_helper.py' | head -1)
+
+# Enumerate components
+python3 "$DD" list                           # JSON
+python3 "$DD" list --human                   # prose
+
+# Fetch a component
+python3 "$DD" get dd-hero                    # spec + html + params (JSON)
+python3 "$DD" get dd-hero --section spec     # just the spec.md
+python3 "$DD" get dd-hero --section html     # just the HTML example
+python3 "$DD" get dd-hero --section params   # just the params schema
+python3 "$DD" get dd-hero --human            # prose
+
+# Validate an HTML file
+python3 "$DD" validate page.html             # exit 1 on errors
+python3 "$DD" validate page.html --warn      # exit 0 (advisory)
+python3 "$DD" validate page.html --human     # prose report
 ```
 
-### Adding Components to Pages
-1. **Identify placement**: Determine where in the page the component should appear
-2. **Check context**: Verify if component requires dd-section wrapper (hero does not)
-3. **Use templates**: Copy from `/web/templates/components/` as starting point
-4. **Update parameters**: Replace placeholder values with actual content
-5. **Test responsive**: Verify mobile, tablet, desktop views
-6. **Test accessibility**: Validate with screen readers and keyboard navigation
+Deps: `beautifulsoup4` (for `validate` only — `list` and `get` are stdlib).
 
-### Code Standards
-```html
-<!-- Preferred structure -->
-<section class="dd-section" aria-label="[descriptive label]">
-  <div class="dd-section__container dd-g">
-    <div class="dd-section__item dd-u-1-1">
-      [component content]
-    </div>
-  </div>
-</section>
+## Cross-skill invocation
 
-<!-- Use semantic elements -->
-<article>, <section>, <header>, <footer>, <nav>, <aside>
+Three ways for other skills to consume dd-framework:
 
-<!-- Provide descriptive text for screen readers -->
-aria-label, aria-describedby, aria-labelledby
+**1. Skill tool invocation** (Claude Code) — load this skill, follow its instructions.
 
-<!-- Add animation classes -->
-data-aos="fade-up", data-aos="fade-in", data-aos="slide-up"
+**2. Direct file read** — read `assets/components.manifest.json` and `assets/components/dd-{name}.spec.md` directly. Suitable when the consumer needs structured data without the helper.
+
+**3. Helper shell-out** — call `python3 dd_framework_helper.py list|get|validate ...` from a consumer's own script. Pipe JSON output into the consumer's logic. This is how `dd-blogs/scripts/blog_helper.py` integrates.
+
+Graceful degrade: consumers should detect dd-framework absence (missing helper path or manifest) and continue with reduced functionality (no validate, fall back to a built-in static fallback for the components they need).
+
+## Platform translation guide
+
+Each spec file ends with platform translation snippets. General rules:
+
+**Static HTML** — substitute params directly into the canonical structure. Loop arrays in your build pipeline (Eleventy, Astro, etc.). No build step required for the markup itself.
+
+**Drupal** — render the canonical structure as a Twig component (`themes/custom/{theme}/templates/components/dd-{name}.html.twig`). Pair with a `.libraries.yml` declaring CSS/JS dependencies. Pass params as a render array from the consuming module / paragraph type / layout builder block.
+
+**WordPress** — implement as a Gutenberg block (`block.json` + `render.php`) OR as an ACF Flexible Content row. Escape per field type: `esc_url` (URLs), `esc_attr` (attributes), `esc_html` (plain text), `wp_kses_post` (rich text). Enqueue framework CSS/JS once in `theme.js` / via `wp_enqueue_scripts`.
+
+For each component, the spec file's "Platform translation" section provides concrete Twig and PHP examples.
+
+## Color system & a11y baseline
+
+Tokens (light / dark mode pairs):
+
+| Role | Base hex | Light surface | Dark surface |
+|---|---|---|---|
+| Primary | `#88d9f7` | `$c_primary_default` | `$c_primary_default--dark` |
+| Secondary | `#ffca76` | `$c_secondary_default` | `$c_secondary_default--dark` |
+| Tertiary | `#f98971` | `$c_tertiary_default` | `$c_tertiary_default--dark` |
+| Support | `#46be8c` | `$c_support_*` | `$c_support_*--dark` |
+| Text primary | — | `#1c1e21` | `#f5f6f7` |
+| Text secondary | — | `#5a5f66` | `#9ea3aa` |
+
+Full token map in `references/Agent-UI-Colors.md` and `references/Agent-UI-Theme-Builder.md`.
+
+**Accessibility baseline (per component):**
+- Contrast: ≥ 4.5:1 for normal text, ≥ 3:1 for large text (1.4.3); ≥ 3:1 for non-text (1.4.11)
+- Focus visible: 2px solid outline minimum (2.4.7); never `outline: none` without a replacement
+- Reduced motion: animations (AOS, sliders, marquees, counters) honor `prefers-reduced-motion: reduce`
+- Keyboard: every interactive element reachable and operable via keyboard alone (2.1.1); no keyboard traps (2.1.2)
+- Names: every interactive element has an accessible name (4.1.2)
+- Target size: interactive controls ≥ 24×24 CSS px (2.5.8 AA)
+
+Per-component WCAG criteria are listed in each spec's Accessibility section.
+
+## Validation in CI / dev loop
+
+Run `validate` against built HTML files to catch component misuse:
+
+```bash
+# In a build pipeline
+for f in dist/*.html; do
+  python3 dd_framework_helper.py validate "$f" || exit 1
+done
+
+# Pre-commit hook
+python3 dd_framework_helper.py validate --warn page.html
 ```
 
-## Performance Optimization
+`validate` catches:
+- Unknown `dd-*` classes (typos)
+- Missing structural children (`__items` / `__content`)
+- `dd-hero` without `aria-label` / `aria-labelledby` or `<h1>`
+- `dd-card` `<img>` missing `alt`
+- `dd-alert -warning/-error` missing `role="alert"`
+- `dd-alert` with conflicting `role` + `aria-live`
+- `dd-modal` not using `<dialog>`
+- `dd-tabs` using `<a>` instead of `<button>`, or `aria-selected` not `"true"`/`"false"`
+- `dd-section` without accessible name
+- `dd-cookie-consent` using `role="dialog"` with `aria-modal="false"`
+- `dd-filmstrip` using `<figure>` as caption (should be `<figcaption>`)
 
-- **Image optimization**: Use responsive images with srcset
-- **Lazy loading**: Add `loading="lazy"` to images
-- **Minification**: All CSS/JS is automatically minified
-- **CDN integration**: Assets can be served from CDN in production
+It does NOT catch semantic correctness (is the alt text meaningful?), color contrast at runtime, or motion-related issues. Pair with `dd-a11y` skill for full WCAG audits via Playwright + axe-core.
 
-## Common Patterns & Templates
+## Layout
 
-### Full Page Template
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>[Page Title]</title>
-    <link rel="stylesheet" href="/assets/css/style.min.css">
-    <meta name="description" content="[Page description]">
-</head>
-<body class="dd-g">
-    <!-- Header -->
-    <header class="dd-header">
-        <!-- Content -->
-    </header>
-
-    <!-- Main Content -->
-    <main>
-        <!-- Hero (doesn't need dd-section) -->
-        [hero component]
-        
-        <!-- Other content (needs dd-section) -->
-        <section class="dd-section" aria-label="[section label]">
-        <div class="dd-section__container dd-g">
-          <div class="dd-section__item dd-u-1-1">
-            [other components]
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- Footer -->
-    <footer class="dd-footer">
-        <!-- Content -->
-    </footer>
-
-    <script src="/assets/js/main.min.js"></script>
-</body>
-</html>
+```
+dd-framework/
+├── .claude-plugin/plugin.json
+├── install.sh
+├── README.md
+└── skills/dd-framework/
+    ├── SKILL.md                          ← you are here
+    ├── references/
+    │   ├── Agent-UI-Colors.md
+    │   └── Agent-UI-Theme-Builder.md
+    ├── scripts/
+    │   ├── dd_framework_helper.py        ← CLI
+    │   ├── test_dd_framework_helper.py   ← pytest
+    │   └── requirements.txt              ← beautifulsoup4, pytest
+    └── assets/
+        ├── components.manifest.json      ← index of all 17 components
+        └── components/
+            ├── dd-{name}.html            ← static HTML reference
+            └── dd-{name}.spec.md         ← contract: params, a11y, tokens, translation
 ```
 
-### Component Integration Commands
-When asked to add/modify components, use these patterns:
+## Build commands (consumer-side, for ldnddev's own sites)
 
-**Add hero to page**: "Add a dd-hero component with [image] as background, title '[title]', subtitle '[subtitle]', copy '[copy]', and CTA button '[cta_text]' linking to [cta_link]"
+When working inside an ldnddev project that uses Lando:
 
-**Add card grid**: "Add a dd-card component with 3 cards arranged in a grid, each has image, title, subtitle, and CTA"
+```bash
+lando grunt build       # full build
+lando grunt dev         # dev build with watch
+lando grunt sync        # sync assets to web/
+```
 
-**Add alert**: "Add a dd-alert component at the top of the page with type 'success' and message '[message]'"
-
-**Update content**: "Replace the hero title on [page] with '[new title]'"
-
-### Responsive Classes Reference
-- **Grid**: `dd-u-1-1`, `dd-u-md-12-24`, `dd-u-lg-8-24`, `dd-u-xl-6-24`
-- **Spacing**: `l-box` (container), `m-bottom`, `m-top`, `p-large`, `p-small`
-- **Alignment**: `dd-t-center`, `dd-t-left`, `dd-t-right`
-- **Visibility**: `dd-d-none`, `dd-d-block`, `dd-d-md-block`
+These commands belong to the consumer project, not to dd-framework itself. dd-framework ships no build artifacts.
 
 ## Troubleshooting
 
-### Common Issues
-1. **Styles not loading**: Check file paths, run `lando grunt build`
-2. **Components not displaying**: Ensure proper dd-section wrapper
-3. **Images not responsive**: Add proper srcset attributes
-4. **Animations not triggering**: Ensure AOS library is loaded
-5. **Contrast issues**: Check color combinations against WCAG guidelines
-
-### Debug Commands
-```bash
-lando grunt build --verbose    # Detailed build information
-lando grunt watch              # Auto-rebuild on changes
-lando lando info               # Environment information
+- **Helper command not found** — install via `bash install.sh` or `/plugin install dd-framework@dd-skills`. Verify `scripts/dd_framework_helper.py` exists.
+- **`validate` fails with "beautifulsoup4 required"** — `pip install -r scripts/requirements.txt`.
+- **Unknown component error from `get`** — run `list` to see the 17 valid names. Class typos like `dd-hreo` won't match.
+- **`validate` reports unknown `dd-*` class** — either the class is a typo, or it's a custom component not in dd-framework. Either fix the typo or accept the warning.

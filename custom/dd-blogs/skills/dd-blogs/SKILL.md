@@ -78,12 +78,26 @@ Execute these 7 phases in order. The helper script `scripts/blog_helper.py` prov
 - Write the full blog body HTML.
 - `<h2>` per section. First-person plural for ldnddev, second-person for reader.
 - Insert cross-link anchors inline: `<a href="/blog/<slug>/">…</a>`.
+- **Optional: enrich with dd-framework components** when a section benefits from one — pull quotes (`dd-blockquote`), in-article CTA (`dd-cta`), info callouts (`dd-alert -info`), step timelines (`dd-timeline`), stat highlights (`dd-milestones`). Discover available components:
+  ```bash
+  python3 scripts/blog_helper.py list-dd-components --human
+  ```
+  Fetch a contract before emitting markup:
+  ```bash
+  python3 scripts/blog_helper.py list-dd-components | jq '.components."dd-blockquote"'
+  ```
+  If dd-framework is not installed, `list-dd-components` returns `{"available": false, ...}` — proceed without components.
 - End with sign-off: `Until next time, Jared Lyvers`.
 - Write the draft body to a temp file and run:
   ```bash
   python3 scripts/blog_helper.py wordcount /tmp/blog-draft.html
   ```
   Record count and `in_range` flag.
+- If the draft uses any `dd-*` components, validate against dd-framework contracts (advisory — never blocks the flow):
+  ```bash
+  python3 scripts/blog_helper.py validate-body /tmp/blog-draft.html
+  ```
+  Surface any `error`/`warning` findings to the user during the Phase 5 review gate. If dd-framework is not installed, the command returns a graceful-degrade JSON note and exits 0.
 
 ### Phase 5 — Review gate
 
@@ -190,7 +204,20 @@ Every blog post produces:
 - `references/ldjson-template.md` — schema.org BlogPosting
 - `references/sitemap-blog.md` — sitemap `<url>` snippet
 - `references/social-template.md` — social post format
-- `scripts/blog_helper.py` — deterministic operations (slug, dates, wordcount, list-blogs, merge-sitemap)
+- `scripts/blog_helper.py` — deterministic operations (slug, dates, wordcount, list-blogs, merge-sitemap, split-sections, list-dd-components, validate-body)
+
+## dd-framework integration
+
+`dd-blogs` is a consumer of `dd-framework`. The two skills are independent — dd-blogs degrades gracefully when dd-framework is not installed (component listing returns an empty set, body validation is skipped).
+
+When dd-framework is installed, the blog body MAY use any of its 17 components inline:
+- `dd-blockquote` for pull quotes with schema.org `Quotation` ld+json
+- `dd-cta` for in-article calls to action
+- `dd-alert -info` for informational callouts (e.g. "Note: this changed in 2026")
+- `dd-timeline` / `dd-milestones` for chronological or stats sections
+- `dd-card` for sub-feature grids inside a section
+
+Use `list-dd-components` for discovery and `validate-body` to surface contract violations to the user during review.
 
 ## Error Handling
 

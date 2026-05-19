@@ -1,0 +1,173 @@
+{
+  "$schema": "https://ldnddev.com/schemas/dd-framework-components-1.json",
+  "version": "1.0.0",
+  "description": "Index of dd-framework components. Source of truth for helper CLI (list, get, validate). Each entry references an HTML example and a spec.md contract.",
+  "tokens": {
+    "color_primary": "#88d9f7",
+    "color_secondary": "#ffca76",
+    "color_tertiary": "#f98971",
+    "color_support": "#46be8c",
+    "text_light_primary": "#1c1e21",
+    "text_light_secondary": "#5a5f66",
+    "text_dark_primary": "#f5f6f7",
+    "text_dark_secondary": "#9ea3aa",
+    "focus_outline_min_px": 2,
+    "contrast_normal_text_min": 4.5,
+    "contrast_large_text_min": 3.0
+  },
+  "components": {
+    "dd-accordion": {
+      "file": "dd-accordion.html",
+      "spec": "dd-accordion.spec.md",
+      "summary": "Collapsible content panels using native <details>/<summary>.",
+      "root_selector": "div.dd-accordion",
+      "wraps_in_section": true,
+      "required": ["items"],
+      "variants": []
+    },
+    "dd-alert": {
+      "file": "dd-alert.html",
+      "spec": "dd-alert.spec.md",
+      "summary": "Inline messaging with role=\"alert\" — default, info, success, warning, error.",
+      "root_selector": "div.dd-alert",
+      "wraps_in_section": true,
+      "required": ["heading", "copy"],
+      "variants": ["-info", "-success", "-warning", "-error"]
+    },
+    "dd-alternating": {
+      "file": "dd-alternating.html",
+      "spec": "dd-alternating.spec.md",
+      "summary": "Image+copy rows with alternating side placement; for feature lists and storytelling.",
+      "root_selector": "div.dd-alternating",
+      "wraps_in_section": true,
+      "required": ["items"],
+      "variants": []
+    },
+    "dd-banner": {
+      "file": "dd-banner.html",
+      "spec": "dd-banner.spec.md",
+      "summary": "Image-only full-width banner with responsive srcset.",
+      "root_selector": "div.dd-banner",
+      "wraps_in_section": false,
+      "required": ["image_src", "image_alt"],
+      "variants": []
+    },
+    "dd-blockquote": {
+      "file": "dd-blockquote.html",
+      "spec": "dd-blockquote.spec.md",
+      "summary": "Testimonial blockquote with person attribution and schema.org Quotation JSON-LD.",
+      "root_selector": "blockquote.dd-blockquote",
+      "wraps_in_section": true,
+      "required": ["quote", "name"],
+      "variants": []
+    },
+    "dd-card": {
+      "file": "dd-card.html",
+      "spec": "dd-card.spec.md",
+      "summary": "Card grid with image, title, subtitle, copy, links. Supports horizontal variant.",
+      "root_selector": "div.dd-card",
+      "wraps_in_section": true,
+      "required": ["items"],
+      "variants": ["-horizontal"]
+    },
+    "dd-cookie-consent": {
+      "file": "dd-cookie-consent.html",
+      "spec": "dd-cookie-consent.spec.md",
+      "summary": "Google tracking consent banner with accept/decline. htmx-compatible.",
+      "root_selector": "#cookie-consent",
+      "wraps_in_section": false,
+      "required": [],
+      "variants": []
+    },
+    "dd-cta": {
+      "file": "dd-cta.html",
+      "spec": "dd-cta.spec.md",
+      "summary": "Call-to-action section with background image, headline, copy, and buttons.",
+      "root_selector": "div.dd-cta",
+      "wraps_in_section": false,
+      "required": ["title", "image_src", "image_alt"],
+      "variants": ["-top-left", "-top-right", "-bottom-left", "-bottom-right", "-center"]
+    },
+    "dd-filmstrip": {
+      "file": "dd-filmstrip.html",
+      "spec": "dd-filmstrip.spec.md",
+      "summary": "Continuous horizontal scrolling marquee for logos or items.",
+      "root_selector": "div.dd-filmstrip",
+      "wraps_in_section": true,
+      "required": ["items"],
+      "variants": ["-reverse"]
+    },
+    "dd-hero": {
+      "file": "dd-hero.html",
+      "spec": "dd-hero.spec.md",
+      "summary": "Full-width landing hero with title, subtitle, body, CTAs, responsive background image.",
+      "root_selector": "section.dd-hero",
+      "wraps_in_section": false,
+      "required": ["title", "image_src", "image_alt"],
+      "variants": []
+    },
+    "dd-milestones": {
+      "file": "dd-milestones.html",
+      "spec": "dd-milestones.spec.md",
+      "summary": "Stats/achievements grid with animated percentage counters.",
+      "root_selector": "div.dd-milestones",
+      "wraps_in_section": true,
+      "required": ["items"],
+      "variants": []
+    },
+    "dd-modal": {
+      "file": "dd-modal.html",
+      "spec": "dd-modal.spec.md",
+      "summary": "Native <dialog> modal with trigger button and close control.",
+      "root_selector": "dialog.dd-modal",
+      "wraps_in_section": false,
+      "required": ["id", "content"],
+      "variants": []
+    },
+    "dd-section": {
+      "file": "dd-section.html",
+      "spec": "dd-section.spec.md",
+      "summary": "Layout wrapper providing consistent spacing, column grid, and width constraints.",
+      "root_selector": "section.dd-section",
+      "wraps_in_section": false,
+      "required": ["content"],
+      "variants": ["-full-contained", "-full-bleed", "-narrow"]
+    },
+    "dd-slider": {
+      "file": "dd-slider.html",
+      "spec": "dd-slider.spec.md",
+      "summary": "Carousel with slide items, prev/next buttons, and tab indicators.",
+      "root_selector": "div.dd-slider",
+      "wraps_in_section": true,
+      "required": ["title", "slides"],
+      "variants": []
+    },
+    "dd-spacer": {
+      "file": "dd-spacer.html",
+      "spec": "dd-spacer.spec.md",
+      "summary": "Vertical whitespace utility with size modifiers and optional divider.",
+      "root_selector": "div.dd-spacer",
+      "wraps_in_section": false,
+      "required": ["size"],
+      "variants": ["-sm", "-md", "-lg", "-xl", "-xxl", "-xxxl", "-divider"]
+    },
+    "dd-tabs": {
+      "file": "dd-tabs.html",
+      "spec": "dd-tabs.spec.md",
+      "summary": "Tabbed content with ARIA tablist/tab/tabpanel roles.",
+      "root_selector": "div.dd-tabs",
+      "wraps_in_section": true,
+      "required": ["id", "tabs"],
+      "variants": []
+    },
+    "dd-timeline": {
+      "file": "dd-timeline.html",
+      "spec": "dd-timeline.spec.md",
+      "summary": "Chronological event list with image, year, title, copy per item.",
+      "root_selector": "div.dd-timeline",
+      "wraps_in_section": true,
+      "required": ["items"],
+      "variants": []
+    }
+  }
+}
