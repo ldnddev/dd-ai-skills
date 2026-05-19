@@ -252,3 +252,35 @@ def test_validate_empty_html_no_components(tmp_path: Path):
     out = json.loads(r.stdout)
     assert out["components_detected"] == []
     assert out["errors"] == 0
+
+
+def test_validate_dd_section_as_article_is_not_warned(tmp_path: Path):
+    """<article> is inherently a landmark; dd-section on <article> should NOT warn."""
+    f = tmp_path / "article.html"
+    f.write_text('<article class="dd-section -full-lg"><div class="dd-section__content">x</div></article>')
+    r = run("validate", str(f))
+    assert r.returncode == 0
+    out = json.loads(r.stdout)
+    assert out["warnings"] == 0
+    assert out["errors"] == 0
+
+
+def test_validate_dd_section_unnamed_section_warns(tmp_path: Path):
+    """<section> with dd-section class but no aria-label/aria-labelledby IS warned."""
+    f = tmp_path / "section.html"
+    f.write_text('<section class="dd-section -full-lg"><div class="dd-section__content">x</div></section>')
+    r = run("validate", str(f), "--warn")
+    assert r.returncode == 0
+    out = json.loads(r.stdout)
+    assert out["warnings"] >= 1
+    assert any("aria-label" in f["message"] for f in out["findings"])
+
+
+def test_validate_dd_section_with_aria_label_is_clean(tmp_path: Path):
+    """<section> with dd-section class AND aria-label should NOT warn."""
+    f = tmp_path / "section.html"
+    f.write_text('<section class="dd-section" aria-label="Intro"><div class="dd-section__content">x</div></section>')
+    r = run("validate", str(f))
+    assert r.returncode == 0
+    out = json.loads(r.stdout)
+    assert out["warnings"] == 0

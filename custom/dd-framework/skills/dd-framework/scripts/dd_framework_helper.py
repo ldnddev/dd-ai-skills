@@ -178,10 +178,13 @@ def _check_component(comp_name: str, el: Any, findings: list[dict[str, Any]]) ->
                                  "line": getattr(tab, "sourceline", None),
                                  "message": f"Tab aria-selected must be 'true' or 'false', got {selected!r}"})
     elif comp_name == "dd-section":
-        if not (el.get("aria-label") or el.get("aria-labelledby")):
+        # <article>, <main>, <nav>, <aside> are inherently labeled landmarks. Only
+        # flag when the tag is a generic <section>, which requires aria-label or
+        # aria-labelledby to become a navigable landmark.
+        if el.name == "section" and not (el.get("aria-label") or el.get("aria-labelledby")):
             findings.append({"severity": "warning", "component": comp_name,
                              "line": getattr(el, "sourceline", None),
-                             "message": "dd-section without aria-label or aria-labelledby is not a labeled landmark"})
+                             "message": "dd-section <section> without aria-label or aria-labelledby is not a labeled landmark (convert to <article> or add a name)"})
     elif comp_name == "dd-cookie-consent":
         role = el.get("role")
         if role == "dialog" and el.get("aria-modal") == "false":

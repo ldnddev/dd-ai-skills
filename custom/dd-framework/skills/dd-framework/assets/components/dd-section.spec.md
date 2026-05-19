@@ -59,6 +59,8 @@ See `dd-section.html` for `-full-contained` 3-up example.
 
 **Naming priority:** `title_id` (preferred — points at visible heading) > `aria_label` (when no visible heading) > none (results in a generic container, not a landmark).
 
+**Tag choice:** Use `<article>` instead of `<section>` when the content is self-contained and syndicatable (blog post body, news article, forum comment). `<article>` is an implicit landmark — it does NOT need `aria-label` or `aria-labelledby` to become navigable. The validator only flags missing names on bare `<section>` tags.
+
 ## Accessibility
 **WCAG criteria touched:** 1.3.1, 2.4.1 Bypass Blocks, 2.4.6, 2.4.10 Section Headings, 4.1.2 Name Role Value.
 

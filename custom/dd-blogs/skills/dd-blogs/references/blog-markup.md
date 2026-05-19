@@ -43,9 +43,11 @@ Use these fragments when assembling the page. Skill loops over body chunks (one 
 
 ## Body section wrapper (rendered once, contains the chunk loop)
 
+Use `<article>` (not `<section>`) — the blog post body is self-contained syndicatable content. `<article>` becomes a navigable landmark in AT without needing an explicit accessible name, which avoids `aria-label`/`aria-labelledby` boilerplate and silences the `dd-framework validate` "unnamed landmark" warning.
+
 ```html
 <!-- rich text | content -->
-<section class="dd-section -full-lg">
+<article class="dd-section -full-lg">
   <div class="dd-section__content">
     <div class="dd-section__items dd-g">
 
@@ -53,7 +55,7 @@ Use these fragments when assembling the page. Skill loops over body chunks (one 
 
     </div>
   </div>
-</section>
+</article>
 ```
 
 ## Chunk fragment (rendered per body chunk)
