@@ -94,6 +94,7 @@ Execute these 7 phases in order. The helper script `scripts/blog_helper.py` prov
   python3 scripts/blog_helper.py list-dd-components | jq '.components."dd-accordion"'
   ```
   Read `dd-accordion.spec.md` (path from contract) for canonical structure. Use `group_name="faq"`. Wrap the accordion in a `dd-section -full-lg` block so it sits as a sibling of the body article (see Phase 6 assembly).
+- **Mid-article CTA (required for every post):** draft a contextual `dd-cta` to bridge the blog topic to the contact-us page. Defaults: `image_src="/assets/imgs/blog-cta-default.webp"`, `image_alt=""` (decorative), `variant="-center"`, `primary_cta={ text: "Let's Talk!", href: "/contact-us/" }`. AI-draft `title` (5-9 words, action-oriented, tied to the post topic) and `body` (1-2 sentences bridging post → why talk to ldnddev). Example title: post about Drupal migration → "Plan your Drupal upgrade with confidence". Use the "Mid-article CTA fragment" from `blog-markup.md`. The CTA inserts at body chunk index `floor(N/2)` during Phase 6 assembly — do NOT include it in the draft body sent to `split-sections` (it bypasses the chunk loop).
 - Write the draft body to a temp file and run:
   ```bash
   python3 scripts/blog_helper.py wordcount /tmp/blog-draft.html
@@ -116,6 +117,13 @@ SEO_Keywords: ...
 Slug: ...
 Publish date: YYYY-mm-dd
 Word count: NNNN (in_range: true|false; min 1800, max 2200)
+
+--- Mid-article CTA ---
+Title: <cta title>
+Body: <cta body HTML>
+Primary button: Let's Talk! → /contact-us/
+Image: /assets/imgs/blog-cta-default.webp (alt="")
+Position: after chunk index floor(N/2)
 
 --- FAQ accordion (3 items) ---
 1. Q: <title>
@@ -156,12 +164,14 @@ Substitute placeholders across the three reference templates:
    python3 scripts/blog_helper.py split-sections /tmp/blog-draft-body.html
    ```
    Returns a JSON array of chunks — one chunk per `<h2>` section, each containing the H2 plus its sibling paragraphs up to the next H2.
-3. For each chunk at index `i` in the returned array, emit the "Chunk fragment" from `blog-markup.md`:
+3. Compute `M = floor(N/2)` where `N = len(chunks)`. This is the mid-article CTA insertion index.
+4. For each chunk at index `i` in the returned array, emit the "Chunk fragment" from `blog-markup.md`:
    - First chunk (`i = 0`): prepend `<p><em>By Jared Lyvers, ldnddev — [blog_draft_date]</em></p>` before `[chunk_content]`.
    - Last chunk (`i = len-1`): append `<p><em>Until next time, Jared Lyvers</em></p>` after `[chunk_content]`.
    - All chunks EXCEPT the last: emit the "Spacer fragment" after the chunk fragment.
    - Last chunk: emit NO spacer.
-4. Place the rendered chunk-loop inside the "Body section wrapper" from `blog-markup.md` (replace `[chunk_loop]`).
+   - **After chunk `i = M`** (and after that chunk's trailing spacer): emit the "Mid-article CTA fragment" from `blog-markup.md` with `[cta_title]` and `[cta_body]` filled from the approved Phase 5 CTA. Then emit one additional "Spacer fragment" to separate the CTA from chunk `M+1`. Skip CTA insertion entirely if `N < 3` (CTA would feel forced).
+5. Place the rendered chunk-loop inside the "Body section wrapper" from `blog-markup.md` (replace `[chunk_loop]`).
 
 Assemble single `index.html`:
 - Document type: `<!doctype html>` then `<html lang="en">`
@@ -210,7 +220,7 @@ Every blog post produces:
 
 - [ ] `SEO_Title`, `SEO_Description` (150-160 chars), `SEO_Keywords` (5-10)
 - [ ] `blog_date` (mmddYYYY), `blog_slug` (kebab-case), URL (`https://ldnddev.com/blog/<slug>/`)
-- [ ] `<output_root>/<slug>/index.html` (head + body + FAQ accordion + footer + ld+json [+ FAQPage ld+json optional])
+- [ ] `<output_root>/<slug>/index.html` (head + body w/ mid-article dd-cta + FAQ accordion + footer + ld+json [+ FAQPage ld+json optional])
 - [ ] `<output_root>/<slug>/hero-lg.webp` + `hero-sm.webp` (or `hero-prompts.md` fallback)
 - [ ] `<output_root>/<slug>/social.md` (3 X + 3 LinkedIn)
 - [ ] `<output_root>/<slug>/sitemap-entry.xml`
@@ -231,11 +241,11 @@ Every blog post produces:
 `dd-blogs` is a consumer of `dd-framework`. The two skills are independent — dd-blogs degrades gracefully when dd-framework is not installed (component listing returns an empty set, body validation is skipped).
 
 **Required pattern (every post):**
+- `dd-cta` mid-article between body chunks (after chunk `floor(N/2)`). Default href `/contact-us/`, button text "Let's Talk!", image `/assets/imgs/blog-cta-default.webp` (decorative `alt=""`). Title and body AI-drafted to tie the post topic to the contact CTA. Skipped when `N < 3` chunks.
 - `dd-accordion` with 3 Q&A items rendered as a sibling section after the body article, before the footer. Provides FAQ section + optional `FAQPage` ld+json for SEO.
 
 **Optional enrichment (use when the section benefits):**
 - `dd-blockquote` for pull quotes with schema.org `Quotation` ld+json
-- `dd-cta` for in-article calls to action
 - `dd-alert -info` for informational callouts (e.g. "Note: this changed in 2026")
 - `dd-timeline` / `dd-milestones` for chronological or stats sections
 - `dd-card` for sub-feature grids inside a section

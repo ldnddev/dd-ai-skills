@@ -1,6 +1,6 @@
 # Blog Draft Markup Template
 
-Use these fragments when assembling the page. Skill loops over body chunks (one per `<h2>`, from `blog_helper.py split-sections`) and emits a `dd-section__item` + `dd-spacer` pair for each. The LAST chunk gets NO trailing spacer.
+Use these fragments when assembling the page. Skill loops over body chunks (one per `<h2>`, from `blog_helper.py split-sections`) and emits a `dd-section__item` + `dd-spacer` pair for each. The LAST chunk gets NO trailing spacer. A mid-article `dd-cta` fragment is inserted after chunk index `floor(N/2)` (see "Mid-article CTA fragment" below).
 
 ## Hero section (rendered once)
 
@@ -79,6 +79,43 @@ Where `[chunk_content]` rules:
 Where `[spacer_or_empty]` rules:
 - **All chunks EXCEPT the last:** render the spacer below.
 - **Last chunk:** render nothing (no spacer).
+
+## Mid-article CTA fragment (rendered once between body chunks)
+
+Insert after body chunk index `M = floor(N/2)` where `N` is total chunk count. Sits as a sibling `dd-section__item` inside the body article — same grid track as chunks, preserves single `<article>` landmark, AT-friendly. Emit a spacer BEFORE and AFTER this item (a spacer already exists after chunk M from the loop; only the trailing spacer is added here).
+
+Default values:
+- `image_src`: `/assets/imgs/blog-cta-default.webp`
+- `image_alt`: `""` (decorative — copy carries the meaning)
+- `variant`: `-center`
+- `heading_level`: `2`
+- `primary_cta`: `{ "text": "Let's Talk!", "href": "/contact-us/" }`
+- `title`, `body`: AI-drafted at Phase 4 to tie to blog topic; user edits at Phase 5
+
+```html
+<div class="dd-section__item dd-u-1-1 l-box">
+  <div class="dd-cta -center">
+    <div class="dd-cta__image">
+      <img src="/assets/imgs/blog-cta-default.webp" class="dd-img" alt="" />
+    </div>
+    <style>
+      .dd-cta .dd-cta__image { background-image: url('/assets/imgs/blog-cta-default.webp'); }
+      @media (min-width: 64em) { .dd-cta .dd-cta__image { background-image: url('/assets/imgs/blog-cta-default.webp'); } }
+    </style>
+    <div class="dd-cta__content dd-g" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="0">
+      <div class="dd-cta__copy dd-u-1-1 dd-u-md-12-24">
+        <div class="dd-cta__title"><h2>[cta_title]</h2></div>
+        [cta_body]
+        <div class="dd-cta__links dd-g -x-center">
+          <div class="dd-cta__link"><a href="/contact-us/" class="dd-button -primary">Let's Talk!</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+Where `[cta_body]` is `<p>...</p>` HTML drafted to bridge the blog topic to the contact-us CTA (one short paragraph, 1-2 sentences).
 
 ## Spacer fragment
 
