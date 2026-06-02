@@ -72,6 +72,7 @@ Execute these 7 phases in order. The helper script `scripts/blog_helper.py` prov
 - Finalize SEO_Title, SEO_Description (150-160 chars), SEO_Keywords (5-10 comma-separated), final slug.
 - Plan H2 sections (5-8 typical).
 - From the `list-blogs` output, pick 2-3 contextually relevant existing posts to cross-link inline.
+- Draft 3 candidate FAQ Q&A pairs (title + concise HTML answer) grounded in the planned section outline. These render as a `dd-accordion` after the body. Keep titles question-form, answers 2-4 sentences.
 
 ### Phase 4 — Draft
 
@@ -88,6 +89,11 @@ Execute these 7 phases in order. The helper script `scripts/blog_helper.py` prov
   ```
   If dd-framework is not installed, `list-dd-components` returns `{"available": false, ...}` — proceed without components.
 - End with sign-off: `Until next time, Jared Lyvers`.
+- **FAQ accordion (required for every post):** after drafting the body, generate dd-accordion HTML for the 3 Q&A pairs from Phase 3. Refine the Q&As against the final body so answers match what was actually written. Fetch the contract first:
+  ```bash
+  python3 scripts/blog_helper.py list-dd-components | jq '.components."dd-accordion"'
+  ```
+  Read `dd-accordion.spec.md` (path from contract) for canonical structure. Use `group_name="faq"`. Wrap the accordion in a `dd-section -full-lg` block so it sits as a sibling of the body article (see Phase 6 assembly).
 - Write the draft body to a temp file and run:
   ```bash
   python3 scripts/blog_helper.py wordcount /tmp/blog-draft.html
@@ -110,6 +116,12 @@ SEO_Keywords: ...
 Slug: ...
 Publish date: YYYY-mm-dd
 Word count: NNNN (in_range: true|false; min 1800, max 2200)
+
+--- FAQ accordion (3 items) ---
+1. Q: <title>
+   A: <answer HTML>
+2. Q: ...
+3. Q: ...
 
 --- Draft body ---
 <HTML body>
@@ -154,8 +166,14 @@ Substitute placeholders across the three reference templates:
 Assemble single `index.html`:
 - Document type: `<!doctype html>` then `<html lang="en">`
 - `<head>` from blog-header template with the ld+json `<script>` block inserted before `</head>`
-- `<body>` containing the hero section + the assembled body section + the footer fragment
+- `<body>` containing, in order:
+  1. Hero section
+  2. Assembled body section (the `<article>` from chunk loop)
+  3. FAQ accordion section — a `<section class="dd-section -full-lg" aria-labelledby="faq-heading">` wrapping the rendered `dd-accordion` markup. Include an `<h2 id="faq-heading">Frequently Asked Questions</h2>` above the accordion for landmark naming and document outline.
+  4. Footer fragment (see below)
 - Footer: read `references/blog-footer.md` verbatim and insert immediately before `</body>`. If file is empty or missing, skip silently (no footer emitted).
+- Run `validate-body` on the assembled body markup (everything between `<body>` and `</body>`) to surface any dd-framework contract violations. Advisory — never blocks.
+- **SEO bonus (optional):** also emit a second `<script type="application/ld+json">` block with `@type: FAQPage` containing the 3 Q&A pairs. Boosts rich-result eligibility. Skip if Q&As are non-evergreen.
 
 Write to `<output_root>/<slug>/index.html`.
 
@@ -192,7 +210,7 @@ Every blog post produces:
 
 - [ ] `SEO_Title`, `SEO_Description` (150-160 chars), `SEO_Keywords` (5-10)
 - [ ] `blog_date` (mmddYYYY), `blog_slug` (kebab-case), URL (`https://ldnddev.com/blog/<slug>/`)
-- [ ] `<output_root>/<slug>/index.html` (head + body + ld+json)
+- [ ] `<output_root>/<slug>/index.html` (head + body + FAQ accordion + footer + ld+json [+ FAQPage ld+json optional])
 - [ ] `<output_root>/<slug>/hero-lg.webp` + `hero-sm.webp` (or `hero-prompts.md` fallback)
 - [ ] `<output_root>/<slug>/social.md` (3 X + 3 LinkedIn)
 - [ ] `<output_root>/<slug>/sitemap-entry.xml`
@@ -212,7 +230,10 @@ Every blog post produces:
 
 `dd-blogs` is a consumer of `dd-framework`. The two skills are independent — dd-blogs degrades gracefully when dd-framework is not installed (component listing returns an empty set, body validation is skipped).
 
-When dd-framework is installed, the blog body MAY use any of its 17 components inline:
+**Required pattern (every post):**
+- `dd-accordion` with 3 Q&A items rendered as a sibling section after the body article, before the footer. Provides FAQ section + optional `FAQPage` ld+json for SEO.
+
+**Optional enrichment (use when the section benefits):**
 - `dd-blockquote` for pull quotes with schema.org `Quotation` ld+json
 - `dd-cta` for in-article calls to action
 - `dd-alert -info` for informational callouts (e.g. "Note: this changed in 2026")
