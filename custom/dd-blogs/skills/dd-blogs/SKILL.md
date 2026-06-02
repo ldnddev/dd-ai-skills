@@ -154,7 +154,8 @@ Substitute placeholders across the three reference templates:
 Assemble single `index.html`:
 - Document type: `<!doctype html>` then `<html lang="en">`
 - `<head>` from blog-header template with the ld+json `<script>` block inserted before `</head>`
-- `<body>` containing the hero section + the assembled body section
+- `<body>` containing the hero section + the assembled body section + the footer fragment
+- Footer: read `references/blog-footer.md` verbatim and insert immediately before `</body>`. If file is empty or missing, skip silently (no footer emitted).
 
 Write to `<output_root>/<slug>/index.html`.
 
@@ -201,6 +202,7 @@ Every blog post produces:
 
 - `references/blog-header.md` — HTML `<head>` template
 - `references/blog-markup.md` — HTML body template
+- `references/blog-footer.md` — HTML footer fragment, injected before `</body>` (skipped if empty)
 - `references/ldjson-template.md` — schema.org BlogPosting
 - `references/sitemap-blog.md` — sitemap `<url>` snippet
 - `references/social-template.md` — social post format
