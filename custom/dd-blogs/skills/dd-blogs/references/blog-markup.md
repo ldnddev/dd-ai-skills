@@ -2,6 +2,27 @@
 
 Use these fragments when assembling the page. Skill loops over body chunks (one per `<h2>`, from `blog_helper.py split-sections`) and emits a `dd-section__item` + `dd-spacer` pair for each. The LAST chunk gets NO trailing spacer. A mid-article `dd-cta` fragment is inserted after chunk index `floor(N/2)` (see "Mid-article CTA fragment" below).
 
+## Document scaffolding (rendered once)
+
+Opening `<body>` tag uses the `page` class for site-wide layout hooks.
+
+```html
+<body class="page">
+```
+
+Immediately after `<body class="page">`, emit this fixed scaffolding block (legacy browser notice, skip-link, page-top anchor, htmx header include):
+
+```html
+<!--[if lt IE 8]>
+  <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+<![endif]-->
+<a href="#main-content" class="visually-hidden focusable skip-link">Skip to main content</a>
+<div name="page_top" id="page_top"></div>
+<header id="header" hx-trigger="load" hx-get="/includes/header.html" hx-swap="outerHTML"></header>
+```
+
+**Skip-link target:** `#main-content` is set on the body `<article>` wrapper (see "Body section wrapper" below). Required for WCAG 2.4.1 Bypass Blocks.
+
 ## Hero section (rendered once)
 
 ```html
@@ -47,7 +68,7 @@ Use `<article>` (not `<section>`) — the blog post body is self-contained syndi
 
 ```html
 <!-- rich text | content -->
-<article class="dd-section -full-lg">
+<article id="main-content" class="dd-section -full-lg">
   <div class="dd-section__content">
     <div class="dd-section__items dd-g">
 

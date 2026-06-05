@@ -176,11 +176,12 @@ Substitute placeholders across the three reference templates:
 Assemble single `index.html`:
 - Document type: `<!doctype html>` then `<html lang="en">`
 - `<head>` from blog-header template with the ld+json `<script>` block inserted before `</head>`
-- `<body>` containing, in order:
-  1. Hero section
-  2. Assembled body section (the `<article>` from chunk loop)
-  3. FAQ accordion section — a `<section class="dd-section -full-lg" aria-labelledby="faq-heading">` wrapping the rendered `dd-accordion` markup. Include an `<h2 id="faq-heading">Frequently Asked Questions</h2>` above the accordion for landmark naming and document outline.
-  4. Footer fragment (see below)
+- `<body class="page">` containing, in order:
+  1. Document scaffolding block (IE notice, skip-link, page_top anchor, htmx `<header>` include) — see "Document scaffolding" in `blog-markup.md`.
+  2. Hero section
+  3. Assembled body section (the `<article>` from chunk loop)
+  4. FAQ accordion section — a `<section class="dd-section -full-lg" aria-labelledby="faq-heading">` wrapping the rendered `dd-accordion` markup. Include an `<h2 id="faq-heading">Frequently Asked Questions</h2>` above the accordion for landmark naming and document outline.
+  5. Footer fragment (see below)
 - Footer: read `references/blog-footer.md` verbatim and insert immediately before `</body>`. If file is empty or missing, skip silently (no footer emitted).
 - Run `validate-body` on the assembled body markup (everything between `<body>` and `</body>`) to surface any dd-framework contract violations. Advisory — never blocks.
 - **SEO bonus (optional):** also emit a second `<script type="application/ld+json">` block with `@type: FAQPage` containing the 3 Q&A pairs. Boosts rich-result eligibility. Skip if Q&As are non-evergreen.
