@@ -1,0 +1,12 @@
+{
+  "name": "dd-site-compare",
+  "version": "1.1.0",
+  "description": "Compare 2+ websites into a self-contained HTML + JSON dashboard — 31 quantitative + qualitative homepage signals, parallel fetching, zero runtime deps.",
+  "license": "MIT",
+  "author": {
+    "name": "Jared Lyvers",
+    "email": "jared@ldnddev.com"
+  },
+  "keywords": ["compare", "audit", "competitive-analysis", "dashboard", "websites", "homepage"],
+  "skills": ["./skills/dd-site-compare"]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "DD Site Compare"
+  short_description: "Website comparison HTML dashboards (v1.1: 31 fields, parallel, sort/filter/export)"
+  default_prompt: "Use $dd-site-compare --web to compare these websites and generate an HTML dashboard in the conventional web/<domain>-compare-audit-YYYY-MM-DD/ folder."
