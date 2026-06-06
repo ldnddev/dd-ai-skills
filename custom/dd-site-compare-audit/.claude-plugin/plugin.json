@@ -1,6 +1,6 @@
 {
   "name": "dd-site-compare",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Compare 2+ websites into a self-contained HTML + JSON dashboard — 31 quantitative + qualitative homepage signals, parallel fetching, zero runtime deps.",
   "license": "MIT",
   "author": {

@@ -10,7 +10,7 @@ description: >
   web/<primary-domain>-compare-audit-YYYY-MM-DD/ at the project root.
   Use when the user pastes 2+ URLs (or a file), asks to "compare websites", "competitive analysis",
   "site audit dashboard", "homepage comparison report", or invokes /dd-site-compare or $dd-site-compare.
-version: 1.1.0
+version: 1.1.1
 when-to-use: "Use for website comparisons, competitive audits, multi-site technical reports, or when a self-contained HTML + JSON dashboard of homepage metrics is needed. Trigger phrases: compare sites, site comparison, website audit, competitive analysis, dashboard for these URLs."
 argument-hint: "[urls...] [--web] [--urls-file file.txt] [--skip-resources] [--max-resources N] [--workers 4] [--json-output out.json] [-o out.html]"
 ---
