@@ -1,519 +1,800 @@
-<html lang="en" class="light">
+<!doctype html>
+<html lang="en">
 
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{REPORT_TITLE}}</title>
-    <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon/favicon-96x96.png" />
-    <link rel="shortcut icon" href="assets/favicon/favicon.ico" />
-    <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
-    <link rel="manifest" href="assets/favicon/site.webmanifest" />
-    <meta name="theme-color" content="#ffffff" />
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{REPORT_TITLE}}</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon/favicon-96x96.png" />
+  <link rel="shortcut icon" href="assets/favicon/favicon.ico" />
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="assets/favicon/site.webmanifest" />
+  <meta name="theme-color" content="#ffffff" />
+  <script>try { var t = localStorage.getItem('theme'); if (t === 'dark' || t === 'light') document.documentElement.classList.add(t); } catch (e) {}</script>
+  <style>
+    /* Hallmark · dd-seo-audit dashboard — Quiet Workbench
+     * Locked design system: see design.md (genre modern-minimal, macro Workbench, theme Quiet).
+     * tokens: OKLCH only, 4pt scale, 2+1 typography (sans + mono label). Self-contained, no CDNs.
+     * Shares its DNA with dd-site-compare for a consistent dashboard family.
+     */
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.plot.ly/plotly-3.1.1.min.js"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
-      rel="stylesheet">
-    <link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme:
-        {
-          extend:
-          {
-            fontFamily:
-            {
-              sans: ['Inter', 'sans-serif'],
-            },
-            colors:
-            {
-              brand:
-              {
-                500: '#84D814',
-                600: '#73BC11',
-                900: '#1C1C1C',
-              },
-              dark:
-              {
-                bg: '#121212',
-                surface: '#1E1E1E',
-                border: '#333333'
-              }
-            },
-            boxShadow:
-            {
-              'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-              'dark-soft': '0 4px 20px -2px rgba(0, 0, 0, 0.2)',
-            }
-          }
-        }
+    :root {
+      color-scheme: light dark;
+
+      /* Quiet (adapted for dashboard utility + semantic status) */
+      --color-paper:    oklch(100% 0 0);
+      --color-paper-2:  oklch(98.5% 0 0);
+      --color-paper-3:  oklch(96% 0 0);
+      --color-rule:     oklch(91% 0 0);
+      --color-rule-2:   oklch(82% 0 0);
+      --color-muted:    oklch(50% 0 0);  /* darkened from 55% for AA: ≥4.5:1 small text on all paper surfaces */
+      --color-neutral:  oklch(40% 0 0);
+      --color-ink-2:    oklch(28% 0 0);
+      --color-ink:      oklch(15% 0 0);
+      --color-accent:   oklch(15% 0 0);      /* mono — the data is the accent */
+      --color-focus:    oklch(60% 0.10 240); /* tiny blue, keyboard only */
+
+      /* Semantic for status (low chroma tints, Quiet spirit) */
+      --color-good:     oklch(42% 0.09 145);
+      --color-warn:     oklch(52% 0.09 85);
+      --color-bad:      oklch(48% 0.09 25);
+      --color-best:     oklch(45% 0.06 210); /* subtle for "winner" / info highlights */
+
+      /* Typography — 2+1, system stacks (no external fonts) */
+      --font-display: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-body:    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-label:   ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --font-mono:    ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+      --display-weight: 500;
+      --body-weight: 400;
+      --label-weight: 500;
+
+      --tracking-tight: -0.015em;
+      --tracking-label: 0.04em;
+
+      /* 4pt scale (named, not raw) */
+      --space-3xs: 0.125rem;
+      --space-2xs: 0.25rem;
+      --space-xs:  0.5rem;
+      --space-sm:  0.75rem;
+      --space-md:  1rem;
+      --space-lg:  1.5rem;
+      --space-xl:  2rem;
+      --space-2xl: 3rem;
+
+      /* Type scale */
+      --text-xs:  0.6875rem;
+      --text-sm:  0.75rem;
+      --text-md:  0.8125rem;
+      --text-lg:  0.9375rem;
+      --text-xl:  1.0625rem;
+      --text-2xl: 1.25rem;
+      --text-value: clamp(1.125rem, 1.8vw, 1.375rem);
+
+      /* Easings + radius (Quiet square + soft pill) */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+
+      --radius-card: 0;
+      --radius-pill: 999px;
+      --radius-input: 6px;
+      --rule-card: 1px;
+      --shadow-card: none;
+
+      /* Aliases — consumed by HTML fragments injected from generate_report.py */
+      --muted:         var(--color-muted);
+      --text-muted:    var(--color-muted);
+      --line:          var(--color-rule);
+      --ui-font:       var(--font-label);
+      --green:         var(--color-good);
+      --pass-text:     var(--color-good);
+      --warning-text:  var(--color-warn);
+    }
+
+    /* Dark — via system preference (unless forced light) or the toggle (.dark) */
+    :root.dark {
+      --color-paper:   oklch(14% 0 0);
+      --color-paper-2: oklch(18% 0 0);
+      --color-paper-3: oklch(22% 0 0);
+      --color-rule:    oklch(30% 0 0);
+      --color-rule-2:  oklch(40% 0 0);
+      --color-muted:   oklch(62% 0 0);
+      --color-neutral: oklch(72% 0 0);
+      --color-ink-2:   oklch(82% 0 0);
+      --color-ink:     oklch(94% 0 0);
+      --color-accent:  oklch(94% 0 0);
+      --color-focus:   oklch(70% 0.10 240);
+      --color-good:    oklch(55% 0.09 145);
+      --color-warn:    oklch(62% 0.09 85);
+      --color-bad:     oklch(58% 0.09 25);
+      --color-best:    oklch(60% 0.06 210);
+      --body-weight:   350;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not(.light) {
+        --color-paper:   oklch(14% 0 0);
+        --color-paper-2: oklch(18% 0 0);
+        --color-paper-3: oklch(22% 0 0);
+        --color-rule:    oklch(30% 0 0);
+        --color-rule-2:  oklch(40% 0 0);
+        --color-muted:   oklch(62% 0 0);
+        --color-neutral: oklch(72% 0 0);
+        --color-ink-2:   oklch(82% 0 0);
+        --color-ink:     oklch(94% 0 0);
+        --color-accent:  oklch(94% 0 0);
+        --color-focus:   oklch(70% 0.10 240);
+        --color-good:    oklch(55% 0.09 145);
+        --color-warn:    oklch(62% 0.09 85);
+        --color-bad:     oklch(58% 0.09 25);
+        --color-best:    oklch(60% 0.06 210);
+        --body-weight:   350;
       }
-    </script>
-    <style>
-      body
-      {
-        font-family: 'Inter', sans-serif;
-        margin: 0;
-        padding: 0;
-      }
+    }
 
-      ::-webkit-scrollbar
-      {
-        width: 6px;
-        height: 6px;
-      }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      background: var(--color-paper);
+      color: var(--color-ink);
+      font-family: var(--font-body);
+      font-weight: var(--body-weight);
+      line-height: 1.5;
+      font-size: var(--text-md);
+    }
 
-      ::-webkit-scrollbar-track
-      {
-        background: transparent;
-      }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--color-rule-2); border-radius: 999px; }
 
-      ::-webkit-scrollbar-thumb
-      {
-        background: #E5E7EB;
-        border-radius: 10px;
-      }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+    .skip-link {
+      position: absolute; left: var(--space-sm); top: -48px;
+      background: var(--color-paper); color: var(--color-ink);
+      border: 1px solid var(--color-rule); padding: var(--space-2xs) var(--space-sm);
+      z-index: 1000; font-family: var(--font-label); font-size: var(--text-xs);
+      transition: top var(--dur-micro) var(--ease-out);
+    }
+    .skip-link:focus { top: var(--space-sm); }
 
-      .dark ::-webkit-scrollbar-thumb
-      {
-        background: #374151;
-      }
-    </style>
-  </head>
+    /* Header */
+    .workbench-header {
+      border-bottom: var(--rule-card) solid var(--color-rule);
+      padding: var(--space-sm) var(--space-lg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; }
+    .brand-logo { width: 30px; height: 30px; object-fit: contain; flex: none; }
+    .workbench-header h1 {
+      margin: 0;
+      font-size: var(--text-lg);
+      font-weight: var(--display-weight);
+      letter-spacing: var(--tracking-tight);
+      font-family: var(--font-display);
+    }
+    .workbench-header .muted {
+      margin: 2px 0 0;
+      color: var(--color-muted);
+      font-size: var(--text-xs);
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+    }
 
-  <body
-    class="bg-[#F3F4F6] dark:bg-dark-bg text-gray-900 dark:text-gray-100 min-h-screen flex transition-colors duration-200">
-    <a href="#main-content"
-      class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-brand-500 focus:text-[#1C1C1C] focus:px-4 focus:py-2 focus:rounded-md focus:font-semibold focus:shadow-lg">Skip
-      to main content</a>
-    <!-- Sidebar -->
-    <aside id="sidebar"
-      aria-label="Audit navigation"
-      class="bg-[#1C1C1C] text-white flex-shrink-0 flex flex-col h-screen sticky top-0 border-r border-[#2A2A2A] transition-all duration-300"
-      style="width: 280px;">
-        <div class="p-6 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div aria-hidden="true"
-              class="w-12 h-12 rounded-full bg-brand-500 flex items-center justify-center text-[#1C1C1C] font-bold text-sm">
-                <img src="{{AGENCY_LOGO}}" style="padding: 4px;" alt="{{AGENCY_LOGO_INITIAL}}" />
-            </div><div class="font-semibold text-lg sidebar-text">{{AGENCY_NAME}}</div>
-          </div>
-        </div>
-      <div class="px-6 mb-6"></div>
-      <div class="px-4 flex-1 overflow-y-auto">
-        <div id="menuLabel"
-          class="text-xs font-semibold text-gray-400 mb-3 px-4 uppercase tracking-wider whitespace-nowrap">
-          Main Menu</div>
-        <nav aria-label="Main" class="space-y-1"><a href="#overview"
-            aria-current="page"
-            aria-label="Audit Overview"
-            class="flex items-center gap-3 px-4 py-3 bg-brand-500 text-[#1C1C1C] rounded-full font-medium transition-colors group"><i
-              class="fa-solid fa-chart-pie w-5 text-center flex-shrink-0" aria-hidden="true"></i>
-            <span class="sidebar-text whitespace-nowrap">Audit Overview</span>
-          </a><a href="#scoring"
-            aria-label="Issue Distribution"
-            class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors group"><i
-              class="fa-solid fa-triangle-exclamation w-5 text-center flex-shrink-0" aria-hidden="true"></i>
-            <span class="sidebar-text whitespace-nowrap">Issue Distribution</span>
-          </a><a href="#category-cards"
-            aria-label="Category cards"
-            class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors group"><i
-              class="fa-solid fa-file-lines w-5 text-center flex-shrink-0" aria-hidden="true"></i>
-            <span class="sidebar-text whitespace-nowrap">Category Cards</span>
-          </a><a href="#tasks"
-            aria-label="Task Dashboard"
-            class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors group"><i
-              class="fa-solid fa-list-check w-5 text-center flex-shrink-0" aria-hidden="true"></i>
-            <span class="sidebar-text whitespace-nowrap">Task Dashboard</span>
-          </a></nav>
+    /* Workbench layout: rail + canvas */
+    .workbench {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: var(--space-xl);
+      padding: var(--space-lg);
+      align-items: start;
+    }
+    @media (max-width: 920px) {
+      .workbench { grid-template-columns: 1fr; }
+      .rail { position: static; }
+    }
+    .rail {
+      position: sticky;
+      top: var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
+    }
+    .canvas {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
+      min-width: 0;
+    }
+
+    /* Panels */
+    .panel {
+      background: var(--color-paper-2);
+      border: var(--rule-card) solid var(--color-rule);
+      border-radius: var(--radius-card);
+      padding: var(--space-md);
+    }
+    .panel-label {
+      font-size: var(--text-xs);
+      font-family: var(--font-label);
+      font-weight: var(--label-weight);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin: 0 0 var(--space-sm);
+      user-select: none;
+    }
+    .panel-toolbar {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-sm);
+      flex-wrap: wrap;
+    }
+    .panel-toolbar .panel-label { margin: 0; }
+    .panel-foot {
+      margin-top: var(--space-sm);
+      padding-top: var(--space-sm);
+      border-top: 1px solid var(--color-rule);
+      font-size: var(--text-xs);
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+    }
+    .note {
+      margin: 0 0 var(--space-sm);
+      color: var(--color-muted);
+      font-size: var(--text-sm);
+    }
+    .muted { color: var(--color-muted); }
+
+    /* Summary rail — vertical readout */
+    .summary-grid { display: flex; flex-direction: column; gap: var(--space-xs); }
+    .summary-item {
+      padding: var(--space-2xs) 0;
+      border-bottom: 1px solid var(--color-rule);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3xs);
+    }
+    .summary-item:last-child { border-bottom: 0; }
+    .summary-label {
+      font-size: var(--text-xs);
+      color: var(--color-muted);
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+    }
+    .summary-value {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      color: var(--color-ink);
+      overflow-wrap: anywhere;
+    }
+    .summary-item.score .summary-value { font-size: var(--text-value); }
+
+    /* Table of contents nav (rail) */
+    .toc { display: flex; flex-direction: column; }
+    .toc a {
+      font-family: var(--font-label);
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-label);
+      color: var(--color-muted);
+      text-decoration: none;
+      padding: var(--space-2xs) 0;
+      border-bottom: 1px solid var(--color-rule);
+      transition: color var(--dur-micro) var(--ease-out);
+    }
+    .toc a:last-child { border-bottom: 0; }
+    .toc a:hover { color: var(--color-ink); }
+    .toc a:focus-visible { outline: 1px solid var(--color-focus); outline-offset: 2px; }
+
+    /* CSS bar charts ("monitors") */
+    .chart-grid { display: flex; flex-direction: column; gap: var(--space-xs); }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 84px 1fr auto;
+      gap: var(--space-xs);
+      align-items: center;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+    .url-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--color-muted);
+      font-family: var(--font-label);
+      font-size: 10px;
+    }
+    .bar-track {
+      height: 6px;
+      background: var(--color-paper-3);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--color-rule);
+    }
+    .bar-fill {
+      height: 100%;
+      min-width: 3px;
+      background: var(--color-ink);
+      transition: width var(--dur-short) var(--ease-out);
+    }
+
+    /* Category cards (rings) */
+    .category-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      gap: var(--space-sm);
+    }
+    .category-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-md);
+      border: 1px solid var(--color-rule);
+      background: var(--color-paper);
+      text-decoration: none;
+      color: var(--color-ink);
+      transition: background var(--dur-micro) var(--ease-out);
+    }
+    .category-card:hover { background: var(--color-paper-3); }
+    .category-card:focus-visible { outline: 1px solid var(--color-focus); outline-offset: 1px; }
+    .ring-wrap { position: relative; width: 72px; height: 72px; }
+    .ring-wrap svg { width: 100%; height: 100%; display: block; }
+    .ring-label {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-weight: 600;
+      font-size: var(--text-lg); font-variant-numeric: tabular-nums;
+      color: var(--color-ink);
+    }
+    .category-name {
+      font-size: var(--text-xs);
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      text-align: center;
+      color: var(--color-muted);
+    }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+    }
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--color-rule);
+      text-align: left;
+      vertical-align: top;
+      font-weight: normal;
+    }
+    th {
+      font-size: 10px;
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--color-muted);
+      white-space: nowrap;
+    }
+    td { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+    tr:last-child td { border-bottom: 0; }
+    .url-cell { font-family: var(--font-mono); font-size: 11px; color: var(--color-neutral); }
+    #task-table { min-width: 720px; }
+
+    /* Status pills — Quiet restraint + semantic tint */
+    .priority-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 18px;
+      padding: 1px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 10px;
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+      font-weight: 500;
+      white-space: nowrap;
+      border: 1px solid var(--color-rule);
+      color: var(--color-muted);
+      background: var(--color-paper-3);
+    }
+    .priority-pill[data-severity="critical"] { color: var(--color-bad);  border-color: var(--color-bad);  background: color-mix(in oklch, var(--color-bad) 8%, var(--color-paper)); }
+    .priority-pill[data-severity="warning"]  { color: var(--color-warn); border-color: var(--color-warn); background: color-mix(in oklch, var(--color-warn) 8%, var(--color-paper)); }
+    .priority-pill[data-severity="info"]     { color: var(--color-best); border-color: var(--color-best); background: color-mix(in oklch, var(--color-best) 8%, var(--color-paper)); }
+    .priority-pill[data-severity="pass"]     { color: var(--color-good); border-color: var(--color-good); background: color-mix(in oklch, var(--color-good) 8%, var(--color-paper)); }
+
+    /* Issue / recommendation items */
+    .issue-item {
+      display: flex;
+      gap: var(--space-sm);
+      align-items: flex-start;
+      padding: var(--space-sm);
+      border: 1px solid var(--color-rule);
+      border-left-width: 3px;
+      margin: var(--space-xs) 0;
+      background: var(--color-paper);
+      font-size: var(--text-sm);
+    }
+    .issue-item.critical { border-left-color: var(--color-bad); }
+    .issue-item.warning  { border-left-color: var(--color-warn); }
+    .issue-item.info     { border-left-color: var(--color-best); }
+    .issue-badge {
+      flex: none;
+      font-size: 9px;
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--color-rule);
+      color: var(--color-muted);
+      background: var(--color-paper-3);
+      white-space: nowrap;
+    }
+
+    /* Collapsible detailed findings */
+    .findings { display: flex; flex-direction: column; gap: var(--space-xs); }
+    .section-detail {
+      border: 1px solid var(--color-rule);
+      background: var(--color-paper);
+    }
+    .section-detail > summary {
+      cursor: pointer;
+      padding: var(--space-sm) var(--space-md);
+      font-family: var(--font-label);
+      font-size: var(--text-sm);
+      letter-spacing: var(--tracking-label);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      list-style: none;
+      user-select: none;
+    }
+    .section-detail > summary::-webkit-details-marker { display: none; }
+    .section-detail > summary::before {
+      content: '\25B8';
+      color: var(--color-muted);
+    }
+    .section-detail[open] > summary::before { content: '\25BE'; }
+    .section-detail > summary > span { margin-left: auto; }
+    .section-detail > summary:focus-visible { outline: 1px solid var(--color-focus); outline-offset: -1px; }
+    .section-detail[open] > summary { border-bottom: 1px solid var(--color-rule); }
+    .section-body { padding: var(--space-md); }
+    .section-body h3, .section-body h4 {
+      font-family: var(--font-label);
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin: var(--space-md) 0 var(--space-xs);
+    }
+    .section-body p { margin: var(--space-xs) 0; }
+    .section-body table { margin-top: var(--space-sm); }
+    .section-body ul { margin: var(--space-xs) 0; padding-left: var(--space-lg); }
+    .section-body li { margin: var(--space-3xs) 0; }
+
+    /* Controls — Quiet CTA voice */
+    .filter-input {
+      flex: 1 1 200px;
+      min-width: 140px;
+      padding: 4px 8px;
+      border: 1px solid var(--color-rule);
+      border-radius: var(--radius-input);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+    }
+    .filter-input:focus {
+      outline: 1px solid var(--color-focus);
+      outline-offset: -1px;
+      border-color: var(--color-focus);
+    }
+    .export-btn {
+      font-size: 10px;
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--color-rule);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      cursor: pointer;
+      transition: background var(--dur-micro) var(--ease-out);
+    }
+    .export-btn:hover { background: var(--color-paper-3); }
+    .export-btn:focus-visible { outline: 1px solid var(--color-focus); outline-offset: 1px; }
+    .export-btn:active { background: var(--color-paper-2); transform: translateY(0.5px); }
+
+    /* Download buttons (injected from generate_report.py) */
+    .download-links { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+    .download-btn {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: var(--space-sm) var(--space-md);
+      border: 1px solid var(--color-rule);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      text-decoration: none;
+      transition: background var(--dur-micro) var(--ease-out);
+    }
+    .download-btn:hover { background: var(--color-paper-3); }
+    .download-btn:focus-visible { outline: 1px solid var(--color-focus); outline-offset: 1px; }
+    .download-btn .kind {
+      font-size: 9px;
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--color-muted);
+    }
+    .download-btn .label { font-size: var(--text-sm); }
+
+    /* Footer */
+    footer {
+      margin-top: var(--space-md);
+      padding: var(--space-sm) var(--space-lg);
+      border-top: 1px solid var(--color-rule);
+      color: var(--color-muted);
+      font-size: 10px;
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition-duration: 150ms !important; }
+    }
+    @media (max-width: 720px) {
+      .workbench { padding: var(--space-sm); }
+      .bar-row { grid-template-columns: 70px 1fr auto; font-size: 10px; }
+    }
+  </style>
+</head>
+
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="workbench-header">
+    <div class="brand">
+      <img class="brand-logo" src="{{AGENCY_LOGO}}" alt="{{AGENCY_LOGO_INITIAL}}" />
+      <div>
+        <h1>{{REPORT_TITLE}}</h1>
+        <p class="muted">{{AGENCY_KICKER}} · {{AGENCY_NAME}} · {{REPORT_SUBTITLE}}</p>
       </div>
-      <div class="p-6">
-        <div class="bg-[#2A2A2A] rounded-xl p-4 relative overflow-hidden">
-          <div class="sidebar-text text-xs text-gray-400 font-medium mb-1">{{AGENCY_KICKER}}
-          </div>
-          <div class="sidebar-text text-sm font-semibold text-white mb-2">{{REPORT_SUBTITLE}}
-          </div><a href="#download"
-            aria-label="Jump to download section"
-            class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-brand-500 text-[#1C1C1C] hover:bg-brand-600 transition-colors mt-2"><i
-              class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>
-        </div>
-      </div>
-    </aside>
-    <!-- Main Content -->
-    <main id="main-content" tabindex="-1" class="flex-1 flex flex-col h-screen overflow-y-auto">
-      <!-- Header -->
-      <header id="header"
-        class="bg-white dark:bg-dark-surface sticky top-0 z-10 px-8 py-5 flex items-center justify-between border-b border-gray-100 dark:border-dark-border shadow-sm dark:shadow-none">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-            {{REPORT_TITLE}}</h1>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Comprehensive
-            SEO analysis and recommendations</p>
-        </div>
-        <div class="flex items-center gap-4">
-          <button id="themeToggle"
-            type="button"
-            aria-label="Toggle dark mode"
-            aria-pressed="false"
-            class="w-10 h-10 rounded-full bg-gray-100 dark:bg-dark-bg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-border transition-colors">
-            <i class="fa-solid fa-sun dark:hidden" aria-hidden="true"></i>
-            <i class="fa-solid fa-moon hidden dark:inline-block" aria-hidden="true"></i>
-          </button>
-        </div>
-      </header>
-      <div class="p-8 space-y-8 max-w-[1600px] mx-auto w-full">
-        <!-- KPIs Section -->
-        <section id="overview" aria-labelledby="overview-heading"
-          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <h2 id="overview-heading" class="sr-only">Audit Overview</h2>
-          <!-- SEO Score Card -->
-          <div
-            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-            <div class="flex justify-between items-start mb-4">
-              <div>
-                <h3
-                  class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Overall SEO Score</h3>
-                <div
-                  class="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                  {{SCORE_VALUE}}</div>
-              </div>
-              <div aria-hidden="true"
-                class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                <i class="fa-solid fa-trophy"></i></div>
+    </div>
+    <div class="header-actions">
+      <button id="theme-toggle" class="export-btn" type="button" aria-label="Toggle dark mode" aria-pressed="false">Dark</button>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1">
+    <div class="workbench">
+      <!-- Rail: summary readout + visualizations + contents -->
+      <aside class="rail" aria-label="Audit summary and navigation">
+        <section class="panel" id="summary" aria-labelledby="summary-label">
+          <h2 class="panel-label" id="summary-label">Audit Summary</h2>
+          <div class="summary-grid">
+            <div class="summary-item score">
+              <div class="summary-label">Overall Score</div>
+              <div class="summary-value">{{SCORE_VALUE}} / 100</div>
             </div>
-            <div
-              class="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-md w-fit">
-              <i aria-hidden="true"
-                class="fa-solid fa-arrow-up text-xs"></i><span>{{SCORE_RATING}}</span>
+            <div class="summary-item">
+              <div class="summary-label">Rating</div>
+              <div class="summary-value">{{SCORE_RATING}}</div>
             </div>
-          </div><!-- Audited URL -->
-          <div
-            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-            <div class="flex justify-between items-start mb-4">
-              <div class="flex-1">
-                <h3
-                  class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Audited URL</h3>
-                <div
-                  class="text-lg font-semibold text-gray-900 dark:text-white mt-1 truncate max-w-[180px]">
-                  {{AUDIT_URL}}</div>
-              </div>
-              <div aria-hidden="true"
-                class="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                <i class="fa-solid fa-globe"></i></div>
+            <div class="summary-item">
+              <div class="summary-label">Total Issues</div>
+              <div class="summary-value">{{TOTAL_ISSUES}}</div>
             </div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">Domain: <span
-                class="font-medium text-gray-900 dark:text-white">{{AUDIT_DOMAIN}}</span>
+            <div class="summary-item">
+              <div class="summary-label">Critical / Warning / Info</div>
+              <div class="summary-value">{{CRITICAL_COUNT}} / {{WARNING_COUNT}} / {{INFO_COUNT}}</div>
             </div>
-          </div><!-- Audit Date -->
-          <div
-            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-            <div class="flex justify-between items-start mb-4">
-              <div>
-                <h3
-                  class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Audit Date</h3>
-                <div
-                  class="text-lg font-semibold text-gray-900 dark:text-white mt-1">
-                  {{AUDIT_DATE}}</div>
-              </div>
-              <div aria-hidden="true"
-                class="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
-                <i class="fa-regular fa-calendar"></i></div>
+            <div class="summary-item">
+              <div class="summary-label">Passing Checks</div>
+              <div class="summary-value">{{PASS_COUNT}}</div>
             </div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">Platform:
-              <span
-                class="font-medium text-gray-900 dark:text-white">{{ENV_PLATFORM}}</span>
+            <div class="summary-item">
+              <div class="summary-label">Audited URL</div>
+              <div class="summary-value">{{AUDIT_URL}}</div>
             </div>
-          </div><!-- Issue Summary -->
-          <div
-            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-            <div class="flex justify-between items-start mb-4">
-              <div>
-                <h3
-                  class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Total Issues</h3>
-                <div
-                  class="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                  {{TOTAL_ISSUES}}</div>
-              </div>
-              <div aria-hidden="true"
-                class="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600 dark:text-red-400">
-                <i class="fa-solid fa-bug"></i></div>
+            <div class="summary-item">
+              <div class="summary-label">Domain</div>
+              <div class="summary-value">{{AUDIT_DOMAIN}}</div>
             </div>
-            <div
-              class="inline-flex items-center gap-1.5 text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2.5 py-1 rounded-md w-fit">
-              <i aria-hidden="true" class="fa-solid fa-arrow-down text-xs"></i><span>Needs
-                Attention</span></div>
-          </div>
-        </section><!-- Scoring & Issue Distribution -->
-        <section id="scoring" aria-labelledby="scoring-heading" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Category Breakdown Chart -->
-          <div
-            class="lg:col-span-2 bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-            <div class="flex items-center justify-between mb-6">
-              <div>
-                <h2 id="scoring-heading" class="text-lg font-bold text-gray-900 dark:text-white">
-                  Category Breakdown</h2>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Each
-                  category scored 0-100</p>
-              </div>
+            <div class="summary-item">
+              <div class="summary-label">Audit Date</div>
+              <div class="summary-value">{{AUDIT_DATE}}</div>
             </div>
-            <div id="categoryChart" role="img" aria-label="Category score breakdown chart" class="h-[320px] w-full"></div>
-          </div><!-- Issue Status Breakdown -->
-          <div
-            class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-lg font-bold text-gray-900 dark:text-white">Issue
-                Status</h2>
-            </div>
-            <div class="space-y-4">
-              <div
-                class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg transition-colors">
-                <div class="flex items-center gap-3">
-                  <div aria-hidden="true" class="w-3 h-3 rounded-full bg-red-500"></div><span
-                    class="font-medium text-gray-700 dark:text-gray-200">Critical</span>
-                </div><span
-                  class="font-bold text-gray-900 dark:text-white text-lg">{{CRITICAL_COUNT}}</span>
-              </div>
-              <div
-                class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg transition-colors">
-                <div class="flex items-center gap-3">
-                  <div aria-hidden="true" class="w-3 h-3 rounded-full bg-yellow-500"></div><span
-                    class="font-medium text-gray-700 dark:text-gray-200">Warning</span>
-                </div><span
-                  class="font-bold text-gray-900 dark:text-white text-lg">{{WARNING_COUNT}}</span>
-              </div>
-              <div
-                class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg transition-colors">
-                <div class="flex items-center gap-3">
-                  <div aria-hidden="true" class="w-3 h-3 rounded-full bg-blue-500"></div><span
-                    class="font-medium text-gray-700 dark:text-gray-200">Info</span>
-                </div><span
-                  class="font-bold text-gray-900 dark:text-white text-lg">{{INFO_COUNT}}</span>
-              </div>
-              <div
-                class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg transition-colors">
-                <div class="flex items-center gap-3">
-                  <div aria-hidden="true" class="w-3 h-3 rounded-full bg-green-500"></div><span
-                    class="font-medium text-gray-700 dark:text-gray-200">Pass</span>
-                </div><span
-                  class="font-bold text-gray-900 dark:text-white text-lg">{{PASS_COUNT}}</span>
-              </div>
+            <div class="summary-item">
+              <div class="summary-label">Platform</div>
+              <div class="summary-value">{{ENV_PLATFORM}}</div>
             </div>
           </div>
-        </section><!-- Category Cards -->
-        <section id="category-cards"
-          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {{CATEGORY_CARDS}}
-        </section><!-- Task Dashboard -->
-        <section id="tasks"
-          class="bg-white dark:bg-dark-surface rounded-2xl shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border overflow-hidden">
-          <div class="p-6 border-b border-gray-100 dark:border-dark-border">
-            <h2 class="text-lg font-bold text-gray-900 dark:text-white">
-              Prioritized Task Dashboard</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {{TASKS_NOTE}}</p>
+        </section>
+
+        <section class="panel" id="scores" aria-labelledby="scores-label">
+          <h2 class="panel-label" id="scores-label">Category Scores</h2>
+          <div id="category-chart" class="chart-grid"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="contents-label">
+          <h2 class="panel-label" id="contents-label">Contents</h2>
+          <nav class="toc" aria-label="Sections">
+            <a href="#categories">Category Breakdown</a>
+            <a href="#tasks">Prioritized Tasks</a>
+            <a href="#findings">Detailed Findings</a>
+            <a href="#downloads">Downloads</a>
+          </nav>
+        </section>
+      </aside>
+
+      <!-- Canvas: the work surface -->
+      <div class="canvas">
+        <section class="panel" id="categories" aria-labelledby="categories-label">
+          <h2 class="panel-label" id="categories-label">Category Breakdown</h2>
+          <div class="category-cards">
+            {{CATEGORY_CARDS}}
           </div>
-          <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Prioritized task dashboard table (scrollable)">
-            <table class="w-full text-left border-collapse">
+        </section>
+
+        <section class="panel" id="tasks" aria-labelledby="tasks-label">
+          <div class="panel-toolbar">
+            <h2 class="panel-label" id="tasks-label">Prioritized Tasks</h2>
+            <input id="task-filter" class="filter-input" type="search" placeholder="Filter tasks (any value)..." aria-label="Filter task rows">
+            <button id="task-csv" class="export-btn" type="button">CSV</button>
+          </div>
+          <p class="note">{{TASKS_NOTE}}</p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="Prioritized task dashboard (scrollable)">
+            <table id="task-table">
               <caption class="sr-only">Prioritized SEO remediation tasks by category, owner, and timeline</caption>
               <thead>
-                <tr
-                  class="bg-gray-50 dark:bg-dark-bg text-xs uppercase tracking-wider text-gray-600 dark:text-gray-400 border-b border-gray-100 dark:border-dark-border">
-                  <th scope="col" class="px-6 py-4 font-semibold">ID</th>
-                  <th scope="col" class="px-6 py-4 font-semibold">Priority</th>
-                  <th scope="col" class="px-6 py-4 font-semibold">Category</th>
-                  <th scope="col" class="px-6 py-4 font-semibold">Finding</th>
-                  <th scope="col" class="px-6 py-4 font-semibold">Owner</th>
-                  <th scope="col" class="px-6 py-4 font-semibold">Timeline</th>
-                  <th scope="col" class="px-6 py-4 font-semibold">Effort</th>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Finding</th>
+                  <th scope="col">Owner</th>
+                  <th scope="col">Timeline</th>
+                  <th scope="col">Effort</th>
                 </tr>
               </thead>
-              <tbody
-                class="text-sm divide-y divide-gray-100 dark:divide-dark-border">
-                  {{TASK_ROWS}}
+              <tbody>
+                {{TASK_ROWS}}
               </tbody>
             </table>
           </div>
-          <div
-            class="p-4 border-t border-gray-100 dark:border-dark-border flex items-center justify-between">
-            <span class="text-sm text-gray-500 dark:text-gray-400">{{TASK_COUNT}} entries</span></div>
-        </section><!-- Detailed Findings Placeholder -->
-        <section id="detail"
-          class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-          <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4">
-            Detailed Findings</h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Each section
-            below expands to show the underlying evidence collected by the audit
-            scripts.</p>
-          <div class="space-y-3">
+          <div class="panel-foot muted">{{TASK_COUNT}} entries</div>
+        </section>
+
+        <section class="panel" id="findings" aria-labelledby="findings-label">
+          <h2 class="panel-label" id="findings-label">Detailed Findings</h2>
+          <p class="note">Each section expands to show the underlying evidence collected by the audit scripts.</p>
+          <div class="findings">
             {{DETAILED_SECTIONS}}
           </div>
-        </section><!-- Download Section -->
-        <section id="download"
-          class="bg-gradient-to-r from-brand-500 to-brand-600 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between text-white shadow-lg">
-          <div class="mb-6 md:mb-0 max-w-2xl">
-            <h2 class="text-2xl font-bold mb-2">Download the Report Set</h2>
-            <p class="text-white/90 font-medium">{{DOWNLOADS_NOTE}}</p>
-          </div>
-          <div class="flex flex-wrap gap-4">
+        </section>
+
+        <section class="panel" id="downloads" aria-labelledby="downloads-label">
+          <h2 class="panel-label" id="downloads-label">Downloads</h2>
+          <p class="note">{{DOWNLOADS_NOTE}}</p>
+          <div class="download-links">
             {{DOWNLOAD_LINKS}}
           </div>
-        </section><!-- Footer -->
-        <footer
-          class="pt-8 pb-4 text-center text-sm text-gray-600 dark:text-gray-300 border-t border-gray-100 dark:border-dark-border">
-          {{FOOTER_TEXT}}
-        </footer>
+        </section>
       </div>
-    </main>
-    <script>
-      // Sidebar Toggle Logic
-      const sidebar = document.getElementById('sidebar');
-      const sidebarToggle = document.getElementById('sidebarToggle');
-      const sidebarTexts = document.querySelectorAll('.sidebar-text');
-      const menuLabel = document.getElementById('menuLabel');
-      let isCollapsed = false;
+    </div>
 
-      if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', () => {
-          isCollapsed = !isCollapsed;
-          const icon = sidebarToggle.querySelector('i');
+    <footer>{{FOOTER_TEXT}}</footer>
+  </main>
 
-          if (isCollapsed) {
-            sidebar.style.width = '80px';
-            if (icon) { icon.classList.remove('fa-chevron-left'); icon.classList.add('fa-chevron-right'); }
-            sidebarToggle.setAttribute('aria-expanded', 'false');
-            sidebarTexts.forEach(text => text.style.opacity = '0');
-            if (menuLabel) menuLabel.style.opacity = '0';
-            setTimeout(() => {
-              sidebarTexts.forEach(text => text.style.display = 'none');
-              if (menuLabel) menuLabel.style.display = 'none';
-            }, 150);
-          } else {
-            sidebar.style.width = '280px';
-            if (icon) { icon.classList.remove('fa-chevron-right'); icon.classList.add('fa-chevron-left'); }
-            sidebarToggle.setAttribute('aria-expanded', 'true');
-            sidebarTexts.forEach(text => text.style.display = 'block');
-            if (menuLabel) menuLabel.style.display = 'block';
-            setTimeout(() => {
-              sidebarTexts.forEach(text => text.style.opacity = '1');
-              if (menuLabel) menuLabel.style.opacity = '1';
-            }, 50);
-          }
+  <script>
+    // Theme toggle — system preference by default; .light/.dark force; choice persisted.
+    (function () {
+      const root = document.documentElement;
+      const btn = document.getElementById('theme-toggle');
+      const prefersDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = () => root.classList.contains('dark') || (!root.classList.contains('light') && prefersDark());
+      function syncLabel() {
+        if (!btn) return;
+        const dark = isDark();
+        btn.textContent = dark ? 'Light' : 'Dark';
+        btn.setAttribute('aria-pressed', String(dark));
+      }
+      syncLabel();
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const next = isDark() ? 'light' : 'dark';
+          root.classList.remove('light', 'dark');
+          root.classList.add(next);
+          try { localStorage.setItem('theme', next); } catch (e) {}
+          syncLabel();
         });
       }
+    })();
 
-      // Theme Toggle Logic
-      const themeToggleBtn = document.getElementById('themeToggle');
-      const htmlElement = document.documentElement;
-
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window
-          .matchMedia('(prefers-color-scheme: dark)').matches))
-      {
-        htmlElement.classList.add('dark');
+    // Category bar chart — dependency-free, rendered from the injected JSON payload.
+    (function () {
+      let payload = null;
+      try { payload = {{CATEGORY_CHART_DATA}}; } catch (e) { payload = null; }
+      const el = document.getElementById('category-chart');
+      if (!el) return;
+      const labels = (payload && payload.labels) || [];
+      const values = (payload && payload.values) || [];
+      if (!labels.length) {
+        el.innerHTML = '<div class="url-label">No category data available.</div>';
+        return;
       }
-      else
-      {
-        htmlElement.classList.remove('dark');
-      }
-
-      themeToggleBtn.addEventListener('click', () =>
-      {
-        htmlElement.classList.toggle('dark');
-        if (htmlElement.classList.contains('dark'))
-        {
-          localStorage.theme = 'dark';
-          themeToggleBtn.setAttribute('aria-pressed', 'true');
-        }
-        else
-        {
-          localStorage.theme = 'light';
-          themeToggleBtn.setAttribute('aria-pressed', 'false');
-        }
-        setTimeout(initializeCharts, 100);
+      const frag = document.createDocumentFragment();
+      labels.forEach((label, i) => {
+        const v = Number(values[i]) || 0;
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        const name = document.createElement('div');
+        name.className = 'url-label';
+        name.textContent = label;
+        name.title = label;
+        const track = document.createElement('div');
+        track.className = 'bar-track';
+        const fill = document.createElement('div');
+        fill.className = 'bar-fill';
+        fill.style.width = Math.max(Math.min(v, 100), 1) + '%';
+        track.appendChild(fill);
+        const val = document.createElement('div');
+        val.textContent = v;
+        row.append(name, track, val);
+        frag.appendChild(row);
       });
+      el.appendChild(frag);
+    })();
 
-      const categoryChartPayload = {{CATEGORY_CHART_DATA}};
-
-      function initializeCharts()
-      {
-        if (!window.Plotly || !document.getElementById('categoryChart')) return;
-        const isDark = document.documentElement.classList.contains('dark');
-        const textColor = isDark ? '#E5E7EB' : '#374151';
-        const gridColor = isDark ? '#334155' : '#F3F4F6';
-        const bgColor = 'transparent';
-
-        const categoryData = [
-        {
-          type: 'bar',
-          x: categoryChartPayload.labels,
-          y: categoryChartPayload.values,
-          marker:
-          {
-            color: categoryChartPayload.colors
-          },
-          width: 0.6
-        }];
-
-        const categoryLayout = {
-          paper_bgcolor: bgColor,
-          plot_bgcolor: bgColor,
-          margin:
-          {
-            t: 20,
-            r: 20,
-            b: 60,
-            l: 50
-          },
-          xaxis:
-          {
-            tickfont:
-            {
-              color: textColor,
-              family: 'Inter, sans-serif'
-            },
-            showgrid: false,
-            fixedrange: true
-          },
-          yaxis:
-          {
-            tickfont:
-            {
-              color: textColor,
-              family: 'Inter, sans-serif'
-            },
-            gridcolor: gridColor,
-            zerolinecolor: gridColor,
-            fixedrange: true,
-            range: [0, 100]
-          },
-          showlegend: false,
-          bargap: 0.3
-        };
-
-        const config = {
-          responsive: true,
-          displayModeBar: false
-        };
-
-        try
-        {
-          Plotly.newPlot('categoryChart', categoryData, categoryLayout, config);
-        }
-        catch (e)
-        {
-          console.error("Chart rendering failed", e);
-        }
+    // Task table — filter + CSV export.
+    (function () {
+      const table = document.getElementById('task-table');
+      if (!table) return;
+      const filter = document.getElementById('task-filter');
+      if (filter) {
+        filter.addEventListener('input', () => {
+          const q = filter.value.toLowerCase().trim();
+          table.querySelectorAll('tbody tr').forEach((tr) => {
+            tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+          });
+        });
       }
-
-      window.addEventListener('load', initializeCharts);
-    </script>
-  </body>
+      const csvBtn = document.getElementById('task-csv');
+      if (csvBtn) {
+        csvBtn.addEventListener('click', () => {
+          const rows = Array.from(table.querySelectorAll('tr')).filter((tr) => tr.style.display !== 'none');
+          const csv = rows.map((tr) =>
+            Array.from(tr.querySelectorAll('th,td')).map((c) => {
+              const t = c.textContent.trim().replace(/"/g, '""');
+              return /[",\n]/.test(t) ? '"' + t + '"' : t;
+            }).join(',')
+          ).join('\n');
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'seo-tasks.csv';
+          a.click();
+          URL.revokeObjectURL(a.href);
+        });
+      }
+    })();
+  </script>
+</body>
 
 </html>

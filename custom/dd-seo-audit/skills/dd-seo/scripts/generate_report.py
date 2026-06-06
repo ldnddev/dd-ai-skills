@@ -712,11 +712,12 @@ def _score_rating(score: int) -> str:
 
 
 def _ring_color(score: int) -> str:
+    # Palette-aligned with templates/dashboard.html (Quiet design tokens, dark-mode aware).
     if score >= 80:
-        return "#1f5f33"
+        return "var(--color-good)"
     if score >= 50:
-        return "#7a4a00"
-    return "#8a1a1a"
+        return "var(--color-warn)"
+    return "var(--color-bad)"
 
 
 def _render_category_cards(scores: dict) -> str:
@@ -758,26 +759,19 @@ def _render_category_cards(scores: dict) -> str:
 
 
 def _render_category_chart_data(scores: dict) -> str:
-    cats = scores.get("categories") or {
-        k: v for k, v in scores.items()
-        if k != "overall" and isinstance(v, (int, float))
-    }
-    label_map = {
-        "technical": "Technical",
-        "content": "Content",
-        "onpage": "On-page",
-        "schema": "Schema",
-        "performance": "Performance",
-        "images": "Images",
-        "geo": "GEO",
-    }
-    palette = ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#14B8A6", "#F43F5E"]
-    ordered_keys = ["technical", "content", "onpage", "schema", "performance", "images", "geo"]
-    keys = [k for k in ordered_keys if k in cats] or list(cats.keys())
+    # Use the real audit category keys (same source as the ring cards) so every
+    # scored category shows in the rail's CSS bar chart. The template renders bars
+    # in mono ink, so no color palette is needed here.
+    cats = scores.get("categories", {}) or {}
+    keys = [
+        k for k in CATEGORY_LABELS
+        if k != "environment" and cats.get(k) is not None
+    ]
+    if not keys:
+        keys = [k for k, v in cats.items() if isinstance(v, (int, float))]
     payload = {
-        "labels": [label_map.get(k, k.title()) for k in keys],
+        "labels": [CATEGORY_LABELS.get(k, k.title()) for k in keys],
         "values": [int(cats[k]) for k in keys],
-        "colors": [palette[i % len(palette)] for i in range(len(keys))],
     }
     return json.dumps(payload)
 
@@ -789,15 +783,9 @@ def _render_download_links(artifacts: list) -> str:
         label = html_lib.escape(art["label"])
         filename = html_lib.escape(art["filename"])
         chunks.append(
-            f'<a href="{filename}" download '
-            f'class="inline-flex items-center gap-3 px-5 py-3 bg-[#1C1C1C] text-white rounded-xl font-semibold '
-            f'hover:bg-black focus:outline-none focus-visible:ring-[3px] focus-visible:ring-white '
-            f'focus-visible:ring-offset-2 focus-visible:ring-offset-brand-600 transition-colors shadow-md">'
-            f'<i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i>'
-            f'<span class="flex flex-col items-start leading-tight">'
-            f'<span class="text-xs uppercase tracking-wider opacity-80">{kind}</span>'
-            f'<span class="text-sm">{label}</span>'
-            f'</span>'
+            f'<a href="{filename}" download class="download-btn">'
+            f'<span class="kind">{kind}</span>'
+            f'<span class="label">{label}</span>'
             f'</a>'
         )
     return "\n".join(chunks)
