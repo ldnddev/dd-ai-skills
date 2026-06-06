@@ -1,300 +1,707 @@
-<html lang="en" class="light">
+<!doctype html>
+<html lang="en">
 
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{REPORT_TITLE}}</title>
-    <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon/favicon-96x96.png" />
-    <link rel="shortcut icon" href="assets/favicon/favicon.ico" />
-    <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
-    <link rel="manifest" href="assets/favicon/site.webmanifest" />
-    <meta name="theme-color" content="#ffffff" />
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{REPORT_TITLE}}</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon/favicon-96x96.png" />
+  <link rel="shortcut icon" href="assets/favicon/favicon.ico" />
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="assets/favicon/site.webmanifest" />
+  <meta name="theme-color" content="#ffffff" />
+  <script>try { var t = localStorage.getItem('theme'); if (t === 'dark' || t === 'light') document.documentElement.classList.add(t); } catch (e) {}</script>
+  <style>
+    /* Hallmark · dd-vreg-audit dashboard — Quiet Workbench
+     * Locked design system: see design.md (genre modern-minimal, macro Workbench, theme Quiet).
+     * tokens: OKLCH only, 4pt scale, 2+1 typography (sans + mono label). Self-contained, no CDNs.
+     * Shares its DNA with dd-site-compare, dd-seo, and dd-a11y for a consistent dashboard family.
+     */
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
-      rel="stylesheet">
-    <link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: { sans: ['Inter', 'sans-serif'] },
-            colors: {
-              brand: { 500: '#84D814', 600: '#73BC11', 900: '#1C1C1C' },
-              dark:  { bg: '#121212', surface: '#1E1E1E', border: '#333333' }
-            },
-            boxShadow: {
-              'soft':      '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-              'dark-soft': '0 4px 20px -2px rgba(0, 0, 0, 0.2)'
-            }
-          }
-        }
+    :root {
+      color-scheme: light dark;
+
+      --color-paper:    oklch(100% 0 0);
+      --color-paper-2:  oklch(98.5% 0 0);
+      --color-paper-3:  oklch(96% 0 0);
+      --color-rule:     oklch(91% 0 0);
+      --color-rule-2:   oklch(82% 0 0);
+      --color-muted:    oklch(50% 0 0);   /* AA: ≥4.5:1 small text on all paper surfaces */
+      --color-neutral:  oklch(40% 0 0);
+      --color-ink-2:    oklch(28% 0 0);
+      --color-ink:      oklch(15% 0 0);
+      --color-accent:   oklch(15% 0 0);
+      --color-focus:    oklch(60% 0.10 240);
+
+      --color-good:     oklch(42% 0.09 145);
+      --color-warn:     oklch(52% 0.09 85);
+      --color-bad:      oklch(48% 0.09 25);
+      --color-best:     oklch(45% 0.06 210);
+
+      --font-display: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-body:    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-label:   ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --font-mono:    ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+      --display-weight: 500;
+      --body-weight: 400;
+      --label-weight: 500;
+
+      --tracking-tight: -0.015em;
+      --tracking-label: 0.04em;
+
+      --space-3xs: 0.125rem;
+      --space-2xs: 0.25rem;
+      --space-xs:  0.5rem;
+      --space-sm:  0.75rem;
+      --space-md:  1rem;
+      --space-lg:  1.5rem;
+      --space-xl:  2rem;
+      --space-2xl: 3rem;
+
+      --text-xs:  0.6875rem;
+      --text-sm:  0.75rem;
+      --text-md:  0.8125rem;
+      --text-lg:  0.9375rem;
+      --text-xl:  1.0625rem;
+      --text-2xl: 1.25rem;
+      --text-value: clamp(1.125rem, 1.8vw, 1.375rem);
+
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+
+      --radius-card: 0;
+      --radius-pill: 999px;
+      --radius-input: 6px;
+      --rule-card: 1px;
+      --shadow-card: none;
+
+      /* Aliases — consumed by HTML fragments injected from run_visual_regression.js */
+      --muted:         var(--color-muted);
+      --text-muted:    var(--color-muted);
+      --line:          var(--color-rule);
+      --ui-font:       var(--font-label);
+    }
+
+    :root.dark {
+      --color-paper:   oklch(14% 0 0);
+      --color-paper-2: oklch(18% 0 0);
+      --color-paper-3: oklch(22% 0 0);
+      --color-rule:    oklch(30% 0 0);
+      --color-rule-2:  oklch(40% 0 0);
+      --color-muted:   oklch(62% 0 0);
+      --color-neutral: oklch(72% 0 0);
+      --color-ink-2:   oklch(82% 0 0);
+      --color-ink:     oklch(94% 0 0);
+      --color-accent:  oklch(94% 0 0);
+      --color-focus:   oklch(70% 0.10 240);
+      --color-good:    oklch(55% 0.09 145);
+      --color-warn:    oklch(62% 0.09 85);
+      --color-bad:     oklch(58% 0.09 25);
+      --color-best:    oklch(60% 0.06 210);
+      --body-weight:   350;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not(.light) {
+        --color-paper:   oklch(14% 0 0);
+        --color-paper-2: oklch(18% 0 0);
+        --color-paper-3: oklch(22% 0 0);
+        --color-rule:    oklch(30% 0 0);
+        --color-rule-2:  oklch(40% 0 0);
+        --color-muted:   oklch(62% 0 0);
+        --color-neutral: oklch(72% 0 0);
+        --color-ink-2:   oklch(82% 0 0);
+        --color-ink:     oklch(94% 0 0);
+        --color-accent:  oklch(94% 0 0);
+        --color-focus:   oklch(70% 0.10 240);
+        --color-good:    oklch(55% 0.09 145);
+        --color-warn:    oklch(62% 0.09 85);
+        --color-bad:     oklch(58% 0.09 25);
+        --color-best:    oklch(60% 0.06 210);
+        --body-weight:   350;
       }
-    </script>
-    <style>
-      body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
-      ::-webkit-scrollbar { width: 6px; height: 6px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
-      .dark ::-webkit-scrollbar-thumb { background: #374151; }
-    </style>
-  </head>
+    }
 
-  <body
-    class="bg-[#F3F4F6] dark:bg-dark-bg text-gray-900 dark:text-gray-100 min-h-screen flex transition-colors duration-200">
-    <a href="#main-content"
-      class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-brand-500 focus:text-[#1C1C1C] focus:px-4 focus:py-2 focus:rounded-md focus:font-semibold focus:shadow-lg">Skip
-      to main content</a>
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      background: var(--color-paper);
+      color: var(--color-ink);
+      font-family: var(--font-body);
+      font-weight: var(--body-weight);
+      line-height: 1.5;
+      font-size: var(--text-md);
+    }
 
-    <!-- Sidebar -->
-    <aside id="sidebar"
-      aria-label="Report navigation"
-      class="bg-[#1C1C1C] text-white flex-shrink-0 flex flex-col h-screen sticky top-0 border-r border-[#2A2A2A]"
-      style="width: 280px;">
-      <div class="p-6 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div aria-hidden="true"
-            class="w-12 h-12 rounded-full bg-brand-500 flex items-center justify-center text-[#1C1C1C] font-bold text-sm">
-            <img src="{{AGENCY_LOGO}}" style="padding: 4px;" alt="" />
-          </div>
-          <div class="font-semibold text-lg sidebar-text">{{AGENCY_NAME}}</div>
-        </div>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--color-rule-2); border-radius: 999px; }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+    .skip-link {
+      position: absolute; left: var(--space-sm); top: -48px;
+      background: var(--color-paper); color: var(--color-ink);
+      border: 1px solid var(--color-rule); padding: var(--space-2xs) var(--space-sm);
+      z-index: 1000; font-family: var(--font-label); font-size: var(--text-xs);
+      transition: top var(--dur-micro) var(--ease-out);
+    }
+    .skip-link:focus { top: var(--space-sm); }
+
+    /* Header */
+    .workbench-header {
+      border-bottom: var(--rule-card) solid var(--color-rule);
+      padding: var(--space-sm) var(--space-lg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; }
+    .brand-logo { width: 30px; height: 30px; object-fit: contain; flex: none; }
+    .workbench-header h1 {
+      margin: 0;
+      font-size: var(--text-lg);
+      font-weight: var(--display-weight);
+      letter-spacing: var(--tracking-tight);
+      font-family: var(--font-display);
+    }
+    .workbench-header .muted {
+      margin: 2px 0 0;
+      color: var(--color-muted);
+      font-size: var(--text-xs);
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+    }
+
+    /* Workbench layout: rail + canvas */
+    .workbench {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: var(--space-xl);
+      padding: var(--space-lg);
+      align-items: start;
+    }
+    @media (max-width: 920px) {
+      .workbench { grid-template-columns: 1fr; }
+      .rail { position: static; }
+    }
+    .rail {
+      position: sticky;
+      top: var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
+    }
+    .canvas {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
+      min-width: 0;
+    }
+
+    /* Panels */
+    .panel {
+      background: var(--color-paper-2);
+      border: var(--rule-card) solid var(--color-rule);
+      border-radius: var(--radius-card);
+      padding: var(--space-md);
+    }
+    .panel-label {
+      font-size: var(--text-xs);
+      font-family: var(--font-label);
+      font-weight: var(--label-weight);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin: 0 0 var(--space-sm);
+      user-select: none;
+    }
+    .panel-toolbar {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-sm);
+      flex-wrap: wrap;
+    }
+    .panel-toolbar .panel-label { margin: 0; }
+    .panel-foot {
+      margin-top: var(--space-sm);
+      padding-top: var(--space-sm);
+      border-top: 1px solid var(--color-rule);
+      font-size: var(--text-xs);
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+    }
+    .note {
+      margin: 0 0 var(--space-sm);
+      color: var(--color-muted);
+      font-size: var(--text-sm);
+    }
+    .muted { color: var(--color-muted); }
+
+    /* Summary rail — vertical readout */
+    .summary-grid { display: flex; flex-direction: column; gap: var(--space-xs); }
+    .summary-item {
+      padding: var(--space-2xs) 0;
+      border-bottom: 1px solid var(--color-rule);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3xs);
+    }
+    .summary-item:last-child { border-bottom: 0; }
+    .summary-label {
+      font-size: var(--text-xs);
+      color: var(--color-muted);
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+    }
+    .summary-value {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      color: var(--color-ink);
+      overflow-wrap: anywhere;
+    }
+    .summary-item.score .summary-value { font-size: var(--text-value); }
+
+    /* Table of contents nav (rail) */
+    .toc { display: flex; flex-direction: column; }
+    .toc a {
+      font-family: var(--font-label);
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-label);
+      color: var(--color-muted);
+      text-decoration: none;
+      padding: var(--space-2xs) 0;
+      border-bottom: 1px solid var(--color-rule);
+      transition: color var(--dur-micro) var(--ease-out);
+    }
+    .toc a:last-child { border-bottom: 0; }
+    .toc a:hover { color: var(--color-ink); }
+    .toc a:focus-visible { outline: 1px solid var(--color-focus); outline-offset: 2px; }
+
+    /* CSS bar charts ("monitors") */
+    .chart-grid { display: flex; flex-direction: column; gap: var(--space-xs); }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 78px 1fr auto;
+      gap: var(--space-xs);
+      align-items: center;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+    .bar-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--color-muted);
+      font-family: var(--font-label);
+      font-size: 10px;
+    }
+    .bar-track {
+      height: 6px;
+      background: var(--color-paper-3);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--color-rule);
+    }
+    .bar-fill {
+      height: 100%;
+      min-width: 3px;
+      background: var(--color-ink);
+      transition: width var(--dur-short) var(--ease-out);
+    }
+    .bar-fill[data-sev="critical"] { background: var(--color-bad); }
+    .bar-fill[data-sev="warning"]  { background: var(--color-warn); }
+    .bar-fill[data-sev="pass"]     { background: var(--color-good); }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+    }
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--color-rule);
+      text-align: left;
+      vertical-align: top;
+      font-weight: normal;
+    }
+    th {
+      font-size: 10px;
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--color-muted);
+      white-space: nowrap;
+    }
+    td { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+    tr:last-child td { border-bottom: 0; }
+    #diffs-table { min-width: 720px; }
+    #diffs-table td:nth-child(1) { font-family: var(--font-mono); font-size: 11px; color: var(--color-neutral); }
+    #diffs-table td:nth-child(2) { text-transform: capitalize; }
+
+    /* Status pills — Quiet restraint + semantic tint (Critical / Warning / Pass) */
+    .priority-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 18px;
+      padding: 1px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 10px;
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+      font-weight: 500;
+      white-space: nowrap;
+      border: 1px solid var(--color-rule);
+      color: var(--color-muted);
+      background: var(--color-paper-3);
+    }
+    .priority-pill[data-severity="critical"] { color: var(--color-bad);  border-color: var(--color-bad);  background: color-mix(in oklch, var(--color-bad) 8%, var(--color-paper)); }
+    .priority-pill[data-severity="warning"]  { color: var(--color-warn); border-color: var(--color-warn); background: color-mix(in oklch, var(--color-warn) 8%, var(--color-paper)); }
+    .priority-pill[data-severity="pass"]     { color: var(--color-good); border-color: var(--color-good); background: color-mix(in oklch, var(--color-good) 8%, var(--color-paper)); }
+
+    /* Per-page previews (injected from run_visual_regression.js) */
+    .preview-pages { display: flex; flex-direction: column; gap: var(--space-lg); }
+    .preview-page > h3 {
+      font-size: var(--text-md);
+      font-weight: var(--display-weight);
+      font-family: var(--font-display);
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    .preview-vp {
+      border: 1px solid var(--color-rule);
+      background: var(--color-paper);
+      padding: var(--space-md);
+      margin-top: var(--space-sm);
+    }
+    .preview-vp-cap {
+      font-family: var(--font-label);
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-label);
+      color: var(--color-ink);
+      margin-bottom: var(--space-sm);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    .preview-vp-cap .vp-name { text-transform: capitalize; }
+    .preview-vp-cap .meta { color: var(--color-muted); font-weight: normal; }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-sm);
+    }
+    .shot { display: block; border: 1px solid var(--color-rule); overflow: hidden; }
+    .shot img { width: 100%; height: auto; display: block; }
+    .shot:focus-visible { outline: 1px solid var(--color-focus); outline-offset: 1px; }
+    .shot--empty {
+      border: 1px dashed var(--color-rule-2);
+      padding: var(--space-lg);
+      text-align: center;
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Controls — Quiet CTA voice */
+    .filter-input {
+      flex: 1 1 200px;
+      min-width: 140px;
+      padding: 4px 8px;
+      border: 1px solid var(--color-rule);
+      border-radius: var(--radius-input);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+    }
+    .filter-input:focus {
+      outline: 1px solid var(--color-focus);
+      outline-offset: -1px;
+      border-color: var(--color-focus);
+    }
+    .export-btn {
+      font-size: 10px;
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--color-rule);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      cursor: pointer;
+      transition: background var(--dur-micro) var(--ease-out);
+    }
+    .export-btn:hover { background: var(--color-paper-3); }
+    .export-btn:focus-visible { outline: 1px solid var(--color-focus); outline-offset: 1px; }
+    .export-btn:active { background: var(--color-paper-2); transform: translateY(0.5px); }
+
+    /* Download buttons (injected from run_visual_regression.js) */
+    .download-links { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+    .download-btn {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: var(--space-sm) var(--space-md);
+      border: 1px solid var(--color-rule);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      text-decoration: none;
+      transition: background var(--dur-micro) var(--ease-out);
+    }
+    .download-btn:hover { background: var(--color-paper-3); }
+    .download-btn:focus-visible { outline: 1px solid var(--color-focus); outline-offset: 1px; }
+    .download-btn .kind {
+      font-size: 9px;
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--color-muted);
+    }
+    .download-btn .label { font-size: var(--text-sm); }
+
+    /* Footer */
+    footer {
+      margin-top: var(--space-md);
+      padding: var(--space-sm) var(--space-lg);
+      border-top: 1px solid var(--color-rule);
+      color: var(--color-muted);
+      font-size: 10px;
+      font-family: var(--font-label);
+      letter-spacing: var(--tracking-label);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition-duration: 150ms !important; }
+    }
+    @media (max-width: 720px) {
+      .workbench { padding: var(--space-sm); }
+      .bar-row { grid-template-columns: 70px 1fr auto; font-size: 10px; }
+    }
+  </style>
+</head>
+
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="workbench-header">
+    <div class="brand">
+      <img class="brand-logo" src="{{AGENCY_LOGO}}" alt="" />
+      <div>
+        <h1>{{REPORT_TITLE}}</h1>
+        <p class="muted">{{AGENCY_KICKER}} · {{AGENCY_NAME}} · {{REPORT_SUBTITLE}}</p>
       </div>
-      <div class="px-6 mb-6"></div>
-      <div class="px-4 flex-1 overflow-y-auto">
-        <div id="menuLabel"
-          class="text-xs font-semibold text-gray-400 mb-3 px-4 uppercase tracking-wider whitespace-nowrap">
-          Main Menu</div>
-        <nav aria-label="Main" class="space-y-1"><a href="#overview"
-            aria-current="page"
-            aria-label="Audit Overview"
-            class="flex items-center gap-3 px-4 py-3 bg-brand-500 text-[#1C1C1C] rounded-full font-medium transition-colors"><i
-              class="fa-solid fa-chart-pie w-5 text-center flex-shrink-0" aria-hidden="true"></i>
-            <span class="sidebar-text whitespace-nowrap">Overview</span>
-          </a><a href="#diffs"
-            aria-label="Diffs"
-            class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors"><i
-              class="fa-solid fa-triangle-exclamation w-5 text-center flex-shrink-0" aria-hidden="true"></i>
-            <span class="sidebar-text whitespace-nowrap">Diffs</span>
-          </a><a href="#pages"
-            aria-label="Per-Page Previews"
-            class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors"><i
-              class="fa-solid fa-images w-5 text-center flex-shrink-0" aria-hidden="true"></i>
-            <span class="sidebar-text whitespace-nowrap">Per-Page Previews</span>
-          </a><a href="#download"
-            aria-label="Downloads"
-            class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-full font-medium transition-colors"><i
-              class="fa-solid fa-download w-5 text-center flex-shrink-0" aria-hidden="true"></i>
-            <span class="sidebar-text whitespace-nowrap">Downloads</span>
-          </a></nav>
-      </div>
-      <div class="p-6">
-        <div class="bg-[#2A2A2A] rounded-xl p-4 relative overflow-hidden">
-          <div class="sidebar-text text-xs text-gray-400 font-medium mb-1">{{AGENCY_KICKER}}</div>
-          <div class="sidebar-text text-sm font-semibold text-white mb-2">{{REPORT_SUBTITLE}}</div>
-          <a href="#download"
-            aria-label="Jump to downloads"
-            class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-brand-500 text-[#1C1C1C] hover:bg-brand-600 transition-colors mt-2"><i
-              class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>
-        </div>
-      </div>
-    </aside>
+    </div>
+    <div class="header-actions">
+      <button id="theme-toggle" class="export-btn" type="button" aria-label="Toggle dark mode" aria-pressed="false">Dark</button>
+    </div>
+  </header>
 
-    <!-- Main -->
-    <main id="main-content" tabindex="-1" class="flex-1 flex flex-col h-screen overflow-y-auto">
-      <header
-        class="bg-white dark:bg-dark-surface sticky top-0 z-10 px-8 py-5 flex items-center justify-between border-b border-gray-100 dark:border-dark-border shadow-sm dark:shadow-none">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{REPORT_TITLE}}</h1>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Pixel-diff comparison between two environments</p>
-        </div>
-        <div class="flex items-center gap-4">
-          <button id="themeToggle"
-            type="button"
-            aria-label="Toggle dark mode"
-            aria-pressed="false"
-            class="w-10 h-10 rounded-full bg-gray-100 dark:bg-dark-bg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-border transition-colors">
-            <i class="fa-solid fa-sun dark:hidden" aria-hidden="true"></i>
-            <i class="fa-solid fa-moon hidden dark:inline-block" aria-hidden="true"></i>
-          </button>
-        </div>
-      </header>
-
-      <div class="p-8 space-y-8 max-w-[1600px] mx-auto w-full">
-
-        <!-- Overview KPIs -->
-        <section id="overview" aria-labelledby="overview-heading"
-          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <h2 id="overview-heading" class="sr-only">Audit Overview</h2>
-
-          <div class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-            <div class="flex justify-between items-start mb-4">
-              <div>
-                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Project</h3>
-                <div class="text-lg font-semibold text-gray-900 dark:text-white mt-1 break-words">{{PROJECT_NAME}}</div>
-              </div>
-              <div aria-hidden="true"
-                class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                <i class="fa-solid fa-folder-open"></i></div>
+  <main id="main-content" tabindex="-1">
+    <div class="workbench">
+      <!-- Rail: summary readout + severity monitor + contents -->
+      <aside class="rail" aria-label="Report summary and navigation">
+        <section class="panel" id="overview" aria-labelledby="summary-label">
+          <h2 class="panel-label" id="summary-label">Report Summary</h2>
+          <div class="summary-grid">
+            <div class="summary-item score">
+              <div class="summary-label">Total Diffs</div>
+              <div class="summary-value">{{TOTAL_DIFFS}}</div>
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Test: <span class="font-medium text-gray-900 dark:text-white break-all">{{TEST_URL}}</span></div>
-            <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Prod: <span class="font-medium text-gray-900 dark:text-white break-all">{{PROD_URL}}</span></div>
-          </div>
-
-          <div class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-            <div class="flex justify-between items-start mb-4">
-              <div>
-                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Coverage</h3>
-                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">{{PAGE_VIEWPORT_LABEL}}</div>
-              </div>
-              <div aria-hidden="true"
-                class="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                <i class="fa-solid fa-table-cells"></i></div>
+            <div class="summary-item">
+              <div class="summary-label">Critical / Warning / Pass</div>
+              <div class="summary-value">{{CRITICAL_COUNT}} / {{WARNING_COUNT}} / {{PASS_COUNT}}</div>
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Desktop 1440×1200 · Mobile 390×844</div>
-          </div>
-
-          <div class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-            <div class="flex justify-between items-start mb-4">
-              <div>
-                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Audit Date</h3>
-                <div class="text-lg font-semibold text-gray-900 dark:text-white mt-1">{{AUDIT_DATE}}</div>
-              </div>
-              <div aria-hidden="true"
-                class="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
-                <i class="fa-regular fa-calendar"></i></div>
+            <div class="summary-item">
+              <div class="summary-label">Project</div>
+              <div class="summary-value">{{PROJECT_NAME}}</div>
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Generated by: <span class="font-medium text-gray-900 dark:text-white">{{AGENCY_NAME}}</span></div>
-          </div>
-
-          <div class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-            <div class="flex justify-between items-start mb-4">
-              <div>
-                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Diffs</h3>
-                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">{{TOTAL_DIFFS}}</div>
-              </div>
-              <div aria-hidden="true"
-                class="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600 dark:text-red-400">
-                <i class="fa-solid fa-bug"></i></div>
+            <div class="summary-item">
+              <div class="summary-label">Coverage</div>
+              <div class="summary-value">{{PAGE_VIEWPORT_LABEL}}</div>
             </div>
-            <div class="inline-flex items-center gap-1.5 text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2.5 py-1 rounded-md w-fit">
-              <i aria-hidden="true" class="fa-solid fa-arrow-down text-xs"></i><span>Needs Attention</span></div>
+            <div class="summary-item">
+              <div class="summary-label">Test URL</div>
+              <div class="summary-value">{{TEST_URL}}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Prod URL</div>
+              <div class="summary-value">{{PROD_URL}}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Audit Date</div>
+              <div class="summary-value">{{AUDIT_DATE}}</div>
+            </div>
           </div>
         </section>
 
-        <!-- Diffs -->
-        <section id="diffs" aria-labelledby="diffs-heading" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          <div class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-            <div class="flex items-center justify-between mb-6">
-              <h2 id="diffs-heading" class="text-lg font-bold text-gray-900 dark:text-white">Severity Breakdown</h2>
+        <section class="panel" id="diffs" aria-labelledby="severity-label">
+          <h2 class="panel-label" id="severity-label">Severity Breakdown</h2>
+          <div id="severity-chart" class="chart-grid">
+            <div class="bar-row" data-count="{{CRITICAL_COUNT}}">
+              <div class="bar-label">Critical</div>
+              <div class="bar-track"><div class="bar-fill" data-sev="critical"></div></div>
+              <div>{{CRITICAL_COUNT}}</div>
             </div>
-            <div class="space-y-4">
-              <div class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg transition-colors">
-                <div class="flex items-center gap-3">
-                  <div aria-hidden="true" class="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span class="font-medium text-gray-700 dark:text-gray-200">Critical</span>
-                </div>
-                <span class="font-bold text-gray-900 dark:text-white text-lg">{{CRITICAL_COUNT}}</span>
-              </div>
-              <div class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg transition-colors">
-                <div class="flex items-center gap-3">
-                  <div aria-hidden="true" class="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <span class="font-medium text-gray-700 dark:text-gray-200">Warning</span>
-                </div>
-                <span class="font-bold text-gray-900 dark:text-white text-lg">{{WARNING_COUNT}}</span>
-              </div>
-              <div class="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg transition-colors">
-                <div class="flex items-center gap-3">
-                  <div aria-hidden="true" class="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span class="font-medium text-gray-700 dark:text-gray-200">Pass</span>
-                </div>
-                <span class="font-bold text-gray-900 dark:text-white text-lg">{{PASS_COUNT}}</span>
-              </div>
+            <div class="bar-row" data-count="{{WARNING_COUNT}}">
+              <div class="bar-label">Warning</div>
+              <div class="bar-track"><div class="bar-fill" data-sev="warning"></div></div>
+              <div>{{WARNING_COUNT}}</div>
             </div>
-          </div>
-
-          <div class="lg:col-span-2 bg-white dark:bg-dark-surface rounded-2xl shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border overflow-hidden">
-            <div class="p-6 border-b border-gray-100 dark:border-dark-border">
-              <h2 class="text-lg font-bold text-gray-900 dark:text-white">All Diffs</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{TASKS_NOTE}}</p>
-            </div>
-            <div class="overflow-x-auto" tabindex="0" role="region" aria-label="All diffs table (scrollable)">
-              <table class="w-full text-left border-collapse">
-                <caption class="sr-only">Visual diffs by page, viewport, severity, and percent changed</caption>
-                <thead>
-                  <tr class="bg-gray-50 dark:bg-dark-bg text-xs uppercase tracking-wider text-gray-600 dark:text-gray-400 border-b border-gray-100 dark:border-dark-border">
-                    <th scope="col" class="px-6 py-4 font-semibold">Page</th>
-                    <th scope="col" class="px-6 py-4 font-semibold">Viewport</th>
-                    <th scope="col" class="px-6 py-4 font-semibold">Severity</th>
-                    <th scope="col" class="px-6 py-4 font-semibold">Body %</th>
-                    <th scope="col" class="px-6 py-4 font-semibold">Top-quarter %</th>
-                    <th scope="col" class="px-6 py-4 font-semibold">Note</th>
-                  </tr>
-                </thead>
-                <tbody class="text-sm divide-y divide-gray-100 dark:divide-dark-border">
-                  {{SEVERITY_ROWS}}
-                </tbody>
-              </table>
-            </div>
-            <div class="p-4 border-t border-gray-100 dark:border-dark-border flex items-center justify-between">
-              <span class="text-sm text-gray-600 dark:text-gray-400">{{TASK_COUNT}} entries</span>
+            <div class="bar-row" data-count="{{PASS_COUNT}}">
+              <div class="bar-label">Pass</div>
+              <div class="bar-track"><div class="bar-fill" data-sev="pass"></div></div>
+              <div>{{PASS_COUNT}}</div>
             </div>
           </div>
         </section>
 
-        <!-- Per-Page Previews -->
-        <section id="pages" aria-labelledby="pages-heading"
-          class="bg-white dark:bg-dark-surface rounded-2xl p-6 shadow-soft dark:shadow-dark-soft border border-gray-100 dark:border-dark-border">
-          <div class="flex items-center justify-between mb-6">
-            <h2 id="pages-heading" class="text-lg font-bold text-gray-900 dark:text-white">Per-Page Previews</h2>
+        <section class="panel" aria-labelledby="contents-label">
+          <h2 class="panel-label" id="contents-label">Contents</h2>
+          <nav class="toc" aria-label="Sections">
+            <a href="#alldiffs">All Diffs</a>
+            <a href="#pages">Per-Page Previews</a>
+            <a href="#downloads">Downloads</a>
+          </nav>
+        </section>
+      </aside>
+
+      <!-- Canvas: the work surface -->
+      <div class="canvas">
+        <section class="panel" id="alldiffs" aria-labelledby="alldiffs-label">
+          <div class="panel-toolbar">
+            <h2 class="panel-label" id="alldiffs-label">All Diffs</h2>
+            <input id="diff-filter" class="filter-input" type="search" placeholder="Filter diffs (any value)..." aria-label="Filter diff rows">
+            <button id="diff-csv" class="export-btn" type="button">CSV</button>
           </div>
-          <div class="space-y-8">
+          <p class="note">{{TASKS_NOTE}}</p>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="All diffs table (scrollable)">
+            <table id="diffs-table">
+              <caption class="sr-only">Visual diffs by page, viewport, severity, and percent changed</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Page</th>
+                  <th scope="col">Viewport</th>
+                  <th scope="col">Severity</th>
+                  <th scope="col">Body %</th>
+                  <th scope="col">Top-quarter %</th>
+                  <th scope="col">Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{SEVERITY_ROWS}}
+              </tbody>
+            </table>
+          </div>
+          <div class="panel-foot muted">{{TASK_COUNT}} entries</div>
+        </section>
+
+        <section class="panel" id="pages" aria-labelledby="pages-label">
+          <h2 class="panel-label" id="pages-label">Per-Page Previews</h2>
+          <div class="preview-pages">
             {{PAGE_PREVIEW_SECTIONS}}
           </div>
         </section>
 
-        <!-- Downloads -->
-        <section id="download"
-          class="bg-gradient-to-r from-brand-500 to-brand-600 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between text-white shadow-lg">
-          <div class="mb-6 md:mb-0 max-w-2xl">
-            <h2 class="text-2xl font-bold mb-2">Download the report set</h2>
-            <p class="text-[#1C1C1C] font-medium">{{DOWNLOADS_NOTE}}</p>
-          </div>
-          <div class="flex flex-wrap gap-4">
+        <section class="panel" id="downloads" aria-labelledby="downloads-label">
+          <h2 class="panel-label" id="downloads-label">Downloads</h2>
+          <p class="note">{{DOWNLOADS_NOTE}}</p>
+          <div class="download-links">
             {{DOWNLOAD_LINKS}}
           </div>
         </section>
-
-        <footer class="pt-8 pb-4 text-center text-sm text-gray-600 dark:text-gray-300 border-t border-gray-100 dark:border-dark-border">
-          {{FOOTER_TEXT}}
-        </footer>
       </div>
-    </main>
+    </div>
 
-    <script>
-      // Theme toggle
-      const themeToggleBtn = document.getElementById('themeToggle');
-      const htmlElement = document.documentElement;
+    <footer>{{FOOTER_TEXT}}</footer>
+  </main>
 
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        htmlElement.classList.add('dark');
-        themeToggleBtn.setAttribute('aria-pressed', 'true');
-      } else {
-        htmlElement.classList.remove('dark');
+  <script>
+    // Theme toggle — system preference by default; .light/.dark force; choice persisted.
+    (function () {
+      const root = document.documentElement;
+      const btn = document.getElementById('theme-toggle');
+      const prefersDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = () => root.classList.contains('dark') || (!root.classList.contains('light') && prefersDark());
+      function syncLabel() {
+        if (!btn) return;
+        const dark = isDark();
+        btn.textContent = dark ? 'Light' : 'Dark';
+        btn.setAttribute('aria-pressed', String(dark));
       }
+      syncLabel();
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const next = isDark() ? 'light' : 'dark';
+          root.classList.remove('light', 'dark');
+          root.classList.add(next);
+          try { localStorage.setItem('theme', next); } catch (e) {}
+          syncLabel();
+        });
+      }
+    })();
 
-      themeToggleBtn.addEventListener('click', () => {
-        htmlElement.classList.toggle('dark');
-        const isDark = htmlElement.classList.contains('dark');
-        localStorage.theme = isDark ? 'dark' : 'light';
-        themeToggleBtn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+    // Severity breakdown — proportional bar widths from the counts (text remains the source of truth).
+    (function () {
+      const rows = Array.from(document.querySelectorAll('#severity-chart .bar-row'));
+      if (!rows.length) return;
+      const counts = rows.map((r) => Number(r.getAttribute('data-count')) || 0);
+      const max = Math.max(1, ...counts);
+      rows.forEach((r, i) => {
+        const fill = r.querySelector('.bar-fill');
+        if (fill) fill.style.width = (counts[i] / max * 100) + '%';
       });
-    </script>
-  </body>
+    })();
+
+    // Diffs table — filter + CSV export.
+    (function () {
+      const table = document.getElementById('diffs-table');
+      if (!table) return;
+      const filter = document.getElementById('diff-filter');
+      if (filter) {
+        filter.addEventListener('input', () => {
+          const q = filter.value.toLowerCase().trim();
+          table.querySelectorAll('tbody tr').forEach((tr) => {
+            tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+          });
+        });
+      }
+      const csvBtn = document.getElementById('diff-csv');
+      if (csvBtn) {
+        csvBtn.addEventListener('click', () => {
+          const rows = Array.from(table.querySelectorAll('tr')).filter((tr) => tr.style.display !== 'none');
+          const csv = rows.map((tr) =>
+            Array.from(tr.querySelectorAll('th,td')).map((c) => {
+              const t = c.textContent.trim().replace(/"/g, '""');
+              return /[",\n]/.test(t) ? '"' + t + '"' : t;
+            }).join(',')
+          ).join('\n');
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'vreg-diffs.csv';
+          a.click();
+          URL.revokeObjectURL(a.href);
+        });
+      }
+    })();
+  </script>
+</body>
 
 </html>

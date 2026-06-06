@@ -288,17 +288,13 @@ function severityCounts(results) {
 // --- Section renderers ------------------------------------------------------
 
 function severityPill(label) {
-  const cls = {
-    Critical: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
-    Warning:  'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-    Pass:     'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
-  }[label] || 'bg-gray-100 text-gray-700';
-  return `<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold ${cls}">${htmlEscape(label)}</span>`;
+  const sev = String(label).toLowerCase();
+  return `<span class="priority-pill" data-severity="${htmlEscape(sev)}">${htmlEscape(label)}</span>`;
 }
 
 function renderSeverityRows(results) {
   if (!results.length) {
-    return `<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No diffs captured.</td></tr>`;
+    return `<tr><td colspan="6" class="muted">No diffs captured.</td></tr>`;
   }
   const sorted = [...results].sort((a, b) =>
     severitySortKey(a.severity.label) - severitySortKey(b.severity.label)
@@ -309,12 +305,12 @@ function renderSeverityRows(results) {
     const body = (r.region_metrics.body_ratio * 100).toFixed(2) + '%';
     const top  = (r.region_metrics.top_ratio * 100).toFixed(2) + '%';
     return `<tr>
-      <td class="px-6 py-4 text-gray-900 dark:text-white break-all">${htmlEscape(r.page)}</td>
-      <td class="px-6 py-4 text-gray-700 dark:text-gray-300 capitalize">${htmlEscape(r.viewport)}</td>
-      <td class="px-6 py-4">${severityPill(r.severity.label)}</td>
-      <td class="px-6 py-4 text-gray-700 dark:text-gray-300">${body}</td>
-      <td class="px-6 py-4 text-gray-700 dark:text-gray-300">${top}</td>
-      <td class="px-6 py-4 text-gray-600 dark:text-gray-400">${htmlEscape(r.severity.note || '')}</td>
+      <td>${htmlEscape(r.page)}</td>
+      <td>${htmlEscape(r.viewport)}</td>
+      <td>${severityPill(r.severity.label)}</td>
+      <td>${body}</td>
+      <td>${top}</td>
+      <td>${htmlEscape(r.severity.note || '')}</td>
     </tr>`;
   }).join('\n');
 }
@@ -343,21 +339,21 @@ function renderPagePreviewSections(results) {
         : `Diff screenshot, ${bodyPctStr}% body changed, ${topPctStr}% top-quarter changed, ${r.viewport} ${page}`;
 
       const diffCell = r.changed_pixels === 0
-        ? `<div class="rounded-lg border border-dashed border-gray-200 dark:border-dark-border p-6 text-center text-sm text-gray-500 dark:text-gray-400">No visual changes</div>`
-        : `<a href="${htmlEscape(diffRel)}" class="block rounded-lg overflow-hidden border border-gray-100 dark:border-dark-border focus:outline-none focus-visible:ring-[3px] focus-visible:ring-brand-500" aria-label="Open full-size ${diffAlt}"><img src="${htmlEscape(diffRel)}" alt="${htmlEscape(diffAlt)}" loading="lazy" class="w-full h-auto block"></a>`;
+        ? `<div class="shot--empty">No visual changes</div>`
+        : `<a href="${htmlEscape(diffRel)}" class="shot" aria-label="Open full-size ${diffAlt}"><img src="${htmlEscape(diffRel)}" alt="${htmlEscape(diffAlt)}" loading="lazy"></a>`;
 
-      return `<figure class="rounded-xl border border-gray-100 dark:border-dark-border p-4 mt-4" aria-labelledby="vp-${pageSlug(page)}-${r.viewport}">
-        <figcaption id="vp-${pageSlug(page)}-${r.viewport}" class="font-semibold text-gray-900 dark:text-white capitalize mb-3">${htmlEscape(r.viewport)} — ${vpDims} · ${severityPill(r.severity.label)} <span class="ml-2 text-xs font-normal text-gray-600 dark:text-gray-400">Body ${bodyPctStr}% · Top ${topPctStr}%${r.severity.note ? ' · ' + htmlEscape(r.severity.note) : ''}</span></figcaption>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a href="${htmlEscape(testRel)}" class="block rounded-lg overflow-hidden border border-gray-100 dark:border-dark-border focus:outline-none focus-visible:ring-[3px] focus-visible:ring-brand-500" aria-label="Open full-size ${r.viewport} test screenshot for ${page}"><img src="${htmlEscape(testRel)}" alt="${htmlEscape(r.viewport + ' test screenshot for ' + page)}" loading="lazy" class="w-full h-auto block"></a>
-          <a href="${htmlEscape(prodRel)}" class="block rounded-lg overflow-hidden border border-gray-100 dark:border-dark-border focus:outline-none focus-visible:ring-[3px] focus-visible:ring-brand-500" aria-label="Open full-size ${r.viewport} prod screenshot for ${page}"><img src="${htmlEscape(prodRel)}" alt="${htmlEscape(r.viewport + ' prod screenshot for ' + page)}" loading="lazy" class="w-full h-auto block"></a>
+      return `<figure class="preview-vp" aria-labelledby="vp-${pageSlug(page)}-${r.viewport}">
+        <figcaption id="vp-${pageSlug(page)}-${r.viewport}" class="preview-vp-cap"><span class="vp-name">${htmlEscape(r.viewport)}</span> · ${vpDims} · ${severityPill(r.severity.label)} <span class="meta">Body ${bodyPctStr}% · Top ${topPctStr}%${r.severity.note ? ' · ' + htmlEscape(r.severity.note) : ''}</span></figcaption>
+        <div class="preview-grid">
+          <a href="${htmlEscape(testRel)}" class="shot" aria-label="Open full-size ${r.viewport} test screenshot for ${page}"><img src="${htmlEscape(testRel)}" alt="${htmlEscape(r.viewport + ' test screenshot for ' + page)}" loading="lazy"></a>
+          <a href="${htmlEscape(prodRel)}" class="shot" aria-label="Open full-size ${r.viewport} prod screenshot for ${page}"><img src="${htmlEscape(prodRel)}" alt="${htmlEscape(r.viewport + ' prod screenshot for ' + page)}" loading="lazy"></a>
           ${diffCell}
         </div>
       </figure>`;
     }).join('\n');
 
-    articles.push(`<article aria-labelledby="page-${pageSlug(page)}">
-      <h3 id="page-${pageSlug(page)}" class="text-base font-bold text-gray-900 dark:text-white break-all">${htmlEscape(page)}</h3>
+    articles.push(`<article class="preview-page" aria-labelledby="page-${pageSlug(page)}">
+      <h3 id="page-${pageSlug(page)}">${htmlEscape(page)}</h3>
       ${viewportRows}
     </article>`);
   }
@@ -365,12 +361,9 @@ function renderPagePreviewSections(results) {
 }
 
 function renderDownloadLinks(artifacts) {
-  return artifacts.map(({ kind, label, filename }) => `<a href="${htmlEscape(filename)}" download class="inline-flex items-center gap-3 px-5 py-3 bg-[#1C1C1C] text-white rounded-xl font-semibold hover:bg-black focus:outline-none focus-visible:ring-[3px] focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-600 transition-colors shadow-md">
-    <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i>
-    <span class="flex flex-col items-start leading-tight">
-      <span class="text-xs uppercase tracking-wider opacity-80">${htmlEscape(kind)}</span>
-      <span class="text-sm">${htmlEscape(label)}</span>
-    </span>
+  return artifacts.map(({ kind, label, filename }) => `<a href="${htmlEscape(filename)}" download class="download-btn">
+    <span class="kind">${htmlEscape(kind)}</span>
+    <span class="label">${htmlEscape(label)}</span>
   </a>`).join('\n');
 }
 
