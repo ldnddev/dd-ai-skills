@@ -43,6 +43,13 @@
       "description": "Visual regression reporter — desktop/mobile screenshot diffing across two sites with Markdown + HTML reports.",
       "category": "qa",
       "tags": ["visual-regression", "screenshots", "playwright", "pixelmatch"]
+    },
+    {
+      "name": "dd-site-compare",
+      "source": "./custom/dd-site-compare-audit",
+      "description": "Compare 2+ websites into a self-contained HTML + JSON dashboard — 31 homepage signals, parallel fetching, zero runtime deps.",
+      "category": "qa",
+      "tags": ["compare", "competitive-analysis", "dashboard", "audit", "websites"]
     }
   ]
 }
