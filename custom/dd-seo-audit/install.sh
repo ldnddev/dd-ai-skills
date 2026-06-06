@@ -15,6 +15,9 @@ mkdir -p "$TARGET_DIR"
 cp "$SCRIPT_DIR/skills/dd-seo/SKILL.md" "$TARGET_DIR/SKILL.md"
 cp -R "$SCRIPT_DIR/skills/dd-seo/resources" "$TARGET_DIR/resources"
 cp -R "$SCRIPT_DIR/skills/dd-seo/scripts" "$TARGET_DIR/scripts"
+# Dashboard template + assets live at the plugin root. generate_report.py resolves
+# templates relative to scripts/ and also accepts them copied into the skill dir here.
+cp -R "$SCRIPT_DIR/templates" "$TARGET_DIR/templates"
 [ -f "$SCRIPT_DIR/CLAUDE.md" ] && cp "$SCRIPT_DIR/CLAUDE.md" "$TARGET_DIR/CLAUDE.md"
 [ -f "$SCRIPT_DIR/README.md" ] && cp "$SCRIPT_DIR/README.md" "$TARGET_DIR/README.md"
 cp "$SCRIPT_DIR/install.sh" "$TARGET_DIR/install.sh"

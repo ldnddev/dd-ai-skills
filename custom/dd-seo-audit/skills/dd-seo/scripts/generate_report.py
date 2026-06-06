@@ -28,7 +28,30 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import urllib.request
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-TEMPLATES_DIR = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "..", "..", "templates"))
+
+
+def _resolve_templates_dir() -> str:
+    """Locate templates/ across install layouts.
+
+    - Plugin / repo: <root>/skills/dd-seo/scripts -> <root>/templates
+    - Codex / standalone: install.sh copies templates/ into the skill dir,
+      so it sits one level up from scripts/.
+    Returns the first candidate that actually contains dashboard.html;
+    falls back to the plugin/repo location for a clear "file not found".
+    """
+    candidates = [
+        os.path.join(SCRIPT_DIR, "..", "..", "..", "templates"),  # plugin / repo
+        os.path.join(SCRIPT_DIR, "..", "templates"),              # copied into skill dir (Codex)
+        os.path.join(SCRIPT_DIR, "..", "..", "templates"),
+    ]
+    for c in candidates:
+        c = os.path.normpath(c)
+        if os.path.isfile(os.path.join(c, "dashboard.html")):
+            return c
+    return os.path.normpath(candidates[0])
+
+
+TEMPLATES_DIR = _resolve_templates_dir()
 
 
 def run_script(script_name: str, args: list, timeout: int = 120) -> dict:
