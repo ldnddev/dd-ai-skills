@@ -50,7 +50,7 @@ cat <<EOF
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
-    "permissionDecisionReason": "BLOCKED: Cannot edit UI file '${BASENAME}' without accessibility review. You MUST first delegate to accessibility-agents:accessibility-lead using the Agent tool (subagent_type: 'accessibility-agents:accessibility-lead'). After the accessibility review completes, this file will be unblocked automatically."
+    "permissionDecisionReason": "BLOCKED: Cannot edit UI file '${BASENAME}' without accessibility review. You MUST first delegate to dd-a11y:accessibility-lead using the Agent tool (subagent_type: 'dd-a11y:accessibility-lead'). After the accessibility review completes, this file will be unblocked automatically."
   }
 }
 EOF

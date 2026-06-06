@@ -63,8 +63,8 @@ do not wait for the user to ask. If there is ANY chance the task involves UI,
 delegate to the accessibility-lead FIRST.
 
 REQUIRED ACTIONS:
-1. Use the Agent tool to delegate to accessibility-agents:accessibility-lead
-   (subagent_type: "accessibility-agents:accessibility-lead")
+1. Use the Agent tool to delegate to dd-a11y:accessibility-lead
+   (subagent_type: "dd-a11y:accessibility-lead")
 2. The accessibility-lead will coordinate specialist agents as needed
 3. Do NOT write or edit UI code without accessibility-lead review FIRST
 4. Do NOT skip this step even if you think you can handle it yourself
@@ -75,7 +75,7 @@ This applies to ALL web projects, not just the accessibility-agents repo.
 
 CROSS-TEAM COORDINATION:
 - Swift/iOS code -> swift-agent-team:swift-lead handles Swift
-- HTML/templates/components -> accessibility-agents:accessibility-lead handles web
+- HTML/templates/components -> dd-a11y:accessibility-lead handles web
 - Both leads can run in parallel via separate Agent tool calls.
 HOOK_OUTPUT
 fi

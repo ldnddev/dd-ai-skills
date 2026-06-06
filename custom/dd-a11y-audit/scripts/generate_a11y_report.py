@@ -485,7 +485,7 @@ def build_dashboard(path, results, rows):
             <tr>
               <td>{html.escape(row['task_id'])}</td>
               <td>{html.escape(row['page_url'])}</td>
-              <td><span class="priority-pill">{html.escape(row['priority'])}</span></td>
+              <td><span class="priority-pill" data-severity="{html.escape(row['priority'].lower())}">{html.escape(row['priority'])}</span></td>
               <td>{html.escape(row['issue'])}</td>
               <td>{html.escape(row['owner'])}</td>
               <td>{html.escape(row['timeline'])}</td>
@@ -501,26 +501,25 @@ def build_dashboard(path, results, rows):
         full_page = page.get("screenshots", {}).get("full_page")
         score_val = page.get("metadata", {}).get("score", "n/a")
         image = (
-            f'<a href="{html.escape(full_page)}" class="block mt-4 rounded-lg overflow-hidden border border-gray-100 dark:border-dark-border">'
-            f'<img src="{html.escape(full_page)}" alt="Full-page screenshot of {html.escape(page_url)}" '
-            f'class="w-full h-auto block">'
+            f'<a href="{html.escape(full_page)}" class="page-shot">'
+            f'<img src="{html.escape(full_page)}" alt="Full-page screenshot of {html.escape(page_url)}" loading="lazy">'
             f'</a>'
         ) if full_page else (
-            '<div class="mt-4 rounded-lg border border-dashed border-gray-200 dark:border-dark-border p-6 text-center text-sm text-gray-500 dark:text-gray-400">No screenshot captured</div>'
+            '<div class="page-shot--empty">No screenshot captured</div>'
         )
         page_sections.append(
             f"""
-            <article class="rounded-xl border border-gray-100 dark:border-dark-border p-4">
-              <div class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Audited Page</div>
-              <div class="text-sm font-medium text-gray-900 dark:text-white break-all">{html.escape(page_url)}</div>
-              <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">Score: <span class="font-semibold text-gray-900 dark:text-white">{html.escape(str(score_val))} / 100</span></div>
+            <article class="page-card">
+              <div class="page-card-label">Audited Page</div>
+              <div class="page-card-url">{html.escape(page_url)}</div>
+              <div class="page-card-score">Score: <strong>{html.escape(str(score_val))} / 100</strong></div>
               {image}
             </article>
             """
         )
     if not page_sections:
         page_sections.append(
-            '<div class="col-span-full text-sm text-gray-500 dark:text-gray-400">No page previews available for this audit.</div>'
+            '<div class="note">No page previews available for this audit.</div>'
         )
     html_doc = render_template(
         template_path.read_text(encoding="utf-8"),
