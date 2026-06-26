@@ -14,6 +14,8 @@ import sys
 from typing import Optional
 from urllib.parse import urlparse
 
+import _bootstrap  # noqa: F401  -- adds bundled deps in _vendor/ to sys.path
+
 try:
     import requests
 except ImportError:

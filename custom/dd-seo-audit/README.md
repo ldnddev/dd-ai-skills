@@ -9,13 +9,13 @@ Deterministic, LLM-first SEO audits for websites, blog posts, and GitHub reposit
 /plugin install dd-seo@dd-skills
 ```
 
-Python deps (`requests`, `beautifulsoup4`) are not auto-installed. Run once:
+The core Python deps (`requests`, `beautifulsoup4` and their pure-Python
+dependencies) are **bundled** with the skill under `scripts/_vendor/` and loaded
+automatically — no `pip install` needed. A system-installed copy, if present,
+takes precedence; the bundle only fills the gap. (The DOCX reports use Python's
+standard library, so `python-docx` is not required.)
 
-```bash
-pip3 install --user requests beautifulsoup4
-```
-
-Optional (visual scripts):
+Optional (visual scripts only):
 
 ```bash
 pip3 install --user playwright && python3 -m playwright install chromium
@@ -23,7 +23,9 @@ pip3 install --user playwright && python3 -m playwright install chromium
 
 ## Install — Codex skill
 
-`bash install.sh` from this directory — attempts `pip3 install --user requests beautifulsoup4`. See [root README](../../README.md#codex-install-legacy) for context.
+`bash install.sh` from this directory — mirrors the skill (including the bundled
+`scripts/_vendor/` deps) into `${CODEX_HOME:-~/.codex}/skills/dd-seo`. No pip step
+required. See [root README](../../README.md#codex-install-legacy) for context.
 
 ## Trigger phrases
 

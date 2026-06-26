@@ -16,8 +16,8 @@ When working in this repo, you are usually editing the skill's instructions or t
 No package manager, no Makefile. Scripts are invoked directly.
 
 ```bash
-# Install runtime deps for scripts
-pip install requests beautifulsoup4
+# Core runtime deps (requests, beautifulsoup4) are BUNDLED in scripts/_vendor/ and
+# loaded via scripts/_bootstrap.py — no install needed. A system copy, if present, wins.
 # Visual scripts (capture_screenshot.py, analyze_visual.py) additionally need:
 pip install playwright && playwright install chromium
 
@@ -72,7 +72,8 @@ When `generate_report.py` is invoked, a bundle directory is written: `web/<domai
 ### Script conventions
 
 All scripts:
-- Use Python 3.8+, single-file, no shared utility module **except** `scripts/github_api.py` (imported by every `github_*.py`).
+- Use Python 3.8+, single-file, no shared utility module **except** `scripts/github_api.py` (imported by every `github_*.py`) and `scripts/_bootstrap.py` (imported for its side effect by every script that uses `requests`/`bs4`).
+- Any script importing `requests` or `bs4` must do `import _bootstrap  # noqa: F401` **before** that import. `_bootstrap.py` appends `scripts/_vendor/` (bundled pure-Python copies of requests, beautifulsoup4 + deps) to `sys.path` so the skill runs with no `pip install`. The `_vendor/` tree is committed; keep it free of compiled artifacts (`*.so`/`*.pyd`/`__pycache__`) so it stays cross-platform — regenerate with `pip install --target scripts/_vendor requests beautifulsoup4` then strip those. DOCX is built with stdlib `zipfile`, so do **not** add `python-docx`.
 - Accept `--json` for machine output (consumed by `generate_report.py` and `finding_verifier.py`).
 - Fail open: network/DNS/rate-limit errors must be reported as environment limits, not site issues. The agent must keep going at confidence `Likely` instead of `Confirmed` (see SKILL.md Critical Rule #9).
 - `fetch_page.py` enforces SSRF protection (rejects private/loopback IPs) — preserve this when editing.

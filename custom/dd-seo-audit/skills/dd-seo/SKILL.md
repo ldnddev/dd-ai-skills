@@ -351,17 +351,19 @@ Structure reports as:
 
 ## Dependencies
 
-### Optional Script Dependencies
+### Bundled (no install needed)
 - Python 3.8+
-- `requests` (for network analysis scripts)
-- `beautifulsoup4` (for HTML parsing scripts)
+- `requests` (network analysis scripts) — **bundled** in `scripts/_vendor/`
+- `beautifulsoup4` (HTML parsing scripts) — **bundled** in `scripts/_vendor/`
+
+These pure-Python packages ship with the skill and are added to `sys.path` by
+`scripts/_bootstrap.py`, which each network/HTML script imports before `requests`
+or `bs4`. A system-installed copy, if present, takes precedence. DOCX reports are
+generated with the standard library (`zipfile`), so `python-docx` is not required.
+
+### Optional (visual scripts only)
 - Playwright (for `capture_screenshot.py` and `analyze_visual.py`)
   ```bash
   pip install playwright && playwright install chromium
   ```
   Or if using conda: `conda activate pentest` (if Playwright is pre-installed)
-
-### Install Script Dependencies
-```bash
-pip install requests beautifulsoup4
-```

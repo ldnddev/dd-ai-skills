@@ -18,6 +18,8 @@ import re
 import sys
 import urllib.request
 
+import _bootstrap  # noqa: F401  -- adds bundled deps in _vendor/ to sys.path
+
 try:
     from bs4 import BeautifulSoup
     HAS_BS4 = True

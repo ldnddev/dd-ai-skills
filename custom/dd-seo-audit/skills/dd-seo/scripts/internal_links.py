@@ -17,6 +17,8 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urljoin, urlparse
 
+import _bootstrap  # noqa: F401  -- adds bundled deps in _vendor/ to sys.path
+
 try:
     import requests
 except ImportError:

@@ -28,6 +28,8 @@ import urllib.request
 import urllib.parse
 from collections import Counter
 
+import _bootstrap  # noqa: F401  -- adds bundled deps in _vendor/ to sys.path
+
 try:
     from bs4 import BeautifulSoup
 except ImportError:

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Codex install path for dd-seo. Claude Code users: install via plugin.
 # Mirrors skills/dd-seo/ into ${CODEX_HOME:-~/.codex}/skills/dd-seo.
-# Installs Python deps for the bundled scripts.
+# Core Python deps (requests, beautifulsoup4) are bundled in scripts/_vendor/
+# and copied along with the scripts — no pip step required.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,15 +25,10 @@ cp "$SCRIPT_DIR/install.sh" "$TARGET_DIR/install.sh"
 chmod +x "$TARGET_DIR/install.sh"
 chmod +x "$TARGET_DIR/scripts/"*.py "$TARGET_DIR/scripts/"*.sh 2>/dev/null || true
 
-if command -v pip3 >/dev/null 2>&1; then
-  pip3 install --user --quiet requests beautifulsoup4 || \
-    echo "dd-seo install: pip3 install failed. Install manually: pip3 install --user requests beautifulsoup4" >&2
-else
-  echo "dd-seo install: pip3 not found. Install Python deps manually: pip install requests beautifulsoup4" >&2
-fi
-
 cat <<MSG
 Installed dd-seo skill to: $TARGET_DIR
+
+Core deps (requests, beautifulsoup4) are bundled in scripts/_vendor/ — nothing to install.
 
 Optional (Playwright for visual scripts):
   pip3 install --user playwright && python3 -m playwright install chromium
