@@ -118,6 +118,66 @@ def _empty_result(input_name, kind):
             "rows": [], "insights": {}, "issues": []}
 
 
+# Expected organic CTR by position (percent). Static industry benchmark; no network.
+_CTR_BENCHMARK = {1: 27.0, 2: 15.0, 3: 11.0, 4: 8.0, 5: 7.0,
+                  6: 5.0, 7: 4.0, 8: 3.2, 9: 2.8, 10: 2.5}
+_LOW_CTR_RATIO = 0.5   # actual must be <= half of expected to flag
+
+
+def _expected_ctr(position):
+    p = int(round(position))
+    if p <= 1:
+        return _CTR_BENCHMARK[1]
+    if p in _CTR_BENCHMARK:
+        return _CTR_BENCHMARK[p]
+    return 1.5 if p <= 20 else 0.8
+
+
+def _label(row):
+    return row.get("query") or row.get("page") or "(unknown)"
+
+
+def striking_distance(rows, min_impressions):
+    hits = [r for r in rows
+            if r.get("query") is not None
+            and 10 < r["position"] <= 20
+            and r["impressions"] >= min_impressions]
+    return sorted(hits, key=lambda r: r["impressions"], reverse=True)
+
+
+def low_ctr(rows, min_impressions):
+    hits = []
+    for r in rows:
+        if r.get("query") is None and r.get("page") is None:
+            continue
+        if r["position"] > 20 or r["impressions"] < min_impressions:
+            continue
+        expected = _expected_ctr(r["position"])
+        if r["ctr"] <= expected * _LOW_CTR_RATIO:
+            hits.append(r)
+    return sorted(hits, key=lambda r: r["impressions"], reverse=True)
+
+
+def core_issues(striking, low):
+    issues = []
+    for r in striking[:25]:
+        issues.append({
+            "severity": "High",
+            "finding": f"Striking-distance query '{_label(r)}' at position {r['position']}",
+            "evidence": f"{r['impressions']} impressions, {r['ctr']}% CTR, position {r['position']}",
+            "fix": "Strengthen on-page relevance and internal links for this query to reach page one.",
+        })
+    for r in low[:25]:
+        exp = _expected_ctr(r["position"])
+        issues.append({
+            "severity": "Medium",
+            "finding": f"Low CTR for '{_label(r)}' (pos {r['position']})",
+            "evidence": f"{r['ctr']}% CTR vs ~{exp}% expected, {r['impressions']} impressions",
+            "fix": "Rewrite the title tag and meta description to improve click-through.",
+        })
+    return issues
+
+
 def load_export(data_bytes, kind, input_name):
     """Parse raw bytes of a .zip or .csv GSC export into the base result dict."""
     result = _empty_result(input_name, kind)
