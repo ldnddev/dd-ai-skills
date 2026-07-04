@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Custom Claude Code plugins for design + development workflows.",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "plugins": [
     {
@@ -50,6 +50,20 @@
       "description": "Compare 2+ websites into a self-contained HTML + JSON dashboard — 31 homepage signals, parallel fetching, zero runtime deps.",
       "category": "qa",
       "tags": ["compare", "competitive-analysis", "dashboard", "audit", "websites"]
+    },
+    {
+      "name": "dd-pantheon",
+      "source": "./custom/dd-pantheon",
+      "description": "Update, deploy, and maintain WordPress + Drupal sites on Pantheon — terminus-driven, multidev-aware, Lando local-first, per-site registry.",
+      "category": "devops",
+      "tags": ["pantheon", "terminus", "drupal", "wordpress", "multidev", "lando"]
+    },
+    {
+      "name": "dd-aws",
+      "source": "./custom/dd-aws",
+      "description": "Update, deploy, and maintain WordPress + Drupal sites on AWS (EC2/RDS/CloudFront) — access-aware per-site registry, Bitbucket Pipelines deploys, Lando local-first.",
+      "category": "devops",
+      "tags": ["aws", "ec2", "rds", "ssm", "cloudfront", "drupal", "wordpress"]
     }
   ]
 }
