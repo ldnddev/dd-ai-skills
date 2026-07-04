@@ -253,3 +253,87 @@ def load_export(data_bytes, kind, input_name):
     result["meta"]["rows_parsed"] = len(all_rows)
     result["meta"]["skipped"] = total_skipped
     return result
+
+
+def cannibalization(rows):
+    by_query = {}
+    for r in rows:
+        q, p = r.get("query"), r.get("page")
+        if not q or not p:
+            continue
+        by_query.setdefault(q, {})[p] = {"clicks": r["clicks"], "position": r["position"]}
+    out = []
+    for q, pages in by_query.items():
+        if len(pages) >= 2:
+            out.append({"query": q,
+                        "pages": [{"page": p, **meta} for p, meta in pages.items()]})
+    return sorted(out, key=lambda x: len(x["pages"]), reverse=True)
+
+
+def trends(base):
+    """Comparison exports are not represented in the single-period reports we parse.
+    When absent, record why and return an empty dict (per approved spec)."""
+    if not base["meta"].get("comparison"):
+        base["meta"]["notes"].append("No comparison/time data in export — trends skipped.")
+        return {}
+    return {}
+
+
+def build_result(base, brand_tokens, min_impressions):
+    reports = base.pop("_reports", {})
+    rows = base["rows"]
+    base["meta"]["brand_tokens"] = brand_tokens
+    base["meta"]["min_impressions"] = min_impressions
+
+    sd = striking_distance(rows, min_impressions)
+    lc = low_ctr(rows, min_impressions)
+    base["insights"] = {
+        "striking_distance": sd,
+        "low_ctr": lc,
+        "top_performers": top_performers(reports, brand_tokens),
+        "trends": trends(base),
+        "cannibalization": cannibalization(rows),
+    }
+    base["issues"] = core_issues(sd, lc)
+    return base
+
+
+def _read_input(path):
+    with open(path, "rb") as f:
+        data = f.read()
+    kind = "zip" if path.lower().endswith(".zip") else "csv"
+    return data, kind
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Import a Google Search Console file export")
+    parser.add_argument("path", help="Path to a GSC .zip or .csv export")
+    parser.add_argument("--url", default="", help="Audited URL (for brand-token derivation)")
+    parser.add_argument("--brand", default="", help="Comma-separated brand tokens (override)")
+    parser.add_argument("--min-impressions", type=int, default=MIN_IMPRESSIONS_DEFAULT)
+    parser.add_argument("--json", action="store_true", help="Emit JSON to stdout")
+    args = parser.parse_args()
+
+    try:
+        data_bytes, kind = _read_input(args.path)
+    except OSError as exc:
+        print(json.dumps({"source": "file", "error": str(exc),
+                          "rows": [], "insights": {}, "issues": [],
+                          "meta": {"input": args.path}}))
+        return
+
+    base = load_export(data_bytes, kind, args.path)
+    if "error" in base:
+        base.pop("_reports", None)
+        print(json.dumps(base))
+        return
+
+    brand = [t.strip() for t in args.brand.split(",") if t.strip()]
+    if not brand:
+        brand = brand_tokens_from_url(args.url)
+    result = build_result(base, brand, args.min_impressions)
+    print(json.dumps(result))
+
+
+if __name__ == "__main__":
+    main()
