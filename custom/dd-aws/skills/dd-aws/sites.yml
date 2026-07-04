@@ -1,0 +1,33 @@
+# dd-aws site registry — AWS-hosted sites only.
+# Edit as sites are added. (Pantheon sites belong in the dd-pantheon skill's sites.yml.)
+#
+# access values:
+#   ssh       — direct SSH to EC2
+#   ssm       — AWS SSM Session Manager
+#   pipeline  — changes go through CI/CD only; NO direct server edits
+
+sites:
+  example-drupal-aws:
+    cms: drupal
+    access: pipeline                 # deploys via Bitbucket Pipelines only
+    branch_map:
+      staging: develop
+      production: master
+    repo: git@bitbucket.org:org/example-drupal.git
+    db_ops_access: ssm               # DB/content ops allowed via SSM even though code is pipeline-only
+    instance_id: i-0123456789abcdef0
+    aws_profile: client-profile
+    rds_identifier:                  # per-environment when staging/prod use separate DBs
+      staging: example-drupal-db-stg
+      production: example-drupal-db
+    s3_transfer_bucket: example-deploy-artifacts
+    cloudfront_distribution: E1234567890ABC
+
+  example-wp-aws-ssh:
+    cms: wordpress
+    access: ssh
+    ssh_host: ec2-user@203.0.113.10
+    ssh_key: ~/.ssh/client-key.pem
+    docroot: /var/www/html
+    envs: [staging, production]
+    staging_host: ec2-user@203.0.113.11

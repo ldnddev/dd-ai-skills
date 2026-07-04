@@ -1,0 +1,12 @@
+{
+  "name": "dd-pantheon",
+  "version": "1.0.0",
+  "description": "Update, deploy, and maintain WordPress and Drupal sites hosted on Pantheon — terminus-driven, multidev-aware, with a per-site sites.yml registry and Lando local-first workflow.",
+  "license": "MIT",
+  "author": {
+    "name": "Jared Lyvers",
+    "email": "jared@ldnddev.com"
+  },
+  "keywords": ["pantheon", "terminus", "drupal", "wordpress", "multidev", "lando", "deploy"],
+  "skills": ["./skills/dd-pantheon"]
+}

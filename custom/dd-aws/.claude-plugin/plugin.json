@@ -1,0 +1,12 @@
+{
+  "name": "dd-aws",
+  "version": "1.0.0",
+  "description": "Update, deploy, and maintain WordPress and Drupal sites hosted on AWS (EC2/RDS/CloudFront) — access-aware per-site sites.yml registry, Bitbucket Pipelines deploys, and Lando local-first workflow.",
+  "license": "MIT",
+  "author": {
+    "name": "Jared Lyvers",
+    "email": "jared@ldnddev.com"
+  },
+  "keywords": ["aws", "ec2", "rds", "ssm", "cloudfront", "drupal", "wordpress", "deploy"],
+  "skills": ["./skills/dd-aws"]
+}

@@ -1,0 +1,19 @@
+# dd-pantheon site registry — Pantheon-hosted sites only.
+# Edit as sites are added. (AWS sites belong in the dd-aws skill's sites.yml.)
+
+sites:
+  example-wp-pantheon:
+    cms: wordpress
+    pantheon_site: example-wp        # terminus site name
+    envs: [dev, test, live]
+    multidev_ok: true
+    composer_managed: false          # true → update plugins/core via composer, not wp-cli
+    repo: ssh://codeserver.dev.xxxx@codeserver.dev.xxxx.drush.in:2222/~/repository.git
+
+  example-drupal-pantheon:
+    cms: drupal
+    pantheon_site: example-drupal
+    envs: [dev, test, live]
+    multidev_ok: true
+    composer_managed: true
+    repo: ssh://codeserver.dev.yyyy@codeserver.dev.yyyy.drush.in:2222/~/repository.git
