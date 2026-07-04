@@ -178,6 +178,41 @@ def core_issues(striking, low):
     return issues
 
 
+def brand_tokens_from_url(url):
+    if not url:
+        return []
+    m = re.search(r"https?://([^/]+)", url) or re.search(r"^([^/]+)", url)
+    host = (m.group(1) if m else url).lower()
+    host = host.split(":")[0]
+    if host.startswith("www."):
+        host = host[4:]
+    parts = [p for p in host.split(".") if p]
+    if len(parts) >= 2:
+        return [parts[-2]]          # registrable label; good enough for common TLDs
+    return parts[:1]
+
+
+def top_performers(reports, brand_tokens, top_n=10):
+    queries = reports.get("queries", [])
+    pages = reports.get("pages", [])
+    top_queries = sorted(queries, key=lambda r: r["clicks"], reverse=True)[:top_n]
+    top_pages = sorted(pages, key=lambda r: r["clicks"], reverse=True)[:top_n]
+
+    branded = {}
+    if brand_tokens and queries:
+        toks = [t.lower() for t in brand_tokens if t]
+        b_clicks = sum(r["clicks"] for r in queries
+                       if any(t in (r.get("query") or "").lower() for t in toks))
+        total = sum(r["clicks"] for r in queries)
+        nb_clicks = total - b_clicks
+        branded = {
+            "branded_clicks": b_clicks,
+            "nonbranded_clicks": nb_clicks,
+            "branded_share_pct": round(100 * b_clicks / total, 1) if total else 0.0,
+        }
+    return {"top_queries": top_queries, "top_pages": top_pages, "branded": branded}
+
+
 def load_export(data_bytes, kind, input_name):
     """Parse raw bytes of a .zip or .csv GSC export into the base result dict."""
     result = _empty_result(input_name, kind)
