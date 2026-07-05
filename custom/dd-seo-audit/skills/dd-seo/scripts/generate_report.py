@@ -349,7 +349,8 @@ def render_environment_fixes(fixes: list) -> str:
     return html
 
 
-def collect_data(url: str) -> dict:
+def collect_data(url: str, gsc_path: str = None, brand: str = None,
+                 min_impressions: int = 50) -> dict:
     """Run all analysis scripts and collect results."""
     print(f"🔍 Analyzing {url}...")
     data = {
@@ -392,6 +393,12 @@ def collect_data(url: str) -> dict:
         analyses.append(("onpage", "parse_html.py", [html_path, "--url", url]))
         analyses.append(("readability", "readability.py", [html_path]))
         analyses.append(("article", "article_seo.py", [url]))
+
+    if gsc_path:
+        gsc_args = [gsc_path, "--url", url, "--min-impressions", str(min_impressions)]
+        if brand:
+            gsc_args += ["--brand", brand]
+        analyses.append(("gsc", "gsc_import.py", gsc_args))
 
     for name, script, args in analyses:
         print(f"  ⏳ Running {script}...")
@@ -1612,9 +1619,16 @@ def main():
         "--output-dir", "-o", default=None,
         help="Output directory (default: web/<domain>-seo-audit-<YYYY-MM-DD>/)",
     )
+    parser.add_argument("--gsc", dest="gsc_path", default=None,
+                        help="Path to a Google Search Console .zip/.csv export to enrich the audit")
+    parser.add_argument("--brand", default=None,
+                        help="Comma-separated brand tokens for the branded/non-branded split")
+    parser.add_argument("--min-impressions", type=int, default=50,
+                        help="Impression threshold for GSC striking-distance/low-CTR (default 50)")
     args = parser.parse_args()
 
-    data = collect_data(args.url)
+    data = collect_data(args.url, gsc_path=args.gsc_path, brand=args.brand,
+                        min_impressions=args.min_impressions)
     scores = calculate_overall_score(data)
     rows = build_seo_tasks(data)
 
