@@ -162,7 +162,7 @@ def core_issues(striking, low):
     issues = []
     for r in striking[:25]:
         issues.append({
-            "severity": "High",
+            "severity": "Warning",
             "finding": f"Striking-distance query '{_label(r)}' at position {r['position']}",
             "evidence": f"{r['impressions']} impressions, {r['ctr']}% CTR, position {r['position']}",
             "fix": "Strengthen on-page relevance and internal links for this query to reach page one.",
@@ -170,7 +170,7 @@ def core_issues(striking, low):
     for r in low[:25]:
         exp = _expected_ctr(r["position"])
         issues.append({
-            "severity": "Medium",
+            "severity": "Info",
             "finding": f"Low CTR for '{_label(r)}' (pos {r['position']})",
             "evidence": f"{r['ctr']}% CTR vs ~{exp}% expected, {r['impressions']} impressions",
             "fix": "Rewrite the title tag and meta description to improve click-through.",

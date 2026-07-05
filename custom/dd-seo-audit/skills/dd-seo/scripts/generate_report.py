@@ -884,7 +884,7 @@ def render_gsc_section(gsc: dict) -> str:
     sd = ins.get("striking_distance") or []
     blocks.append(_table(
         "Striking-distance queries (position 11-20)",
-        ["Query", "Impressions", "CTR %", "Position"],
+        ["Query / Page", "Impressions", "CTR %", "Position"],
         [[r.get("query") or r.get("page"), r["impressions"], r["ctr"], r["position"]] for r in sd]))
 
     lc = ins.get("low_ctr") or []
