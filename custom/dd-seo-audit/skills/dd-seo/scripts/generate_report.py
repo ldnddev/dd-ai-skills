@@ -861,6 +861,64 @@ def _details_block(section_id: str, title: str, score, body_html: str) -> str:
     )
 
 
+def render_gsc_section(gsc: dict) -> str:
+    """Accessible HTML for the Search Console insight tables. Empty string if unusable."""
+    if not gsc or gsc.get("error"):
+        return ""
+    ins = gsc.get("insights") or {}
+    if not ins:
+        return ""
+
+    def _table(caption, cols, rows):
+        if not rows:
+            return ""
+        head = "".join(f'<th scope="col">{html_lib.escape(c)}</th>' for c in cols)
+        body = ""
+        for row in rows[:100]:
+            body += "<tr>" + "".join(
+                f"<td>{html_lib.escape(str(c))}</td>" for c in row) + "</tr>"
+        return (f'<table class="data-table"><caption>{html_lib.escape(caption)}</caption>'
+                f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>")
+
+    blocks = []
+    sd = ins.get("striking_distance") or []
+    blocks.append(_table(
+        "Striking-distance queries (position 11-20)",
+        ["Query", "Impressions", "CTR %", "Position"],
+        [[r.get("query") or r.get("page"), r["impressions"], r["ctr"], r["position"]] for r in sd]))
+
+    lc = ins.get("low_ctr") or []
+    blocks.append(_table(
+        "Low click-through outliers",
+        ["Query / Page", "Impressions", "CTR %", "Position"],
+        [[r.get("query") or r.get("page"), r["impressions"], r["ctr"], r["position"]] for r in lc]))
+
+    tp = ins.get("top_performers") or {}
+    blocks.append(_table(
+        "Top queries by clicks",
+        ["Query", "Clicks", "Impressions", "Position"],
+        [[r.get("query"), r["clicks"], r["impressions"], r["position"]] for r in tp.get("top_queries", [])]))
+
+    can = ins.get("cannibalization") or []
+    blocks.append(_table(
+        "Query cannibalization (one query, multiple pages)",
+        ["Query", "Competing pages"],
+        [[c["query"], ", ".join(p["page"] for p in c["pages"])] for c in can]))
+
+    branded = tp.get("branded") or {}
+    if branded:
+        blocks.append(
+            f'<p><strong>Branded share:</strong> {branded.get("branded_share_pct", 0)}% '
+            f'({branded.get("branded_clicks", 0)} branded vs '
+            f'{branded.get("nonbranded_clicks", 0)} non-branded clicks)</p>')
+
+    for note in (gsc.get("meta", {}).get("notes") or []):
+        blocks.append(f'<p style="color:var(--muted)">{html_lib.escape(note)}</p>')
+
+    body = "".join(b for b in blocks if b)
+    return body or ""
+
+
 def _render_detailed_sections(data: dict, scores: dict) -> str:
     cats = scores.get("categories", {})
     sec = data["sections"].get("security", {})
@@ -906,6 +964,11 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
             "env_fixes", "Environment-specific fix plan", None,
             render_environment_fixes(env_fixes),
         ))
+
+    gsc = data["sections"].get("gsc", {})
+    gsc_html = render_gsc_section(gsc)
+    if gsc_html:
+        blocks.append(_details_block("gsc", "Google Search Console", None, gsc_html))
 
     rows = ""
     for h, v in sec.get("headers_present", {}).items():
