@@ -64,6 +64,8 @@ required. See [root README](../../README.md#codex-install-legacy) for context.
   - `GITHUB-ACTION-PLAN.md`
   - `GITHUB-REMEDIATION-TASKS.csv`
   - `GITHUB-CLIENT-REPORT.docx`
+- **Google Search Console enrichment** — pass `--gsc <export.zip|.csv>` to fold real
+  striking-distance, low-CTR, branded-split, and cannibalization insights into the audit.
 
 ## Layout
 
