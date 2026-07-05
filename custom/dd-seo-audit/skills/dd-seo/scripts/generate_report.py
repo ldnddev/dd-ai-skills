@@ -1319,6 +1319,7 @@ CATEGORY_LABELS = {
     "hreflang": "Hreflang",
     "duplicate_content": "Content Uniqueness",
     "environment": "Environment / Platform",
+    "gsc": "Google Search Console",
 }
 
 CATEGORY_OWNERS = {
@@ -1338,6 +1339,7 @@ CATEGORY_OWNERS = {
     "hreflang": "Technical SEO",
     "duplicate_content": "Content / SEO",
     "environment": "Web Engineering",
+    "gsc": "Technical SEO",
 }
 
 

@@ -41,3 +41,14 @@ def test_non_gsc_csv_returns_error():
     result = g.load_export(b"foo,bar\n1,2\n", kind="csv", input_name="x.csv")
     assert "error" in result
     assert result["rows"] == []
+
+
+def test_missing_ctr_row_is_skipped_not_zeroed():
+    # An unparseable/blank CTR must skip the row, not default to 0.0 (which would
+    # masquerade as a genuine low-CTR finding downstream).
+    text = ("Top queries,Clicks,Impressions,CTR,Position\n"
+            "good,10,500,2%,12.3\n"
+            "noctr,10,500,,12.3\n")
+    rows, kind, skipped = g._parse_csv_text(text)
+    assert skipped == 1
+    assert [r["query"] for r in rows] == ["good"]

@@ -14,3 +14,9 @@ def test_main_defines_gsc_flag():
     src = inspect.getsource(r.main)
     assert "--gsc" in src
     assert "gsc_path" in src
+
+
+def test_gsc_category_label_and_owner_mapped():
+    # GSC tasks must not fall back to the generic "Gsc" label / default owner.
+    assert r.category_label("gsc") == "Google Search Console"
+    assert r.owner_for("gsc") == "Technical SEO"

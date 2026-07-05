@@ -17,7 +17,6 @@ import csv
 import io
 import json
 import re
-import sys
 import zipfile
 
 MIN_IMPRESSIONS_DEFAULT = 50
@@ -95,16 +94,15 @@ def _parse_csv_text(text):
         impressions = _parse_int(raw[2])
         ctr = _parse_ctr(raw[3])
         position = _parse_float(raw[4])
-        if None in (clicks, impressions, position):
+        # Skip rows with any unparseable metric — a missing CTR must not
+        # default to 0.0, which would masquerade as a genuine low-CTR finding.
+        if None in (clicks, impressions, ctr, position):
             skipped += 1
             continue
         row = {"query": None, "page": None,
                "clicks": clicks, "impressions": impressions,
-               "ctr": ctr if ctr is not None else 0.0, "position": position}
-        if dim in ("query", "page"):
-            row[dim] = str(raw[0]).strip()
-        else:
-            row[dim] = str(raw[0]).strip()
+               "ctr": ctr, "position": position}
+        row[dim] = str(raw[0]).strip()
         rows.append(row)
     return rows, kind, skipped
 

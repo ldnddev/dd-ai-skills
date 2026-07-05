@@ -201,6 +201,12 @@ performers, branded split, cannibalization) and folds the top opportunities
 into `ACTION-PLAN.md` and `tasks.csv`. Optional: `--brand "term1,term2"`,
 `--min-impressions N` (default 50). No credentials required.
 
+Notes on two insights: **cannibalization** requires a single export whose rows
+carry both a query and a page dimension; the standard GSC UI ships `Queries.csv`
+and `Pages.csv` as separate single-dimension files, so cannibalization only
+populates from a combined query+page export and is otherwise empty. **Trends**
+require a date-comparison export and are skipped (with a note) when absent.
+
 ### Step 5 — Delegate to Specialist Agents
 
 For comprehensive audits, read the relevant agent file from `resources/agents/` to adopt the specialist role:
