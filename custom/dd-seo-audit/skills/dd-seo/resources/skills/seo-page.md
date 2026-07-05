@@ -94,3 +94,5 @@ When invoked as an agent to analyze a specific URL, execute these steps:
 4. If applicable, run `scripts/article_seo.py "$URL" --json` for a deeper dive on content scoring.
 5. Summarize all findings into the Page Score Card and Issues Found according to the evidence rules.
 6. **Mandatory** — run `python3 <SKILL_DIR>/scripts/generate_report.py "$URL"` to emit the client bundle (`index.html` + `FULL-AUDIT-REPORT.docx` + `ACTION-PLAN.docx` + `tasks.csv` + `assets/`). Required for every page audit. Only skip on environment failure (note as `Environment Limitation`).
+- If the user supplies a Google Search Console export (`.zip`/`.csv`), pass it via
+  `generate_report.py --gsc <path>` to enrich findings with real query/click data.

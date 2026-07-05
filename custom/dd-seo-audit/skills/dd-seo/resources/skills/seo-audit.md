@@ -22,6 +22,8 @@ Apply `resources/references/llm-audit-rubric.md` for evidence standards, confide
    - `seo-sitemap` — structure analysis, quality gates, missing pages
    - `seo-performance` — LCP, INP, CLS measurements
    - `seo-visual` — screenshots, mobile testing, above-fold analysis
+   - If the user supplies a Google Search Console export (`.zip`/`.csv`), pass it via
+     `generate_report.py --gsc <path>` to enrich findings with real query/click data.
 4. **LLM analysis** — Apply `llm-audit-rubric.md`, score each category using chain-of-thought. Combine LLM reasoning with script evidence. If a script failed, the LLM still covers that area using its own analysis (confidence: `Likely` instead of `Confirmed`).
 5. **Score** — aggregate into SEO Health Score (0-100)
 6. **Report** — generate prioritized action plan
