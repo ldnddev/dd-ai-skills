@@ -329,24 +329,19 @@ def build_environment_fixes(data: dict) -> list:
 def render_environment_fixes(fixes: list) -> str:
     """Render environment-specific fixes for HTML output."""
     if not fixes:
-        return '<p style="color:var(--green)">✅ No environment-specific fixes needed.</p>'
+        return '<p>✅ No environment-specific fixes needed.</p>'
 
     severity_order = {"critical": 0, "warning": 1, "info": 2, "pass": 3}
-    html = ""
-    for item in sorted(fixes, key=lambda x: severity_order.get(x.get("severity", "info"), 9)):
-        sev = item.get("severity", "info")
-        badge = sev.upper()
-        title = html_lib.escape(item.get("title", ""), quote=True)
-        reason = html_lib.escape(item.get("reason", ""), quote=True)
-        fix = html_lib.escape(item.get("fix", ""), quote=True)
-        html += (
-            f'<div class="issue-item {sev if sev in ("critical","warning","info") else "info"}">'
-            f'<span class="issue-badge">{badge}</span>'
-            f'<div><strong>{title}</strong><br>'
-            f'<span style="color:var(--text-muted)">{reason}</span><br>'
-            f'<span><strong>Fix:</strong> {fix}</span></div></div>'
-        )
-    return html
+    items = [
+        {
+            "severity": f.get("severity", "info"),
+            "title": f.get("title", ""),
+            "evidence": f.get("reason", ""),
+            "fix": f.get("fix", ""),
+        }
+        for f in sorted(fixes, key=lambda x: severity_order.get(x.get("severity", "info"), 9))
+    ]
+    return _finding_list(items, ordered=True)
 
 
 def collect_data(url: str, gsc_path: str = None, brand: str = None,
@@ -615,34 +610,28 @@ def render_recommendations(section_data: dict) -> str:
 
     # Render structured issues (used by entity_checker, hreflang_checker, etc.)
     issues = section_data.get("issues", [])
-    issues_html = ""
+    finding_items = []
     if isinstance(issues, list) and issues:
-        severity_map = {"critical": "critical", "high": "critical", "warning": "warning", "medium": "warning", "info": "info", "low": "info"}
         for issue in issues[:15]:
             if isinstance(issue, dict):
-                sev = severity_map.get(issue.get("severity", "info").lower(), "info")
-                badge = html_lib.escape(issue.get("severity", "INFO").upper(), quote=True)
-                finding = html_lib.escape(str(issue.get("finding", "")), quote=True)
-                fix = html_lib.escape(str(issue.get("fix", "")), quote=True)
-                issues_html += (
-                    f'<div class="issue-item {sev}">'
-                    f'<span class="issue-badge">{badge}</span>'
-                    f'<div><strong>{finding}</strong>'
-                    f'{f"<br><span style=&quot;color:var(--text-muted)&quot;>Fix: {fix}</span>" if fix else ""}'
-                    f'</div></div>'
-                )
+                finding_items.append({
+                    "severity": issue.get("severity", "info"),
+                    "badge_label": str(issue.get("severity", "Info")).title(),
+                    "title": str(issue.get("finding", "")),
+                    "fix": str(issue.get("fix", "")),
+                })
             elif isinstance(issue, str):
                 items.append(issue)
 
     html = ""
-    if issues_html:
-        html += f'<div style="margin-top:16px"><h3 style="font-size:0.95rem;margin-bottom:8px;">🔍 Issues Found</h3>{issues_html}</div>'
+    if finding_items:
+        html += f'{_heading("🔍 Issues Found")}{_finding_list(finding_items)}'
     if items:
-        html += '<div style="margin-top:16px"><h3 style="font-size:0.95rem;margin-bottom:8px;">💡 Recommendations</h3>'
+        html += f'{_heading("💡 Recommendations")}<ul>'
         for item in items[:15]:
             item_str = str(item) if not isinstance(item, str) else item
-            html += f'<div class="issue-item info"><span class="issue-badge">FIX</span> {item_str}</div>'
-        html += '</div>'
+            html += f'<li>{html_lib.escape(item_str)}</li>'
+        html += '</ul>'
     return html
 
 
@@ -652,27 +641,20 @@ def render_readability_rewrites(readability_data: dict) -> str:
     if not rewrites:
         return ""
 
-    html = (
-        '<div style="margin-top:16px">'
-        '<h3 style="font-size:0.95rem;margin-bottom:8px;">✍️ What To Replace (Before/After)</h3>'
-    )
+    items = []
     for item in rewrites[:5]:
-        current = html_lib.escape(str(item.get("current", "")), quote=True)
-        suggested = html_lib.escape(str(item.get("suggested", "")), quote=True)
+        current = str(item.get("current", ""))
+        suggested = str(item.get("suggested", ""))
         wc_raw = item.get("current_word_count", "")
         wc_label = f"{wc_raw}w" if isinstance(wc_raw, (int, float)) else str(wc_raw)
-        wc = html_lib.escape(wc_label, quote=True)
-        html += (
-            '<div class="issue-item warning">'
-            f'<span class="issue-badge">SENTENCE ({wc})</span>'
-            '<div>'
-            f'<div><strong>Current:</strong> {current}</div>'
-            f'<div style="margin-top:6px;"><strong>Replace with:</strong> {suggested}</div>'
-            '</div>'
-            '</div>'
-        )
-    html += "</div>"
-    return html
+        items.append({
+            "severity": "warning",
+            "badge_label": f"Sentence ({wc_label})",
+            "title": "Rewrite this sentence",
+            "evidence": f"Current: {current}",
+            "fix": f"Replace with: {suggested}",
+        })
+    return f'{_heading("✍️ What To Replace (Before/After)")}{_finding_list(items)}'
 
 
 def render_all_recommendations(data: dict) -> str:
@@ -689,11 +671,12 @@ def render_all_recommendations(data: dict) -> str:
     html = ""
     env_fixes = data.get("environment_fixes", [])
     if env_fixes:
-        html += '<h3 style="font-size:0.95rem;margin:16px 0 8px;">🛠️ Environment-Specific Fixes</h3>'
+        html += f'{_heading("🛠️ Environment-Specific Fixes")}<ul>'
         for item in env_fixes[:8]:
             title = html_lib.escape(item.get("title", ""), quote=True)
             fix = html_lib.escape(item.get("fix", ""), quote=True)
-            html += f'<div class="issue-item info"><span class="issue-badge">FIX</span> <strong>{title}</strong>: {fix}</div>'
+            html += f'<li><strong>{title}</strong>: {fix}</li>'
+        html += '</ul>'
 
     for key, label in section_names.items():
         section = data["sections"].get(key, {})
@@ -713,10 +696,11 @@ def render_all_recommendations(data: dict) -> str:
                 sug = html_lib.escape(str(rw.get("suggested", ""))[:180], quote=True)
                 items.append(f"Rewrite: {cur} → {sug}")
         if items:
-            html += f'<h3 style="font-size:0.95rem;margin:16px 0 8px;">{label}</h3>'
+            html += f'{_heading(label)}<ul>'
             for item in items[:10]:
-                html += f'<div class="issue-item info"><span class="issue-badge">FIX</span> {item}</div>'
-    return html if html else '<p style="color:var(--green)">✅ No recommendations — everything looks good!</p>'
+                html += f'<li>{html_lib.escape(str(item))}</li>'
+            html += '</ul>'
+    return html if html else '<p>✅ No recommendations — everything looks good!</p>'
 
 
 def _load_template_files() -> tuple:
@@ -741,13 +725,67 @@ def _score_rating(score: int) -> str:
     return "Critical"
 
 
-def _ring_color(score: int) -> str:
-    # Palette-aligned with templates/dashboard.html (Quiet design tokens, dark-mode aware).
+# --- dd-framework component builders -------------------------------------
+# Severity vocabulary maps to dd-badge / dd-finding modifiers.
+_SEVERITY_MOD = {
+    "critical": "-critical", "high": "-critical",
+    "warning": "-warning", "medium": "-warning",
+    "info": "-info", "low": "-info",
+    "pass": "-pass",
+}
+
+
+def _ring_tone(score: int) -> str:
+    """dd-score-ring arc tone modifier."""
     if score >= 80:
-        return "var(--color-good)"
+        return "-good"
     if score >= 50:
-        return "var(--color-warn)"
-    return "var(--color-bad)"
+        return "-warn"
+    return "-bad"
+
+
+def _badge(severity: str, label: str) -> str:
+    """dd-badge pill. Meaning is carried by the label text, not color (1.4.1)."""
+    mod = _SEVERITY_MOD.get((severity or "").lower(), "")
+    cls = f"dd-badge {mod}" if mod else "dd-badge"
+    return (f'<span class="{cls}"><span class="dd-badge__label">'
+            f'{html_lib.escape(str(label))}</span></span>')
+
+
+def _finding_list(items: list, ordered: bool = False) -> str:
+    """dd-finding list. items: dicts with severity, title, optional evidence/fix."""
+    if not items:
+        return ""
+    tag = "ol" if ordered else "ul"
+    lis = []
+    for it in items:
+        sev = (it.get("severity") or "info").lower()
+        mod = _SEVERITY_MOD.get(sev, "-info")
+        label = it.get("badge_label") or str(it.get("severity", "Info")).title()
+        title = html_lib.escape(str(it.get("title", "")))
+        body = [f'<h4 class="dd-finding__title">{title}</h4>']
+        if it.get("evidence"):
+            body.append(f'<p class="dd-finding__evidence">{html_lib.escape(str(it["evidence"]))}</p>')
+        if it.get("fix"):
+            body.append('<p class="dd-finding__fix"><span class="dd-finding__fix-label">Fix:</span> '
+                        f'{html_lib.escape(str(it["fix"]))}</p>')
+        lis.append(
+            f'<li class="dd-finding__item {mod}">'
+            f'<span class="dd-finding__badge">{_badge(sev, label)}</span>'
+            f'<div class="dd-finding__body">{"".join(body)}</div></li>'
+        )
+    return (f'<div class="dd-finding"><{tag} class="dd-finding__list">'
+            f'{"".join(lis)}</{tag}></div>')
+
+
+def _heading(text: str, level: str = "h4") -> str:
+    """Heading with a leading decorative emoji marked aria-hidden (not announced)."""
+    parts = str(text).split(" ", 1)
+    if len(parts) == 2 and parts[0] and not parts[0].isascii():
+        inner = f'<span aria-hidden="true">{parts[0]}</span> {html_lib.escape(parts[1])}'
+    else:
+        inner = html_lib.escape(str(text))
+    return f'<{level}>{inner}</{level}>'
 
 
 def _render_category_cards(scores: dict) -> str:
@@ -766,32 +804,31 @@ def _render_category_cards(scores: dict) -> str:
         if raw is None:
             continue
         score = int(raw)
-        ring = _ring_color(score)
-        dash = round(score * 2.51327, 1)
+        tone = _ring_tone(score)
+        # dd-score-ring geometry: r=42 → circumference 263.9; arc offset by score%.
+        offset = round(263.9 * (1 - score / 100), 1)
         icon = icons.get(key, "📊")
         anchor = f"#section-{key}"
+        esc_label = html_lib.escape(label)
         cards.append(
-            f'<a class="category-card" href="{anchor}" '
-            f'aria-label="{html_lib.escape(label)}: {score} of 100">'
-            f'<div class="ring-wrap">'
-            f'<svg viewBox="0 0 90 90" aria-hidden="true">'
-            f'<circle cx="45" cy="45" r="40" fill="none" stroke="var(--line)" stroke-width="6"/>'
-            f'<circle cx="45" cy="45" r="40" fill="none" stroke="{ring}" stroke-width="6" '
-            f'stroke-dasharray="{dash} 251.327" stroke-linecap="round" '
-            f'transform="rotate(-90 45 45)"/>'
+            f'<div class="dd-section__item dd-u-1-2 dd-u-lg-6-24 l-box">'
+            f'<a class="dd-score-ring {tone} -link" href="{anchor}" '
+            f'aria-label="{esc_label}: {score} out of 100. View section">'
+            f'<svg class="dd-score-ring__svg" viewBox="0 0 100 100" aria-hidden="true">'
+            f'<circle class="dd-score-ring__track" cx="50" cy="50" r="42" fill="none"/>'
+            f'<circle class="dd-score-ring__value" cx="50" cy="50" r="42" fill="none" '
+            f'stroke-dasharray="263.9" stroke-dashoffset="{offset}" transform="rotate(-90 50 50)"/>'
+            f'<text class="dd-score-ring__num" x="50" y="54" text-anchor="middle" aria-hidden="true">{score}</text>'
             f'</svg>'
-            f'<div class="ring-label">{score}</div>'
-            f'</div>'
-            f'<div class="category-name">{icon} {html_lib.escape(label)}</div>'
-            f'</a>'
+            f'<div class="dd-score-ring__label">{icon} {esc_label}</div>'
+            f'</a></div>'
         )
     return "\n".join(cards)
 
 
-def _render_category_chart_data(scores: dict) -> str:
-    # Use the real audit category keys (same source as the ring cards) so every
-    # scored category shows in the rail's CSS bar chart. The template renders bars
-    # in mono ink, so no color palette is needed here.
+def _render_bar_chart_rows(scores: dict) -> str:
+    # Server-rendered dd-bar-chart rows (label + value text is the accessible
+    # truth; the track/fill are decorative). Same category source as the rings.
     cats = scores.get("categories", {}) or {}
     keys = [
         k for k in CATEGORY_LABELS
@@ -799,11 +836,20 @@ def _render_category_chart_data(scores: dict) -> str:
     ]
     if not keys:
         keys = [k for k, v in cats.items() if isinstance(v, (int, float))]
-    payload = {
-        "labels": [CATEGORY_LABELS.get(k, k.title()) for k in keys],
-        "values": [int(cats[k]) for k in keys],
-    }
-    return json.dumps(payload)
+    rows = []
+    for k in keys:
+        val = int(cats[k])
+        pct = max(min(val, 100), 0)
+        label = html_lib.escape(CATEGORY_LABELS.get(k, k.title()))
+        rows.append(
+            f'<li class="dd-bar-chart__row {_ring_tone(val)}">'
+            f'<span class="dd-bar-chart__label">{label}</span>'
+            f'<span class="dd-bar-chart__track" aria-hidden="true">'
+            f'<span class="dd-bar-chart__fill" style="inline-size: {pct}%"></span></span>'
+            f'<span class="dd-bar-chart__value">{val}/100</span>'
+            f'</li>'
+        )
+    return "\n".join(rows)
 
 
 def _render_download_links(artifacts: list) -> str:
@@ -813,10 +859,9 @@ def _render_download_links(artifacts: list) -> str:
         label = html_lib.escape(art["label"])
         filename = html_lib.escape(art["filename"])
         chunks.append(
-            f'<a href="{filename}" download class="download-btn">'
-            f'<span class="kind">{kind}</span>'
-            f'<span class="label">{label}</span>'
-            f'</a>'
+            f'<div class="dd-section__item dd-u-1-1 dd-u-lg-8-24 l-box">'
+            f'<a href="{filename}" download class="dd-button -secondary" '
+            f'aria-label="Download {label} · {kind}">{label} · {kind}</a></div>'
         )
     return "\n".join(chunks)
 
@@ -824,23 +869,22 @@ def _render_download_links(artifacts: list) -> str:
 def _render_task_rows(rows: list) -> str:
     if not rows:
         return (
-            '<tr><td colspan="7" style="text-align:center;color:var(--muted)">'
-            'No remediation tasks — site is healthy.'
-            '</td></tr>'
+            '<tr class="dd-data-table__row -empty">'
+            '<td class="dd-data-table__td" colspan="7">'
+            'No remediation tasks — site is healthy.</td></tr>'
         )
     out = []
     for r in rows:
         sev = r["priority"].lower()
         out.append(
-            f'<tr>'
-            f'<td>{html_lib.escape(r["task_id"])}</td>'
-            f'<td><span class="priority-pill" data-severity="{sev}">'
-            f'{html_lib.escape(r["priority"])}</span></td>'
-            f'<td>{html_lib.escape(r["category_label"])}</td>'
-            f'<td>{html_lib.escape(r["finding"])}</td>'
-            f'<td>{html_lib.escape(r["owner"])}</td>'
-            f'<td>{html_lib.escape(r["timeline"])}</td>'
-            f'<td>{r["estimated_hours"]}h</td>'
+            f'<tr class="dd-data-table__row">'
+            f'<th scope="row" class="dd-data-table__td">{html_lib.escape(r["task_id"])}</th>'
+            f'<td class="dd-data-table__td">{_badge(sev, r["priority"])}</td>'
+            f'<td class="dd-data-table__td">{html_lib.escape(r["category_label"])}</td>'
+            f'<td class="dd-data-table__td">{html_lib.escape(r["finding"])}</td>'
+            f'<td class="dd-data-table__td">{html_lib.escape(r["owner"])}</td>'
+            f'<td class="dd-data-table__td">{html_lib.escape(r["timeline"])}</td>'
+            f'<td class="dd-data-table__td" data-align="end">{r["estimated_hours"]}h</td>'
             f'</tr>'
         )
     return "\n".join(out)
@@ -849,14 +893,15 @@ def _render_task_rows(rows: list) -> str:
 def _details_block(section_id: str, title: str, score, body_html: str) -> str:
     score_chip = ""
     if score is not None and score != "":
-        score_chip = (
-            f'<span style="font: 700 13px/1 var(--ui-font); color: var(--muted);">'
-            f'{int(score)}/100</span>'
-        )
+        s = int(score)
+        sev = {"-good": "pass", "-warn": "warning", "-bad": "critical"}[_ring_tone(s)]
+        score_chip = " " + _badge(sev, f"{s}/100")
     return (
-        f'<details class="section-detail" id="section-{section_id}">'
-        f'<summary>{html_lib.escape(title)} {score_chip}</summary>'
-        f'<div class="section-body">{body_html}</div>'
+        f'<details class="dd-accordion__item" id="section-{section_id}">'
+        f'<summary class="dd-accordion__header dd-g -y-center">'
+        f'<h3 class="dd-accordion__title dd-u-1-1">{html_lib.escape(title)}{score_chip}</h3>'
+        f'</summary>'
+        f'<div class="dd-accordion__copy">{body_html}</div>'
         f'</details>'
     )
 
@@ -913,7 +958,7 @@ def render_gsc_section(gsc: dict) -> str:
             f'{branded.get("nonbranded_clicks", 0)} non-branded clicks)</p>')
 
     for note in (gsc.get("meta", {}).get("notes") or []):
-        blocks.append(f'<p style="color:var(--muted)">{html_lib.escape(note)}</p>')
+        blocks.append(f'<p>{html_lib.escape(note)}</p>')
 
     body = "".join(b for b in blocks if b)
     return body or ""
@@ -944,7 +989,7 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
     sig_html = "".join(
         f'<li style="margin:4px 0;">{html_lib.escape(s)}</li>'
         for s in env.get("signals", [])
-    ) or '<li style="color:var(--muted)">No strong platform markers found.</li>'
+    ) or '<li>No strong platform markers found.</li>'
     env_body = (
         f'<p><strong>Primary platform:</strong> {html_lib.escape(env.get("primary","Unknown"))} · '
         f'<strong>Runtime:</strong> {html_lib.escape(env.get("runtime","Unknown"))} · '
@@ -953,7 +998,7 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
     )
     if env.get("alternatives"):
         env_body += (
-            '<p style="color:var(--muted)"><strong>Alternative matches:</strong> '
+            '<p><strong>Alternative matches:</strong> '
             + ", ".join(html_lib.escape(a) for a in env["alternatives"])
             + "</p>"
         )
@@ -974,13 +1019,13 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
     for h, v in sec.get("headers_present", {}).items():
         rows += (
             f'<tr><td>{html_lib.escape(h)}</td>'
-            f'<td><span class="priority-pill" data-severity="pass">Present</span></td>'
+            f'<td>{_badge("pass", "Present")}</td>'
             f'<td class="url-cell">{html_lib.escape(str(v)[:80])}</td></tr>'
         )
     for h, d in sec.get("headers_missing", {}).items():
         rows += (
             f'<tr><td>{html_lib.escape(h)}</td>'
-            f'<td><span class="priority-pill" data-severity="critical">Missing</span></td>'
+            f'<td>{_badge("critical", "Missing")}</td>'
             f'<td>{html_lib.escape(str(d))}</td></tr>'
         )
     sec_body = (
@@ -998,7 +1043,7 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
         label = "Present" if v else "Missing"
         rows += (
             f'<tr><td>{tag}</td>'
-            f'<td><span class="priority-pill" data-severity="{sev}">{label}</span></td>'
+            f'<td>{_badge(sev, label)}</td>'
             f'<td>{html_lib.escape(str(v)[:80]) or "—"}</td></tr>'
         )
     for tag in ["twitter:card", "twitter:title", "twitter:description", "twitter:image"]:
@@ -1007,7 +1052,7 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
         label = "Present" if v else "Missing"
         rows += (
             f'<tr><td>{tag}</td>'
-            f'<td><span class="priority-pill" data-severity="{sev}">{label}</span></td>'
+            f'<td>{_badge(sev, label)}</td>'
             f'<td>{html_lib.escape(str(v)[:80]) or "—"}</td></tr>'
         )
     soc_body = (
@@ -1026,7 +1071,7 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
             sev, label = "info", "Info"
         rows += (
             f'<tr><td>{html_lib.escape(crawler)}</td>'
-            f'<td><span class="priority-pill" data-severity="{sev}">{label}</span></td>'
+            f'<td>{_badge(sev, label)}</td>'
             f'<td>{html_lib.escape(status)}</td></tr>'
         )
     rob_body = (
@@ -1045,7 +1090,7 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
         sev = "critical" if link.get("is_internal") else "warning"
         status = link.get("status") or html_lib.escape(str(link.get("error", "?")))
         rows += (
-            f'<tr><td><span class="priority-pill" data-severity="{sev}">{loc}</span></td>'
+            f'<tr><td>{_badge(sev, loc)}</td>'
             f'<td>{status}</td>'
             f'<td class="url-cell">{html_lib.escape(str(link.get("url",""))[:80])}</td>'
             f'<td>{html_lib.escape(str(link.get("anchor_text",""))[:40])}</td></tr>'
@@ -1063,7 +1108,7 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
             f'<tbody>{rows}</tbody></table>'
         )
     else:
-        bl_body += '<p style="color:var(--pass-text)">No broken links detected.</p>'
+        bl_body += '<p>No broken links detected.</p>'
     blocks.append(_details_block("broken_links", "Broken links", cats.get("broken_links"), bl_body))
 
     il_dist = il.get("link_distribution", {})
@@ -1098,7 +1143,7 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
             tail = html_lib.escape(str(hop.get("redirect_type", "")))
         rows += (
             f'<tr><td>{hop.get("step","?")}</td>'
-            f'<td><span class="priority-pill" data-severity="{sev}">{status}</span></td>'
+            f'<td>{_badge(sev, status)}</td>'
             f'<td class="url-cell">{html_lib.escape(str(hop.get("url",""))[:80])}</td>'
             f'<td>{hop.get("time_ms",0)}ms</td><td>{tail}</td></tr>'
         )
@@ -1109,7 +1154,7 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
             f'<th scope="col">Type</th></tr></thead><tbody>{rows}</tbody></table>'
         )
     else:
-        red_body = '<p style="color:var(--pass-text)">No redirect chain — direct access.</p>'
+        red_body = '<p>No redirect chain — direct access.</p>'
     blocks.append(_details_block("redirects", "Redirect chain", cats.get("redirects"), red_body))
 
     suggestions = "".join(
@@ -1134,7 +1179,7 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
     )
     if psi.get("error") or psi.get("performance_score", 0) == 0:
         psi_body += (
-            '<p style="color:var(--warning-text)"><strong>Note:</strong> '
+            '<p><strong>Note:</strong> '
             'PageSpeed API returned an error or was rate-limited. '
             'Re-run pagespeed.py with --api-key for confirmed values.</p>'
         )
@@ -1208,7 +1253,7 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
         f'<strong>Tags found:</strong> {hf.get("hreflang_tags_found",0)}</p>'
     )
     if hf.get("hreflang_tags_found", 0) == 0:
-        hf_body += '<p style="color:var(--muted)">No hreflang tags found — expected for single-language sites.</p>'
+        hf_body += '<p>No hreflang tags found — expected for single-language sites.</p>'
     else:
         hf_body += render_recommendations(hf)
     blocks.append(_details_block("hreflang", "Hreflang / international SEO", cats.get("hreflang"), hf_body))
@@ -1291,7 +1336,7 @@ def generate_html(data: dict, scores: dict, artifacts: list, rows: list) -> str:
         "DOWNLOAD_LINKS": _render_download_links(artifacts),
         "TASK_ROWS": _render_task_rows(rows),
         "DETAILED_SECTIONS": _render_detailed_sections(data, scores),
-        "CATEGORY_CHART_DATA": _render_category_chart_data(scores),
+        "BAR_CHART_ROWS": _render_bar_chart_rows(scores),
     }
 
     html = template

@@ -63,33 +63,32 @@ The `web/<domain>-seo-audit-<date>/` folder name is the public contract — sub-
 | `{{INFO_COUNT}}` | tasks where priority == "Info" |
 | `{{PASS_COUNT}}` | finding rows where severity == "Pass" |
 
-Severity vocabulary is locked to **Critical / Warning / Pass / Info** (matches `resources/references/llm-audit-rubric.md` and `scripts/finding_verifier.py`). The dashboard renders the severity word in the cell text **and** as a `data-severity` attribute, so colorblind users get a textual cue.
+Severity vocabulary is locked to **Critical / Warning / Pass / Info** (matches `resources/references/llm-audit-rubric.md` and `scripts/finding_verifier.py`). The dashboard renders the severity word as the **`dd-badge` label text** (e.g. `-critical` → "Critical"), so meaning is carried by text, not color alone (WCAG 1.4.1).
 
 ### Repeating slots (HTML strings injected by the script)
 
-| Placeholder | Producer |
+The dashboard is built from **ldnddev Framework components** (see `custom/dd-framework`). Each producer emits framework markup:
+
+| Placeholder | Producer (`generate_report.py`) |
 |---|---|
-| `{{CATEGORY_CARDS}}` | one `<div class="category-card">` per category, each with a ring + numeric score |
-| `{{DOWNLOAD_LINKS}}` | one `<a class="download-link">` per output artifact (DOCX / CSV / MD) |
-| `{{TASK_ROWS}}` | one `<tr>` per task; severity cell uses `<span class="priority-pill" data-severity="...">` |
-| `{{DETAILED_SECTIONS}}` | one `<details class="section-detail">` per analyzer (security, social, robots, broken_links, …) |
+| `{{CATEGORY_CARDS}}` | one `dd-score-ring -link` card per category (grid item), arc tone by score |
+| `{{BAR_CHART_ROWS}}` | one `dd-bar-chart__row` per category (label + value text + decorative bar) |
+| `{{DOWNLOAD_LINKS}}` | one `<a class="dd-button -secondary" download>` per output artifact (DOCX / CSV / MD) |
+| `{{TASK_ROWS}}` | one `dd-data-table__row` per task; severity cell embeds a `dd-badge` |
+| `{{DETAILED_SECTIONS}}` | one `dd-accordion__item` (`<details>`) per analyzer, each body using `dd-finding` lists and plain status tables |
 
-### Brand color and font tokens (from `brand.json`)
+### Styling — framework-driven
 
-These are dropped directly into CSS custom properties. **Keep contrast ≥ 4.5:1 for text and ≥ 3:1 for non-text UI** — the dashboard relies on `brand.json` defaults to meet WCAG 2.2 AA. If you override colors per client, re-check the four severity pills and the title/body copy against the new background.
+The template links the framework build and lets it theme everything:
 
 ```
-DISPLAY_FONT       BODY_FONT          UI_FONT
-BRAND_BG           BRAND_BG_TOP       BRAND_SURFACE
-BRAND_TEXT         BRAND_MUTED        BRAND_ACCENT       BRAND_ACCENT_2
-BRAND_LINE         BRAND_SHADOW
-BRAND_GLOW_1       BRAND_GLOW_2
-HERO_BG_1          HERO_BG_2
-TABLE_HEAD_BG
-PRIORITY_BG        PRIORITY_TEXT      ← used for the chip on download cards
+<link rel="stylesheet" href="assets/css/style.min.css">
+<script src="assets/js/main.min.js" defer></script>
 ```
 
-The four severity colors (`critical`, `warning`, `pass`, `info`) are **fixed in the CSS** of `dashboard.html`. They don't come from `brand.json` because their meaning must stay stable across client palettes and the WCAG-AA contrast values were tuned to that palette.
+Drop `style.min.css` + `main.min.js` (from `framework.ldnddev.com`) into the report bundle's `assets/`. The framework provides all component styling, the 24-col `dd-g` grid, dark mode (via `prefers-color-scheme`), and `dd-data-table` sort + scroll-region accessibility. **There is no manual theme toggle** — the framework themes by system preference only.
+
+Severity colors, focus rings, and control-border contrast (WCAG 1.4.11 / 2.4.13) all live in the framework stylesheet — verify AA there, not here. The template keeps only a small inline `<style>` for the few shell bits the framework has no component for (skip link, summary `<dl>`, sticky rail, status tables inside accordions). The old `brand.json` color/font tokens (`BRAND_BG`, `DISPLAY_FONT`, `PRIORITY_BG`, …) are **no longer consumed** by the template; theming is the framework's job.
 
 ## Editing workflow
 
