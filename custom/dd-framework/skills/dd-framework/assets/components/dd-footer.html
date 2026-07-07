@@ -1,0 +1,31 @@
+<!-- dd-footer — site contentinfo region (footer nav + copyright + optional social).
+     <footer> at top level is the implicit contentinfo landmark — keep it a
+     SIBLING of <main>, never nested inside it (nesting strips the landmark).
+     Each <nav> is named (distinct from the header's Primary nav). Social icon
+     links keep a visually-hidden text name; the glyph is aria-hidden. -->
+<footer class="dd-footer">
+  <div class="dd-g">
+    <div class="dd-footer__navigation navigation -footer-menu dd-u-1-1 dd-u-lg-18-24 l-box">
+      <nav aria-label="Footer">
+        <ul class="menu">
+          <li class="menu-item"><a href="/privacy" class="navigation__link">Privacy</a></li>
+          <li class="menu-item"><a href="/terms" class="navigation__link">Terms</a></li>
+          <li class="menu-item"><a href="/contact" class="navigation__link">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="dd-footer__navigation navigation -social-menu dd-u-1-1 dd-u-lg-6-24 l-box">
+      <nav aria-label="Social">
+        <ul class="menu">
+          <li class="menu-item"><a href="https://facebook.com/company"><span class="visually-hidden">Facebook</span><i class="fa-brands fa-facebook" aria-hidden="true"></i></a></li>
+          <li class="menu-item"><a href="https://instagram.com/company"><span class="visually-hidden">Instagram</span><i class="fa-brands fa-instagram" aria-hidden="true"></i></a></li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+  <div class="dd-g">
+    <div class="dd-footer__copyright dd-u-1-1">
+      <div class="l-box">© 2026 Company, LLC. All rights reserved.</div>
+    </div>
+  </div>
+</footer>

@@ -1,6 +1,6 @@
 {
   "$schema": "https://ldnddev.com/schemas/dd-framework-components-1.json",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Index of dd-framework components. Source of truth for helper CLI (list, get, validate). Each entry references an HTML example and a spec.md contract.",
   "tokens": {
     "color_primary": "#88d9f7",
@@ -132,6 +132,24 @@
       "wraps_in_section": true,
       "required": ["items"],
       "variants": ["-critical", "-warning", "-info", "-pass"]
+    },
+    "dd-footer": {
+      "file": "dd-footer.html",
+      "spec": "dd-footer.spec.md",
+      "summary": "Site contentinfo region: footer navigation, copyright, and optional social links.",
+      "root_selector": "footer.dd-footer",
+      "wraps_in_section": false,
+      "required": [],
+      "variants": []
+    },
+    "dd-header": {
+      "file": "dd-header.html",
+      "spec": "dd-header.spec.md",
+      "summary": "Site banner region: logo, primary navigation, and optional search / mobile menu toggles.",
+      "root_selector": "header.dd-header",
+      "wraps_in_section": false,
+      "required": [],
+      "variants": []
     },
     "dd-hero": {
       "file": "dd-hero.html",

@@ -33,7 +33,7 @@ def test_manifest_is_valid_json():
 
 def test_manifest_has_all_components():
     data = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    assert len(data["components"]) == 22
+    assert len(data["components"]) == 24
 
 
 def test_every_manifest_entry_has_html_and_spec_files():
@@ -77,7 +77,7 @@ def test_list_human_output():
 def test_list_includes_all_components():
     r = run("list")
     out = json.loads(r.stdout)
-    assert len(out["components"]) == 22
+    assert len(out["components"]) == 24
 
 
 # ---------- get ----------
@@ -85,9 +85,9 @@ def test_list_includes_all_components():
 @pytest.mark.parametrize("name", [
     "dd-accordion", "dd-alert", "dd-alternating", "dd-badge", "dd-banner",
     "dd-bar-chart", "dd-blockquote", "dd-card", "dd-cookie-consent", "dd-cta",
-    "dd-data-table", "dd-filmstrip", "dd-finding", "dd-hero", "dd-milestones",
-    "dd-modal", "dd-score-ring", "dd-section", "dd-slider", "dd-spacer",
-    "dd-tabs", "dd-timeline",
+    "dd-data-table", "dd-filmstrip", "dd-finding", "dd-footer", "dd-header",
+    "dd-hero", "dd-milestones", "dd-modal", "dd-score-ring", "dd-section",
+    "dd-slider", "dd-spacer", "dd-tabs", "dd-timeline",
 ])
 def test_get_each_component(name: str):
     r = run("get", name)

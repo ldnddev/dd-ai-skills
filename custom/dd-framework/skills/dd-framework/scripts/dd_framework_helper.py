@@ -126,7 +126,8 @@ def _check_component(comp_name: str, el: Any, findings: list[dict[str, Any]]) ->
     # Structural: most components require __items or __content child.
     # Components with their own structural root (list, table, svg, label) are exempt.
     _NO_ITEMS = {"dd-spacer", "dd-banner", "dd-badge", "dd-bar-chart",
-                 "dd-data-table", "dd-finding", "dd-score-ring"}
+                 "dd-data-table", "dd-finding", "dd-score-ring",
+                 "dd-header", "dd-footer"}
     if comp_name not in _NO_ITEMS:
         has_struct = _has_child_with_class(el, f"{block}__items") or _has_child_with_class(el, f"{block}__content")
         if not has_struct:

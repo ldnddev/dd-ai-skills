@@ -29,7 +29,7 @@ dd-framework provides AI agents with the **contract** for using ldnddev Framewor
 - "update the hero on /about"
 - "validate this page against dd-framework"
 
-## Components (22 total)
+## Components (24 total)
 
 | Name | Wraps in `dd-section`? | Required params | Variants |
 |---|---|---|---|
@@ -46,6 +46,8 @@ dd-framework provides AI agents with the **contract** for using ldnddev Framewor
 | `dd-data-table` | yes | `caption`, `columns`, `rows` | `-dense` |
 | `dd-filmstrip` | yes | `items` | `-reverse` |
 | `dd-finding` | yes | `items` | `-critical` `-warning` `-info` `-pass` |
+| `dd-footer` | **no** (region) | — | — |
+| `dd-header` | **no** (region) | — | — |
 | `dd-hero` | **no** | `title`, `image_src`, `image_alt` | — |
 | `dd-milestones` | yes | `items` | — |
 | `dd-modal` | **no** | `id`, `content` | — |
@@ -180,7 +182,7 @@ dd-framework/
     │   ├── test_dd_framework_helper.py   ← pytest
     │   └── requirements.txt              ← beautifulsoup4, pytest
     └── assets/
-        ├── components.manifest.json      ← index of all 22 components
+        ├── components.manifest.json      ← index of all 24 components
         └── components/
             ├── dd-{name}.html            ← static HTML reference
             └── dd-{name}.spec.md         ← contract: params, a11y, tokens, translation
@@ -202,5 +204,5 @@ These commands belong to the consumer project, not to dd-framework itself. dd-fr
 
 - **Helper command not found** — install via `bash install.sh` or `/plugin install dd-framework@dd-skills`. Verify `scripts/dd_framework_helper.py` exists.
 - **`validate` fails with "beautifulsoup4 required"** — `pip install -r scripts/requirements.txt`.
-- **Unknown component error from `get`** — run `list` to see the 22 valid names. Class typos like `dd-hreo` won't match.
+- **Unknown component error from `get`** — run `list` to see the 24 valid names. Class typos like `dd-hreo` won't match.
 - **`validate` reports unknown `dd-*` class** — either the class is a typo, or it's a custom component not in dd-framework. Either fix the typo or accept the warning.

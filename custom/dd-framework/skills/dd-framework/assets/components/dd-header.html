@@ -1,0 +1,32 @@
+<!-- dd-header — site banner region (logo + primary nav + mobile menu toggle).
+     <header> at top level is the implicit banner landmark (keep it OUT of <main>).
+     Icon buttons: glyph is a child <i aria-hidden>, name comes from the
+     visually-hidden span. aria-expanded lives ONLY on the toggle; the close
+     button is a plain action. The page owns the skip link (before the header). -->
+<header class="dd-header">
+  <div class="dd-header__top">
+    <div class="dd-g -y-center">
+      <div class="dd-header__logo dd-u-18-24 dd-u-lg-4-24">
+        <a href="/">
+          <picture>
+            <source srcset="/assets/imgs/logo-full-white-text.svg" media="(prefers-color-scheme: dark)">
+            <img src="/assets/imgs/logo-full-black-text.svg" alt="Company home" class="dd-img">
+          </picture>
+        </a>
+      </div>
+      <div class="dd-header__navigation navigation -main-menu dd-u-1-1 dd-u-lg-16-24 -y-center">
+        <nav id="primary-nav" aria-label="Primary">
+          <button class="dd-menu__close" aria-controls="primary-nav"><i class="fa-regular fa-times" aria-hidden="true"></i><span class="visually-hidden">Close menu</span></button>
+          <ul class="menu">
+            <li class="menu-item"><a href="/" class="navigation__link">Home</a></li>
+            <li class="menu-item"><a href="/about" class="navigation__link">About</a></li>
+            <li class="menu-item"><a href="/contact" class="navigation__link">Contact</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="dd-header__menu-icon dd-u-3-24 -y-center -x-center">
+        <button class="dd-menu__toggle" aria-expanded="false" aria-controls="primary-nav"><i class="fa-regular fa-bars" aria-hidden="true"></i><span class="visually-hidden">Menu</span></button>
+      </div>
+    </div>
+  </div>
+</header>
