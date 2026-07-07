@@ -1,6 +1,6 @@
 {
   "$schema": "https://ldnddev.com/schemas/dd-framework-components-1.json",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Index of dd-framework components. Source of truth for helper CLI (list, get, validate). Each entry references an HTML example and a spec.md contract.",
   "tokens": {
     "color_primary": "#88d9f7",
@@ -43,6 +43,15 @@
       "required": ["items"],
       "variants": []
     },
+    "dd-badge": {
+      "file": "dd-badge.html",
+      "spec": "dd-badge.spec.md",
+      "summary": "Compact, non-interactive status/severity pill; meaning carried by label text, not color.",
+      "root_selector": "span.dd-badge",
+      "wraps_in_section": false,
+      "required": ["label"],
+      "variants": ["-critical", "-warning", "-info", "-pass"]
+    },
     "dd-banner": {
       "file": "dd-banner.html",
       "spec": "dd-banner.spec.md",
@@ -51,6 +60,15 @@
       "wraps_in_section": false,
       "required": ["image_src", "image_alt"],
       "variants": []
+    },
+    "dd-bar-chart": {
+      "file": "dd-bar-chart.html",
+      "spec": "dd-bar-chart.spec.md",
+      "summary": "Dependency-free horizontal bars; figure/group named by caption, bars decorative.",
+      "root_selector": "figure.dd-bar-chart",
+      "wraps_in_section": true,
+      "required": ["rows", "name"],
+      "variants": ["-good", "-warn", "-bad"]
     },
     "dd-blockquote": {
       "file": "dd-blockquote.html",
@@ -88,6 +106,15 @@
       "required": ["title", "image_src", "image_alt"],
       "variants": ["-top-left", "-top-right", "-bottom-left", "-bottom-right", "-center"]
     },
+    "dd-data-table": {
+      "file": "dd-data-table.html",
+      "spec": "dd-data-table.spec.md",
+      "summary": "Accessible table with caption, scoped headers, conditional scroll region, optional sort; embeds dd-badge.",
+      "root_selector": "div.dd-data-table",
+      "wraps_in_section": true,
+      "required": ["caption", "columns", "rows"],
+      "variants": ["-dense"]
+    },
     "dd-filmstrip": {
       "file": "dd-filmstrip.html",
       "spec": "dd-filmstrip.spec.md",
@@ -96,6 +123,15 @@
       "wraps_in_section": true,
       "required": ["items"],
       "variants": ["-reverse"]
+    },
+    "dd-finding": {
+      "file": "dd-finding.html",
+      "spec": "dd-finding.spec.md",
+      "summary": "Audit findings list with severity badge, title, evidence, fix; real list semantics + accent stripe.",
+      "root_selector": "div.dd-finding",
+      "wraps_in_section": true,
+      "required": ["items"],
+      "variants": ["-critical", "-warning", "-info", "-pass"]
     },
     "dd-hero": {
       "file": "dd-hero.html",
@@ -123,6 +159,15 @@
       "wraps_in_section": false,
       "required": ["id", "content"],
       "variants": []
+    },
+    "dd-score-ring": {
+      "file": "dd-score-ring.html",
+      "spec": "dd-score-ring.spec.md",
+      "summary": "Radial SVG donut gauge with visible score; figure form (role=img) or navigable -link form.",
+      "root_selector": "div.dd-score-ring",
+      "wraps_in_section": true,
+      "required": ["score", "max", "label"],
+      "variants": ["-sm", "-lg", "-good", "-warn", "-bad", "-link"]
     },
     "dd-section": {
       "file": "dd-section.html",

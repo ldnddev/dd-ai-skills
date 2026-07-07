@@ -1,0 +1,40 @@
+<!-- dd-score-ring — radial SVG donut gauge. Two forms.
+     Figure form: svg role="img" + aria-label with score/max; __num aria-hidden.
+       (Optional: use a value-only SVG name to avoid double-speaking __label.)
+     Link form: the <a> owns the accessible name; svg is aria-hidden; whole
+       gauge is a >=24x24 navigable target (2.5.8).
+     Value is always visible text, so meaning never depends on arc/color (1.1.1,
+     1.4.1). Arc grow-in is gated behind prefers-reduced-motion.
+     dashoffset = 263.9 * (1 - score/max) for r=42. -->
+
+<!-- Static figure form -->
+<div class="dd-score-ring -good">
+  <svg class="dd-score-ring__svg" viewBox="0 0 100 100" role="img" aria-label="Performance: 82 out of 100">
+    <circle class="dd-score-ring__track" cx="50" cy="50" r="42" fill="none" />
+    <circle class="dd-score-ring__value" cx="50" cy="50" r="42" fill="none" stroke-dasharray="263.9" stroke-dashoffset="47.5" transform="rotate(-90 50 50)" />
+    <text class="dd-score-ring__num" x="50" y="54" text-anchor="middle" aria-hidden="true">82</text>
+  </svg>
+  <div class="dd-score-ring__label">Performance</div>
+  <div class="dd-score-ring__sub">13 checks</div>
+</div>
+
+<!-- Warn tone, no sub line -->
+<div class="dd-score-ring -warn">
+  <svg class="dd-score-ring__svg" viewBox="0 0 100 100" role="img" aria-label="On-Page: 64 out of 100">
+    <circle class="dd-score-ring__track" cx="50" cy="50" r="42" fill="none" />
+    <circle class="dd-score-ring__value" cx="50" cy="50" r="42" fill="none" stroke-dasharray="263.9" stroke-dashoffset="95.0" transform="rotate(-90 50 50)" />
+    <text class="dd-score-ring__num" x="50" y="54" text-anchor="middle" aria-hidden="true">64</text>
+  </svg>
+  <div class="dd-score-ring__label">On-Page</div>
+</div>
+
+<!-- Link form: the <a> owns the name, the svg is decorative -->
+<a class="dd-score-ring -bad -link" href="#section-security" aria-label="Security: 40 out of 100. View details">
+  <svg class="dd-score-ring__svg" viewBox="0 0 100 100" aria-hidden="true">
+    <circle class="dd-score-ring__track" cx="50" cy="50" r="42" fill="none" />
+    <circle class="dd-score-ring__value" cx="50" cy="50" r="42" fill="none" stroke-dasharray="263.9" stroke-dashoffset="158.3" transform="rotate(-90 50 50)" />
+    <text class="dd-score-ring__num" x="50" y="54" text-anchor="middle" aria-hidden="true">40</text>
+  </svg>
+  <div class="dd-score-ring__label">Security</div>
+  <div class="dd-score-ring__sub">View details</div>
+</a>

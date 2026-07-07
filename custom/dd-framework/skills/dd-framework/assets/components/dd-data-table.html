@@ -1,0 +1,42 @@
+<!-- dd-data-table — semantic table + caption + th[scope], wrapped in a scroll region.
+     The scroll region's tabindex/role/aria-label are added by JS ONLY when the
+     table overflows; data-label supplies the accessible name (differentiate it
+     from the caption, e.g. append "scrollable"). Sort headers are native
+     <button> with aria-sort on the <th> (exactly one non-none). Status cells
+     embed dd-badge. Include an -empty row when there is no data. -->
+<div class="dd-data-table">
+  <div class="dd-data-table__scroll" data-label="Prioritized remediation tasks, scrollable">
+    <table class="dd-data-table__table" id="task-table">
+      <caption class="dd-data-table__caption">Prioritized remediation tasks</caption>
+      <thead>
+        <tr>
+          <th scope="col" class="dd-data-table__th" data-align="start">ID</th>
+          <th scope="col" class="dd-data-table__th" data-align="start" aria-sort="none">
+            <button type="button" class="dd-data-table__sort" data-sort-key="priority">Priority<span class="dd-data-table__sort-ind" aria-hidden="true"></span></button>
+          </th>
+          <th scope="col" class="dd-data-table__th" data-align="start">Finding</th>
+          <th scope="col" class="dd-data-table__th" data-align="end" aria-sort="none">
+            <button type="button" class="dd-data-table__sort" data-sort-key="effort">Effort<span class="dd-data-table__sort-ind" aria-hidden="true"></span></button>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="dd-data-table__row">
+          <th scope="row" class="dd-data-table__td" data-align="start">SEO-001</th>
+          <td class="dd-data-table__td"><span class="dd-badge -critical"><span class="dd-badge__label">Critical</span></span></td>
+          <td class="dd-data-table__td">Missing &lt;title&gt; tag</td>
+          <td class="dd-data-table__td" data-align="end">2h</td>
+        </tr>
+        <tr class="dd-data-table__row">
+          <th scope="row" class="dd-data-table__td" data-align="start">SEO-002</th>
+          <td class="dd-data-table__td"><span class="dd-badge -warning"><span class="dd-badge__label">Warning</span></span></td>
+          <td class="dd-data-table__td">Thin meta description</td>
+          <td class="dd-data-table__td" data-align="end">1h</td>
+        </tr>
+        <!-- Empty state (rendered instead of data rows when there is none):
+        <tr class="dd-data-table__row -empty"><td class="dd-data-table__td" colspan="4">No tasks to display.</td></tr>
+        -->
+      </tbody>
+    </table>
+  </div>
+</div>

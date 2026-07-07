@@ -123,8 +123,11 @@ def _check_component(comp_name: str, el: Any, findings: list[dict[str, Any]]) ->
     block = comp_name
     classes = _classes(el)
 
-    # Structural: most components require __items or __content child
-    if comp_name not in {"dd-spacer", "dd-banner"}:
+    # Structural: most components require __items or __content child.
+    # Components with their own structural root (list, table, svg, label) are exempt.
+    _NO_ITEMS = {"dd-spacer", "dd-banner", "dd-badge", "dd-bar-chart",
+                 "dd-data-table", "dd-finding", "dd-score-ring"}
+    if comp_name not in _NO_ITEMS:
         has_struct = _has_child_with_class(el, f"{block}__items") or _has_child_with_class(el, f"{block}__content")
         if not has_struct:
             findings.append({
@@ -198,6 +201,86 @@ def _check_component(comp_name: str, el: Any, findings: list[dict[str, Any]]) ->
                 findings.append({"severity": "warning", "component": comp_name,
                                  "line": getattr(fig, "sourceline", None),
                                  "message": "<figure> used without <img> — captions belong in <figcaption>"})
+    elif comp_name == "dd-badge":
+        # Meaning must be in the label text; badge is non-interactive.
+        if not _has_child_with_class(el, "dd-badge__label"):
+            findings.append({"severity": "error", "component": comp_name,
+                             "line": getattr(el, "sourceline", None),
+                             "message": "dd-badge missing dd-badge__label (meaning must be carried by text, not color)"})
+        if el.get("role") or el.get("tabindex") is not None:
+            findings.append({"severity": "warning", "component": comp_name,
+                             "line": getattr(el, "sourceline", None),
+                             "message": "dd-badge is non-interactive — should not carry role or tabindex"})
+        for icon in el.find_all(class_="dd-badge__icon"):
+            if icon.get("aria-hidden") != "true":
+                findings.append({"severity": "error", "component": comp_name,
+                                 "line": getattr(icon, "sourceline", None),
+                                 "message": "dd-badge__icon is decorative and must be aria-hidden=\"true\""})
+    elif comp_name == "dd-bar-chart":
+        if not (el.get("aria-labelledby") or el.get("aria-label")):
+            findings.append({"severity": "error", "component": comp_name,
+                             "line": getattr(el, "sourceline", None),
+                             "message": "dd-bar-chart figure/group must be named via aria-labelledby or aria-label"})
+        for track in el.find_all(class_="dd-bar-chart__track"):
+            if track.get("aria-hidden") != "true":
+                findings.append({"severity": "warning", "component": comp_name,
+                                 "line": getattr(track, "sourceline", None),
+                                 "message": "dd-bar-chart__track is decorative and should be aria-hidden=\"true\""})
+    elif comp_name == "dd-data-table":
+        table = el.find("table")
+        if not table:
+            findings.append({"severity": "error", "component": comp_name,
+                             "line": getattr(el, "sourceline", None),
+                             "message": "dd-data-table must contain a semantic <table>"})
+        elif not table.find("caption"):
+            findings.append({"severity": "error", "component": comp_name,
+                             "line": getattr(table, "sourceline", None),
+                             "message": "dd-data-table <table> must have a <caption>"})
+        if table and not table.find("th", attrs={"scope": True}):
+            findings.append({"severity": "error", "component": comp_name,
+                             "line": getattr(table, "sourceline", None),
+                             "message": "dd-data-table must use <th scope=...> header cells"})
+        # Scroll region attributes are toggled by JS on overflow — not hard-coded.
+        for scroll in el.find_all(class_="dd-data-table__scroll"):
+            if scroll.get("tabindex") is not None or scroll.get("role"):
+                findings.append({"severity": "warning", "component": comp_name,
+                                 "line": getattr(scroll, "sourceline", None),
+                                 "message": "dd-data-table__scroll tabindex/role are set by JS on overflow — do not hard-code in source"})
+        # At most one column may be actively sorted (aria-sort != none).
+        active = [th for th in (table.find_all("th", attrs={"aria-sort": True}) if table else [])
+                  if th.get("aria-sort") != "none"]
+        if len(active) > 1:
+            findings.append({"severity": "error", "component": comp_name,
+                             "line": getattr(el, "sourceline", None),
+                             "message": "dd-data-table must have at most one column with a non-\"none\" aria-sort"})
+    elif comp_name == "dd-finding":
+        if not (el.find("ol") or el.find("ul")):
+            findings.append({"severity": "error", "component": comp_name,
+                             "line": getattr(el, "sourceline", None),
+                             "message": "dd-finding must use real list semantics (<ol> or <ul>)"})
+    elif comp_name == "dd-score-ring":
+        svg = el.find("svg")
+        if el.name == "a":
+            # Link form: <a> owns the name, svg is decorative.
+            if not (el.get("aria-label") or el.get("aria-labelledby")):
+                findings.append({"severity": "error", "component": comp_name,
+                                 "line": getattr(el, "sourceline", None),
+                                 "message": "dd-score-ring -link form: <a> must own the accessible name"})
+            if svg and svg.get("aria-hidden") != "true":
+                findings.append({"severity": "error", "component": comp_name,
+                                 "line": getattr(svg, "sourceline", None),
+                                 "message": "dd-score-ring -link form: svg must be aria-hidden (name lives on the <a>)"})
+        else:
+            # Figure form: svg carries role=img + accessible name.
+            if svg is not None:
+                if svg.get("role") != "img":
+                    findings.append({"severity": "error", "component": comp_name,
+                                     "line": getattr(svg, "sourceline", None),
+                                     "message": "dd-score-ring figure form: svg needs role=\"img\""})
+                if not (svg.get("aria-label") or svg.get("aria-labelledby")):
+                    findings.append({"severity": "error", "component": comp_name,
+                                     "line": getattr(svg, "sourceline", None),
+                                     "message": "dd-score-ring figure form: svg needs an aria-label with the score"})
 
 
 def cmd_validate(args: argparse.Namespace) -> None:

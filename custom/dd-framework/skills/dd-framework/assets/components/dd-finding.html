@@ -1,0 +1,31 @@
+<!-- dd-finding — audit findings list. Real <ol>/<ul> list semantics (1.3.1).
+     Severity stated by the badge WORD, not the stripe color alone (1.4.1).
+     __heading level is illustrative here (h4) — set it to continue the actual
+     page outline without skipping levels. Use <ol> when order = priority. -->
+<div class="dd-finding">
+  <h4 class="dd-finding__heading">Priority findings</h4>
+  <ol class="dd-finding__list">
+    <li class="dd-finding__item -critical">
+      <span class="dd-finding__badge"><span class="dd-badge -critical"><span class="dd-badge__label">Critical</span></span></span>
+      <div class="dd-finding__body">
+        <p class="dd-finding__title">Missing &lt;title&gt; tag</p>
+        <p class="dd-finding__evidence">No &lt;title&gt; in &lt;head&gt;.</p>
+        <p class="dd-finding__fix"><span class="dd-finding__fix-label">Fix:</span> Add a unique 50–60 char title.</p>
+      </div>
+    </li>
+    <li class="dd-finding__item -info">
+      <span class="dd-finding__badge"><span class="dd-badge -info"><span class="dd-badge__label">Info</span></span></span>
+      <div class="dd-finding__body">
+        <p class="dd-finding__title">Striking-distance query ‘web design’ at position 12</p>
+        <p class="dd-finding__evidence">4,200 impressions, 0.8% CTR.</p>
+        <p class="dd-finding__fix"><span class="dd-finding__fix-label">Fix:</span> Strengthen on-page relevance and internal links.</p>
+      </div>
+    </li>
+    <li class="dd-finding__item -pass">
+      <span class="dd-finding__badge"><span class="dd-badge -pass"><span class="dd-badge__label">Pass</span></span></span>
+      <div class="dd-finding__body">
+        <p class="dd-finding__title">Canonical tags present on all pages</p>
+      </div>
+    </li>
+  </ol>
+</div>

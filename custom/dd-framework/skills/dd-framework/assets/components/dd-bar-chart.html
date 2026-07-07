@@ -1,0 +1,25 @@
+<!-- dd-bar-chart — dependency-free horizontal bars.
+     figure role="group" named via aria-labelledby -> visible figcaption
+     (use aria-label instead when there is no caption).
+     Label + value text is the accessible truth; track/fill are decorative
+     (aria-hidden). Value never clipped behind the bar (1.4.10). -->
+<figure class="dd-bar-chart" role="group" aria-labelledby="barchart-cap-1">
+  <figcaption class="dd-bar-chart__caption" id="barchart-cap-1">Category scores</figcaption>
+  <ul class="dd-bar-chart__list">
+    <li class="dd-bar-chart__row -good">
+      <span class="dd-bar-chart__label">Performance</span>
+      <span class="dd-bar-chart__track" aria-hidden="true"><span class="dd-bar-chart__fill" style="inline-size: 82%"></span></span>
+      <span class="dd-bar-chart__value">82/100</span>
+    </li>
+    <li class="dd-bar-chart__row -warn">
+      <span class="dd-bar-chart__label">On-Page</span>
+      <span class="dd-bar-chart__track" aria-hidden="true"><span class="dd-bar-chart__fill" style="inline-size: 64%"></span></span>
+      <span class="dd-bar-chart__value">64/100</span>
+    </li>
+    <li class="dd-bar-chart__row -bad">
+      <span class="dd-bar-chart__label">Security</span>
+      <span class="dd-bar-chart__track" aria-hidden="true"><span class="dd-bar-chart__fill" style="inline-size: 40%"></span></span>
+      <span class="dd-bar-chart__value">40/100</span>
+    </li>
+  </ul>
+</figure>
