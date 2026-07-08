@@ -440,87 +440,188 @@ def build_docx(path, results, rows):
         docx.writestr("word/document.xml", document_xml)
 
 
+# --- dd-framework component builders -------------------------------------
+# axe severity → dd-badge tone. The badge LABEL keeps the axe word (Critical /
+# Serious / Moderate / Minor) so meaning never rides on color alone (1.4.1);
+# only the color class is remapped. 'minor' → plain neutral badge (no class).
+_SEVERITY_MOD = {
+    "critical": "-critical",
+    "serious": "-warning",
+    "moderate": "-info",
+    "minor": "",
+}
+
+_DOWNLOAD_FORMATS = {
+    "md": "Markdown", "csv": "CSV", "docx": "DOCX", "json": "JSON", "pdf": "PDF",
+}
+
+
+def _badge(impact, label):
+    """dd-badge pill. Meaning is carried by the label text, not color (1.4.1)."""
+    mod = _SEVERITY_MOD.get((impact or "").lower(), "")
+    cls = f"dd-badge {mod}" if mod else "dd-badge"
+    return (f'<span class="{cls}"><span class="dd-badge__label">'
+            f'{html.escape(str(label))}</span></span>')
+
+
+def copy_framework_assets(output_dir):
+    """Copy compiled framework CSS/JS + favicon/imgs into the report bundle."""
+    src = TEMPLATES_DIR / "assets"
+    if not src.is_dir():
+        return
+    dst = Path(output_dir) / "assets"
+    for sub in ("css", "js", "favicon", "imgs"):
+        candidate = src / sub
+        if candidate.is_dir():
+            shutil.copytree(candidate, dst / sub, dirs_exist_ok=True)
+
+
+def _render_severity_bars(summary):
+    """Server-rendered dd-bar-chart rows. Label + count text is the accessible
+    truth; the track/fill are decorative (aria-hidden). Widths are proportional
+    to the largest count so the client width-calc JS is no longer needed."""
+    order = [
+        ("critical", "Critical", summary.get("critical_violations", 0)),
+        ("serious", "Serious", summary.get("serious_violations", 0)),
+        ("moderate", "Moderate", summary.get("moderate_violations", 0)),
+        ("minor", "Minor", summary.get("minor_violations", 0)),
+    ]
+    top = max((c for _, _, c in order), default=0) or 1
+    rows = []
+    for _impact, label, count in order:
+        pct = round((count / top) * 100)
+        rows.append(
+            f'<li class="dd-bar-chart__row">'
+            f'<span class="dd-bar-chart__label">{label}</span>'
+            f'<span class="dd-bar-chart__track" aria-hidden="true">'
+            f'<span class="dd-bar-chart__fill" style="inline-size: {pct}%"></span></span>'
+            f'<span class="dd-bar-chart__value">{count}</span>'
+            f'</li>'
+        )
+    return "\n".join(rows)
+
+
+def _render_page_cards(pages):
+    """dd-card grid — one card per audited page. The URL is the card <h3> title
+    (M1); the screenshot is illustrative → alt="" (1.1.1), reached via a
+    self-describing link (2.4.4/2.5.3)."""
+    cards = []
+    for page in pages:
+        page_url = page.get("page_url") or page.get("metadata", {}).get("url", "")
+        shot = page.get("screenshots", {}).get("full_page")
+        score_val = page.get("metadata", {}).get("score", "n/a")
+        esc_url = html.escape(page_url)
+        image = ""
+        extra = ""
+        if shot:
+            esc_shot = html.escape(shot)
+            image = (
+                f'<div class="dd-card__image">'
+                f'<img src="{esc_shot}" alt="" class="dd-image" loading="lazy"></div>'
+            )
+            extra = (
+                f'<div class="dd-card__links dd-g"><div class="dd-card__link">'
+                f'<a href="{esc_shot}" class="dd-button -secondary">View screenshot'
+                f'<span class="visually-hidden"> of {esc_url}</span></a></div></div>'
+            )
+        else:
+            extra = '<p class="muted">No screenshot captured for this page.</p>'
+        cards.append(
+            f'<div class="dd-card__item l-box dd-u-1-1 dd-u-md-12-24" data-aos="fade-up">'
+            f'<div class="dd-card__body dd-g">'
+            f'{image}'
+            f'<div class="dd-card__copy l-box">'
+            f'<div class="dd-card__title"><h3>{esc_url}</h3></div>'
+            f'<div class="dd-card__sub-title"><strong>Score: {html.escape(str(score_val))} / 100</strong></div>'
+            f'{extra}'
+            f'</div></div></div>'
+        )
+    if not cards:
+        return (
+            '<div class="dd-card__item l-box dd-u-1-1"><div class="dd-card__body">'
+            '<div class="dd-card__copy l-box">'
+            '<p class="muted">No page previews available for this audit.</p>'
+            '</div></div></div>'
+        )
+    return "\n".join(cards)
+
+
+def _render_task_rows(rows):
+    if not rows:
+        return (
+            '<tr class="dd-data-table__row -empty">'
+            '<td class="dd-data-table__td" colspan="8">'
+            'No violations found — page is clean.</td></tr>'
+        )
+    out = []
+    for r in rows:
+        priority = r["priority"]
+        # Screenshot cell needs a unique, context-bearing accessible name
+        # (2.4.4/2.5.3) — the visible word ("Issue"/"Page") is a substring of it.
+        if r.get("issue_screenshot"):
+            shot = (
+                f'<a href="{html.escape(r["issue_screenshot"])}">Issue'
+                f'<span class="visually-hidden"> screenshot for {html.escape(r["task_id"])}</span></a>'
+            )
+        elif r.get("page_screenshot"):
+            shot = (
+                f'<a href="{html.escape(r["page_screenshot"])}">Page'
+                f'<span class="visually-hidden"> screenshot for {html.escape(r["task_id"])}</span></a>'
+            )
+        else:
+            shot = '<span class="muted">n/a</span>'
+        out.append(
+            f'<tr class="dd-data-table__row">'
+            f'<th scope="row" class="dd-data-table__td">{html.escape(r["task_id"])}</th>'
+            f'<td class="dd-data-table__td">{html.escape(r["page_url"])}</td>'
+            f'<td class="dd-data-table__td">{_badge(priority.lower(), priority)}</td>'
+            f'<td class="dd-data-table__td">{html.escape(r["issue"])}</td>'
+            f'<td class="dd-data-table__td">{html.escape(r["owner"])}</td>'
+            f'<td class="dd-data-table__td">{html.escape(r["timeline"])}</td>'
+            f'<td class="dd-data-table__td app-selector">{html.escape(r["selector"])}</td>'
+            f'<td class="dd-data-table__td">{shot}</td>'
+            f'</tr>'
+        )
+    return "\n".join(out)
+
+
+def _render_download_links(links):
+    out = []
+    for label, filename in links:
+        fmt = _DOWNLOAD_FORMATS.get(filename.rsplit(".", 1)[-1].lower(), "File")
+        text = f"{html.escape(label)} ({fmt})"
+        out.append(
+            f'<div class="dd-section__item dd-u-1-1 dd-u-lg-8-24 l-box">'
+            f'<a href="{html.escape(filename)}" download class="dd-button -secondary" '
+            f'aria-label="Download {text}">{text}</a></div>'
+        )
+    return "\n".join(out)
+
+
 def build_dashboard(path, results, rows):
     template_path = TEMPLATES_DIR / "dashboard.html"
     if not template_path.exists():
         raise FileNotFoundError(f"Dashboard template not found: {template_path}")
 
     brand = load_brand_config()
-    logo_path = ensure_brand_asset(path.parent, brand.get("agency_logo", "assets/agency-logo.svg"))
+    logo_path = ensure_brand_asset(path.parent, brand.get("agency_logo", "assets/imgs/logo-mini.svg"))
+    copy_framework_assets(path.parent)
     score = results["metadata"]["score"]
+    summary = results["summary"]
     pages = get_pages(results)
     download_links = [
         ("WCAG Audit Report", "WCAG-AUDIT-REPORT.md"),
         ("Accessibility Action Plan", "ACCESSIBILITY-ACTION-PLAN.md"),
-        ("Remediation Tasks CSV", "REMEDIATION-TASKS.csv"),
-        ("Client DOCX Report", "A11Y-CLIENT-REPORT.docx"),
-        ("Raw axe Results JSON", "axe-results.json"),
+        ("Remediation Tasks", "REMEDIATION-TASKS.csv"),
+        ("Client Report", "A11Y-CLIENT-REPORT.docx"),
+        ("Raw axe Results", "axe-results.json"),
     ]
-    downloads = "".join(
-        (
-            '<a class="download-link" href="{href}">'
-            '<div class="download-label">{label}</div>'
-            '<div class="download-file">{filename}</div>'
-            '</a>'
-        ).format(
-            href=html.escape(filename),
-            label=html.escape(label),
-            filename=html.escape(filename),
-        )
-        for label, filename in download_links
-    )
-    cards = []
-    for row in rows:
-        screenshot_cell = "n/a"
-        if row["issue_screenshot"]:
-            screenshot_cell = (
-                f'<a href="{html.escape(row["issue_screenshot"])}">Issue</a>'
-            )
-        elif row["page_screenshot"]:
-            screenshot_cell = (
-                f'<a href="{html.escape(row["page_screenshot"])}">Page</a>'
-            )
-        cards.append(
-            f"""
-            <tr>
-              <td>{html.escape(row['task_id'])}</td>
-              <td>{html.escape(row['page_url'])}</td>
-              <td><span class="priority-pill" data-severity="{html.escape(row['priority'].lower())}">{html.escape(row['priority'])}</span></td>
-              <td>{html.escape(row['issue'])}</td>
-              <td>{html.escape(row['owner'])}</td>
-              <td>{html.escape(row['timeline'])}</td>
-              <td>{html.escape(row['selector'])}</td>
-              <td>{screenshot_cell}</td>
-            </tr>
-            """
-        )
-    table_rows = "".join(cards) or "<tr><td colspan='8'>No violations found.</td></tr>"
-    page_sections = []
-    for page in pages:
-        page_url = page.get("page_url") or page.get("metadata", {}).get("url", "")
-        full_page = page.get("screenshots", {}).get("full_page")
-        score_val = page.get("metadata", {}).get("score", "n/a")
-        image = (
-            f'<a href="{html.escape(full_page)}" class="page-shot">'
-            f'<img src="{html.escape(full_page)}" alt="Full-page screenshot of {html.escape(page_url)}" loading="lazy">'
-            f'</a>'
-        ) if full_page else (
-            '<div class="page-shot--empty">No screenshot captured</div>'
-        )
-        page_sections.append(
-            f"""
-            <article class="page-card">
-              <div class="page-card-label">Audited Page</div>
-              <div class="page-card-url">{html.escape(page_url)}</div>
-              <div class="page-card-score">Score: <strong>{html.escape(str(score_val))} / 100</strong></div>
-              {image}
-            </article>
-            """
-        )
-    if not page_sections:
-        page_sections.append(
-            '<div class="note">No page previews available for this audit.</div>'
-        )
+    total_issues = summary.get("total_violations", (
+        summary["critical_violations"]
+        + summary["serious_violations"]
+        + summary["moderate_violations"]
+        + summary["minor_violations"]
+    ))
     html_doc = render_template(
         template_path.read_text(encoding="utf-8"),
         {
@@ -534,25 +635,16 @@ def build_dashboard(path, results, rows):
             "AGENCY_NAME": html.escape(brand.get("agency_name", "Accessibility Audit Team")),
             "AGENCY_KICKER": html.escape(brand.get("agency_kicker", "Accessibility Audit")),
             "AGENCY_LOGO": html.escape(logo_path),
-            "AGENCY_LOGO_INITIAL": html.escape(
-                (brand.get("agency_logo_initial")
-                 or brand.get("agency_name", "A")[:1]).upper()
-            ),
             "AUDIT_URL": html.escape(results["metadata"]["url"]),
             "AUDIT_DATE": html.escape(format_audit_date(results["metadata"]["timestamp"])),
             "WCAG_TARGET": html.escape(f"Level {results['metadata']['wcag_level']}"),
             "SCORE_VALUE": html.escape(f"{score}"),
             "SCORE_RATING": html.escape(score_label(score)),
-            "CRITICAL_COUNT": html.escape(str(results["summary"]["critical_violations"])),
-            "SERIOUS_COUNT": html.escape(str(results["summary"]["serious_violations"])),
-            "MODERATE_COUNT": html.escape(str(results["summary"]["moderate_violations"])),
-            "MINOR_COUNT": html.escape(str(results["summary"]["minor_violations"])),
-            "TOTAL_ISSUES": html.escape(str(results["summary"].get("total_violations", (
-                results["summary"]["critical_violations"]
-                + results["summary"]["serious_violations"]
-                + results["summary"]["moderate_violations"]
-                + results["summary"]["minor_violations"]
-            )))),
+            "CRITICAL_COUNT": html.escape(str(summary["critical_violations"])),
+            "SERIOUS_COUNT": html.escape(str(summary["serious_violations"])),
+            "MODERATE_COUNT": html.escape(str(summary["moderate_violations"])),
+            "MINOR_COUNT": html.escape(str(summary["minor_violations"])),
+            "TOTAL_ISSUES": html.escape(str(total_issues)),
             "TASK_COUNT": html.escape(str(len(rows))),
             "DOWNLOADS_NOTE": html.escape(
                 brand.get(
@@ -566,34 +658,16 @@ def build_dashboard(path, results, rows):
                     "These issues are prioritized for remediation planning and implementation tracking.",
                 )
             ),
-            "PAGE_SUMMARY_SECTIONS": "".join(page_sections),
+            "SEVERITY_BARS": _render_severity_bars(summary),
+            "PAGE_CARDS": _render_page_cards(pages),
             "FOOTER_TEXT": html.escape(
                 brand.get(
                     "footer_text",
                     "Prepared by the accessibility audit team.",
                 )
             ),
-            "DOWNLOAD_LINKS": downloads,
-            "TASK_ROWS": table_rows,
-            "DISPLAY_FONT": brand.get("display_font", "Georgia, serif"),
-            "BODY_FONT": brand.get("body_font", "Arial, sans-serif"),
-            "UI_FONT": brand.get("ui_font", "Arial, sans-serif"),
-            "BRAND_BG": brand.get("brand_bg", "#f5f1e8"),
-            "BRAND_BG_TOP": brand.get("brand_bg_top", "#efe6d6"),
-            "BRAND_SURFACE": brand.get("brand_surface", "#fffdf8"),
-            "BRAND_TEXT": brand.get("brand_text", "#1e1e1b"),
-            "BRAND_MUTED": brand.get("brand_muted", "#665f57"),
-            "BRAND_ACCENT": brand.get("brand_accent", "#b24c2a"),
-            "BRAND_ACCENT_2": brand.get("brand_accent_2", "#2d6a4f"),
-            "BRAND_LINE": brand.get("brand_line", "#dbcdb6"),
-            "BRAND_SHADOW": brand.get("brand_shadow", "rgba(0,0,0,.06)"),
-            "BRAND_GLOW_1": brand.get("brand_glow_1", "rgba(182, 90, 46, 0.14)"),
-            "BRAND_GLOW_2": brand.get("brand_glow_2", "rgba(15, 118, 110, 0.12)"),
-            "HERO_BG_1": brand.get("hero_bg_1", "#f7efe3"),
-            "HERO_BG_2": brand.get("hero_bg_2", "#f3e5d9"),
-            "TABLE_HEAD_BG": brand.get("table_head_bg", "#f3eadb"),
-            "PRIORITY_BG": brand.get("priority_bg", "#f8e0d7"),
-            "PRIORITY_TEXT": brand.get("priority_text", "#8d3f1e"),
+            "DOWNLOAD_LINKS": _render_download_links(download_links),
+            "TASK_ROWS": _render_task_rows(rows),
         },
     )
     Path(path).write_text(html_doc, encoding="utf-8")
