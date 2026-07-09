@@ -54,7 +54,7 @@ dd-vreg-audit/                                 ← plugin root
 │     ├─ writeCsv / writeActionPlan / writeDocx    ← deliverable writers
 │     └─ copyTemplateAssets                        ← recursive asset copy into bundle
 ├── templates/                                 ← shared with dd-a11y / dd-seo layout
-│   ├── dashboard.html                         ← Tailwind dashboard with {{PLACEHOLDERS}}
+│   ├── dashboard.html                         ← ldnddev Framework dashboard with {{PLACEHOLDERS}}
 │   ├── brand.json                             ← agency name, logo path, copy strings
 │   └── assets/                                ← logo-mini.svg + favicon set
 └── skills/dd-vreg/
@@ -103,7 +103,7 @@ These are non-obvious invariants. Violating them breaks the contract that the re
 5. **Output dir naming is `web/<Project>-vreg-<YYYY-MM-DD>/`** — no hour/minute. Matches dd-a11y/dd-seo. Tests scripted on the legacy `web/<Project>-MMDDYYYY-HHMM/` format must be updated.
 6. **WCAG 2.2 AA on the dashboard** — `index.html` must pass axe-core with zero violations. The skill itself ships visual regression audits; its own deliverable being inaccessible is unacceptable. Run axe-core via playwright after template changes.
 7. **`SessionStart` bootstrap idempotency** — `hooks/bootstrap.sh` writes `.dd-vreg-bootstrap.ok` sentinel and skips on subsequent sessions. `DD_VREG_SKIP_BROWSER=1` skips Chromium download. Do not remove either escape hatch.
-8. **No third-party CDN dependency in the audit logic** — Playwright and pixelmatch are bundled via `npm install`. The dashboard HTML loads Tailwind + Font Awesome from CDN — that is intentional and acceptable for a client deliverable; the audit script itself does not.
+8. **No third-party CDN dependency** — Playwright and pixelmatch are bundled via `npm install`. The dashboard is built on the **ldnddev Framework**: `templates/assets/css/style.min.css` + `js/main.min.js` are copied into every bundle (recursive `copyTemplateAssets`) and linked relatively — no CDN, no Tailwind, no Font Awesome. Dark mode is framework-driven (`prefers-color-scheme`); there is no manual theme toggle. The dashboard is built from framework components (`dd-header`/`dd-section`/`dd-data-table`/`dd-bar-chart`/`dd-badge`/`dd-footer`); the render* helpers emit framework markup. Per-page previews are semantic `<figure>` 3-ups (test/prod/diff), each linked `<img>` carrying a role-explicit non-empty `alt`. Validate rendered output with `dd_framework_helper.py validate index.html`.
 
 ## Reference material
 

@@ -287,14 +287,32 @@ function severityCounts(results) {
 
 // --- Section renderers ------------------------------------------------------
 
-function severityPill(label) {
-  const sev = String(label).toLowerCase();
-  return `<span class="priority-pill" data-severity="${htmlEscape(sev)}">${htmlEscape(label)}</span>`;
+// dd-badge: meaning is carried by the label TEXT, not color alone (1.4.1).
+const _SEVERITY_MOD = { critical: '-critical', warning: '-warning', pass: '-pass' };
+
+function severityBadge(label) {
+  const mod = _SEVERITY_MOD[String(label).toLowerCase()] || '';
+  const cls = mod ? `dd-badge ${mod}` : 'dd-badge';
+  return `<span class="${cls}"><span class="dd-badge__label">${htmlEscape(label)}</span></span>`;
+}
+
+// Server-rendered dd-bar-chart rows. Label + count text is the accessible truth;
+// the track/fill are decorative (aria-hidden). Widths proportional to the largest
+// count — no client width-calc JS needed.
+function renderSeverityBars(counts) {
+  const order = [['Critical', counts.Critical], ['Warning', counts.Warning], ['Pass', counts.Pass]];
+  const top = Math.max(1, ...order.map(([, c]) => c));
+  return order.map(([label, count]) => {
+    const width = Math.round((count / top) * 100);
+    return `<li class="dd-bar-chart__row"><span class="dd-bar-chart__label">${label}</span>`
+      + `<span class="dd-bar-chart__track" aria-hidden="true"><span class="dd-bar-chart__fill" style="inline-size: ${width}%"></span></span>`
+      + `<span class="dd-bar-chart__value">${count}</span></li>`;
+  }).join('\n');
 }
 
 function renderSeverityRows(results) {
   if (!results.length) {
-    return `<tr><td colspan="6" class="muted">No diffs captured.</td></tr>`;
+    return `<tr class="dd-data-table__row -empty"><td class="dd-data-table__td" colspan="6">No diffs captured.</td></tr>`;
   }
   const sorted = [...results].sort((a, b) =>
     severitySortKey(a.severity.label) - severitySortKey(b.severity.label)
@@ -304,13 +322,13 @@ function renderSeverityRows(results) {
   return sorted.map((r) => {
     const body = (r.region_metrics.body_ratio * 100).toFixed(2) + '%';
     const top  = (r.region_metrics.top_ratio * 100).toFixed(2) + '%';
-    return `<tr>
-      <td>${htmlEscape(r.page)}</td>
-      <td>${htmlEscape(r.viewport)}</td>
-      <td>${severityPill(r.severity.label)}</td>
-      <td>${body}</td>
-      <td>${top}</td>
-      <td>${htmlEscape(r.severity.note || '')}</td>
+    return `<tr class="dd-data-table__row">
+      <th scope="row" class="dd-data-table__td">${htmlEscape(r.page)}</th>
+      <td class="dd-data-table__td">${htmlEscape(r.viewport)}</td>
+      <td class="dd-data-table__td">${severityBadge(r.severity.label)}</td>
+      <td class="dd-data-table__td">${body}</td>
+      <td class="dd-data-table__td">${top}</td>
+      <td class="dd-data-table__td">${htmlEscape(r.severity.note || '')}</td>
     </tr>`;
   }).join('\n');
 }
@@ -326,6 +344,7 @@ function renderPagePreviewSections(results) {
   const articles = [];
   for (const [page, items] of byPage.entries()) {
     items.sort((a, b) => a.viewport.localeCompare(b.viewport));
+    const slug = pageSlug(page);
     const viewportRows = items.map((r) => {
       const testRel = path.relative(r.output_dir, r.test_screenshot).split(path.sep).join('/');
       const prodRel = path.relative(r.output_dir, r.prod_screenshot).split(path.sep).join('/');
@@ -333,38 +352,57 @@ function renderPagePreviewSections(results) {
       const bodyPctStr = (r.region_metrics.body_ratio * 100).toFixed(2);
       const topPctStr = (r.region_metrics.top_ratio * 100).toFixed(2);
       const vpDims = r.viewport === 'desktop' ? '1440×1200' : '390×844';
+      const at = `${page} at ${r.viewport}`;
+      const note = r.severity.note ? ` · ${htmlEscape(r.severity.note)}` : '';
 
-      const diffAlt = r.changed_pixels === 0
-        ? `No visual diff for ${r.viewport} ${page}`
-        : `Diff screenshot, ${bodyPctStr}% body changed, ${topPctStr}% top-quarter changed, ${r.viewport} ${page}`;
+      // Each shot is a <figure> whose linked <img> carries a role-explicit,
+      // non-empty alt (the link's accessible name, 2.4.4/1.1.1); the figcaption
+      // names the shot's role. DOM order test → prod → diff = before → after → delta.
+      const testFig = `<figure class="app-shot">
+            <a href="${htmlEscape(testRel)}"><img src="${htmlEscape(testRel)}" alt="Test build screenshot, ${htmlEscape(at)} — open full size" loading="lazy"></a>
+            <figcaption>Test build</figcaption>
+          </figure>`;
+      const prodFig = `<figure class="app-shot">
+            <a href="${htmlEscape(prodRel)}"><img src="${htmlEscape(prodRel)}" alt="Production baseline screenshot, ${htmlEscape(at)} — open full size" loading="lazy"></a>
+            <figcaption>Production baseline</figcaption>
+          </figure>`;
+      const diffFig = r.changed_pixels === 0
+        ? `<figure class="app-shot">
+            <div class="app-shot-empty">No pixel diff — no visual change</div>
+            <figcaption>Pixel diff</figcaption>
+          </figure>`
+        : `<figure class="app-shot">
+            <a href="${htmlEscape(diffRel)}"><img src="${htmlEscape(diffRel)}" alt="Pixel-difference overlay, ${htmlEscape(at)}: ${bodyPctStr}% of body changed, ${topPctStr}% of top quarter changed — open full size" loading="lazy"></a>
+            <figcaption>Pixel diff · ${bodyPctStr}% body · ${topPctStr}% top</figcaption>
+          </figure>`;
 
-      const diffCell = r.changed_pixels === 0
-        ? `<div class="shot--empty">No visual changes</div>`
-        : `<a href="${htmlEscape(diffRel)}" class="shot" aria-label="Open full-size ${diffAlt}"><img src="${htmlEscape(diffRel)}" alt="${htmlEscape(diffAlt)}" loading="lazy"></a>`;
-
-      return `<figure class="preview-vp" aria-labelledby="vp-${pageSlug(page)}-${r.viewport}">
-        <figcaption id="vp-${pageSlug(page)}-${r.viewport}" class="preview-vp-cap"><span class="vp-name">${htmlEscape(r.viewport)}</span> · ${vpDims} · ${severityPill(r.severity.label)} <span class="meta">Body ${bodyPctStr}% · Top ${topPctStr}%${r.severity.note ? ' · ' + htmlEscape(r.severity.note) : ''}</span></figcaption>
-        <div class="preview-grid">
-          <a href="${htmlEscape(testRel)}" class="shot" aria-label="Open full-size ${r.viewport} test screenshot for ${page}"><img src="${htmlEscape(testRel)}" alt="${htmlEscape(r.viewport + ' test screenshot for ' + page)}" loading="lazy"></a>
-          <a href="${htmlEscape(prodRel)}" class="shot" aria-label="Open full-size ${r.viewport} prod screenshot for ${page}"><img src="${htmlEscape(prodRel)}" alt="${htmlEscape(r.viewport + ' prod screenshot for ' + page)}" loading="lazy"></a>
-          ${diffCell}
+      return `<div class="app-vp">
+        <h4 class="app-vp-title" id="vp-${slug}-${r.viewport}">${htmlEscape(r.viewport)}</h4>
+        <p class="app-vp-meta">${vpDims} · ${severityBadge(r.severity.label)} <span>Body ${bodyPctStr}% · Top ${topPctStr}%${note}</span></p>
+        <div class="app-shots">
+          ${testFig}
+          ${prodFig}
+          ${diffFig}
         </div>
-      </figure>`;
+      </div>`;
     }).join('\n');
 
-    articles.push(`<article class="preview-page" aria-labelledby="page-${pageSlug(page)}">
-      <h3 id="page-${pageSlug(page)}">${htmlEscape(page)}</h3>
+    articles.push(`<article class="app-page" aria-labelledby="page-${slug}">
+      <h3 id="page-${slug}">${htmlEscape(page)}</h3>
       ${viewportRows}
     </article>`);
   }
+  if (!articles.length) return '<p class="muted">No page previews available.</p>';
   return articles.join('\n');
 }
 
 function renderDownloadLinks(artifacts) {
-  return artifacts.map(({ kind, label, filename }) => `<a href="${htmlEscape(filename)}" download class="download-btn">
-    <span class="kind">${htmlEscape(kind)}</span>
-    <span class="label">${htmlEscape(label)}</span>
-  </a>`).join('\n');
+  // dd-button per artifact; visible "{label} ({kind})" is a substring of the
+  // accessible name (2.5.3); kind matches the real file extension.
+  return artifacts.map(({ kind, label, filename }) => {
+    const text = `${htmlEscape(label)} (${htmlEscape(kind)})`;
+    return `<div class="dd-section__item dd-u-1-1 dd-u-lg-8-24 l-box"><a href="${htmlEscape(filename)}" download class="dd-button -secondary" aria-label="Download ${text}">${text}</a></div>`;
+  }).join('\n');
 }
 
 // --- Template render --------------------------------------------------------
@@ -392,6 +430,7 @@ async function renderDashboard(spec, results, brand, audit_date, artifacts) {
     WARNING_COUNT: String(counts.Warning),
     PASS_COUNT: String(counts.Pass),
     TASK_COUNT: String(results.length),
+    SEVERITY_BARS: renderSeverityBars(counts),
     SEVERITY_ROWS: renderSeverityRows(results),
     PAGE_PREVIEW_SECTIONS: renderPagePreviewSections(results),
     DOWNLOAD_LINKS: renderDownloadLinks(artifacts),
@@ -742,7 +781,19 @@ async function main() {
   console.log(outputDir);
 }
 
-main().catch((error) => {
-  console.error(error.message || error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error.message || error);
+    process.exit(1);
+  });
+}
+
+// Exported for smoke-testing the HTML builders without launching Playwright.
+module.exports = {
+  renderDashboard,
+  renderSeverityRows,
+  renderSeverityBars,
+  renderPagePreviewSections,
+  renderDownloadLinks,
+  severityBadge,
+};
