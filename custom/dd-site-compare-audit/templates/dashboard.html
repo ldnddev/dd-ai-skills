@@ -1,790 +1,524 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Website Comparison Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon/favicon-96x96.png" />
+  <link rel="shortcut icon" href="assets/favicon/favicon.ico" />
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="assets/favicon/site.webmanifest" />
+
+  <!-- ldnddev Framework: compiled stylesheet + component JS.
+       Linked from the bundle root assets/ folder (style.min.css + main.min.js).
+       Dark mode is driven by the framework via prefers-color-scheme.
+       Detail-table column sort, aria-sort upkeep, and scroll-region keyboard
+       access all come from main.min.js (dd_data_table) — not reimplemented here. -->
+  <link rel="stylesheet" href="assets/css/style.min.css">
+  <script src="assets/js/main.min.js" defer></script>
+
+  <!-- Minimal shell CSS: only the dashboard bits the framework has no component
+       for (skip link, summary readout, sticky rail, pill wrap). System colors
+       (Canvas/CanvasText/GrayText) adapt to light/dark with no tokens. -->
   <style>
-    /* Hallmark · redesign of dashboard.html template
-     * macrostructure: Workbench (adapted for data comparison "workbench")
-     * genre: modern-minimal
-     * theme: Quiet (system-native restraint, mono ink as accent, tiny focus blue)
-     * tokens: OKLCH only, 4pt scale, 2+1 typography (sans + mono label)
-     * pre-emit critique: P4 H5 E5 S4 R5 V5 (restraint high, variety in rail/canvas rhythm)
-     */
-
-    :root {
-      color-scheme: light dark;
-
-      /* Quiet (adapted for dashboard utility + semantic status) */
-      --color-paper:    oklch(100% 0 0);
-      --color-paper-2:  oklch(98.5% 0 0);
-      --color-paper-3:  oklch(96% 0 0);
-      --color-rule:     oklch(91% 0 0);
-      --color-rule-2:   oklch(82% 0 0);
-      --color-muted:    oklch(50% 0 0);  /* darkened from 55% for AA: ≥4.5:1 small text on all paper surfaces */
-      --color-neutral:  oklch(40% 0 0);
-      --color-ink-2:    oklch(28% 0 0);
-      --color-ink:      oklch(15% 0 0);
-      --color-accent:   oklch(15% 0 0);      /* mono — the data is the accent */
-      --color-focus:    oklch(60% 0.10 240); /* tiny blue, keyboard only */
-
-      /* Semantic for status (low chroma tints, Quiet spirit) */
-      --color-good:     oklch(42% 0.09 145);
-      --color-warn:     oklch(52% 0.09 85);
-      --color-bad:      oklch(48% 0.09 25);
-      --color-best:     oklch(45% 0.06 210); /* subtle for "winner" highlights */
-
-      /* Typography — 2+1, system stacks (no external fonts) */
-      --font-display: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --font-body:    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --font-label:   ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --font-mono:    ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-
-      --display-weight: 500;
-      --body-weight: 400;
-      --label-weight: 500;
-
-      --tracking-tight: -0.015em;
-      --tracking-label: 0.04em;
-
-      /* 4pt scale (named, not raw) */
-      --space-3xs: 0.125rem;
-      --space-2xs: 0.25rem;
-      --space-xs:  0.5rem;
-      --space-sm:  0.75rem;
-      --space-md:  1rem;
-      --space-lg:  1.5rem;
-      --space-xl:  2rem;
-      --space-2xl: 3rem;
-
-      /* Type scale (ratios, clamp for responsive) */
-      --text-xs:  0.6875rem;
-      --text-sm:  0.75rem;
-      --text-md:  0.8125rem;
-      --text-lg:  0.9375rem;
-      --text-xl:  1.0625rem;
-      --text-2xl: 1.25rem;
-
-      --text-value: clamp(1.125rem, 1.8vw, 1.375rem); /* for big numbers in rail */
-
-      /* Easings + radius (Quiet square + soft pill) */
-      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-      --dur-micro: 120ms;
-      --dur-short: 220ms;
-
-      --radius-card: 0;
-      --radius-pill: 999px;
-      --radius-input: 6px;
-      --rule-card: 1px;
-
-      /* Elevation (minimal, Quiet) */
-      --shadow-card: none;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --color-paper:    oklch(14% 0 0);
-        --color-paper-2:  oklch(18% 0 0);
-        --color-paper-3:  oklch(22% 0 0);
-        --color-rule:     oklch(30% 0 0);
-        --color-rule-2:   oklch(40% 0 0);
-        --color-muted:    oklch(62% 0 0);
-        --color-neutral:  oklch(72% 0 0);
-        --color-ink-2:    oklch(82% 0 0);
-        --color-ink:      oklch(94% 0 0);
-        --color-accent:   oklch(94% 0 0);
-        --color-focus:    oklch(70% 0.10 240);
-
-        --color-good:     oklch(55% 0.09 145);
-        --color-warn:     oklch(62% 0.09 85);
-        --color-bad:      oklch(58% 0.09 25);
-        --color-best:     oklch(60% 0.06 210);
-
-        --body-weight: 350; /* optical compensation for light on dark */
-      }
-    }
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      background: var(--color-paper);
-      color: var(--color-ink);
-      font-family: var(--font-body);
-      font-weight: var(--body-weight);
-      line-height: 1.5;
-      font-size: var(--text-md);
-    }
-
-    .workbench-header {
-      border-bottom: var(--rule-card) solid var(--color-rule);
-      padding: var(--space-sm) var(--space-lg);
-      display: flex;
-      align-items: baseline;
-      gap: var(--space-md);
-      flex-wrap: wrap;
-    }
-    .workbench-header h1 {
-      margin: 0;
-      font-size: var(--text-lg);
-      font-weight: var(--display-weight);
-      letter-spacing: var(--tracking-tight);
-      font-family: var(--font-display);
-    }
-    .workbench-header .muted {
-      color: var(--color-muted);
-      font-size: var(--text-xs);
-      font-family: var(--font-label);
-      letter-spacing: var(--tracking-label);
-    }
-
-    .workbench {
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      gap: var(--space-xl);
-      padding: var(--space-lg);
-      align-items: start;
-    }
-    @media (max-width: 820px) {
-      .workbench { grid-template-columns: 1fr; }
-      .rail { position: static; }
-    }
-
-    .rail {
-      position: sticky;
-      top: var(--space-lg);
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-lg);
-      z-index: 10;
-    }
-
-    .canvas {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-lg);
-      min-width: 0;
-      z-index: 100;
-    }
-
-    .panel {
-      background: var(--color-paper-2);
-      border: var(--rule-card) solid var(--color-rule);
-      border-radius: var(--radius-card);
-      padding: var(--space-md);
-    }
-    .panel-label {
-      font-size: var(--text-xs);
-      font-family: var(--font-label);
-      font-weight: var(--label-weight);
-      letter-spacing: var(--tracking-label);
-      text-transform: uppercase;
-      color: var(--color-muted);
-      margin-bottom: var(--space-xs);
-      user-select: none;
-    }
-
-    .panel-toolbar {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      margin-bottom: var(--space-sm);
-      flex-wrap: wrap;
-    }
-
-    /* Summary rail — vertical, big values, mono for numbers (workbench "readout") */
-    .summary-grid {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-xs);
-    }
-    .summary-item {
-      padding: var(--space-2xs) 0;
-      border-bottom: 1px solid var(--color-rule);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: var(--space-xs);
-    }
-    .summary-item:last-child { border-bottom: 0; }
-    .summary-label {
-      font-size: var(--text-xs);
-      color: var(--color-muted);
-      font-family: var(--font-label);
-      letter-spacing: var(--tracking-label);
-      white-space: nowrap;
-    }
-    .summary-value {
-      font-size: .75rem;
-      font-weight: 600;
-      font-family: var(--font-mono);
-      font-variant-numeric: tabular-nums;
-      color: var(--color-ink);
-      text-align: left;
-    }
-
-    /* Visualizations — tight "monitors" in rail */
-    .chart-grid {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-md);
-    }
-    .chart {
-      padding: 0;
-      min-width: 0;
-    }
-    .chart h3 {
-      font-size: var(--text-xs);
-      font-family: var(--font-label);
-      letter-spacing: var(--tracking-label);
-      color: var(--color-muted);
-      margin: 0 0 var(--space-2xs);
-      text-transform: uppercase;
-    }
-    .bar-row {
-      display: grid;
-      grid-template-columns: 78px 1fr auto;
-      gap: var(--space-2xs);
-      align-items: center;
-      margin: 3px 0;
-      font-size: 11px;
-    }
-    .url-label {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: var(--color-muted);
-      font-family: var(--font-label);
-      font-size: 10px;
-    }
-    .bar-track {
-      height: 6px;
-      background: var(--color-paper-3);
-      border-radius: 999px;
-      overflow: hidden;
-      border: 1px solid var(--color-rule);
-    }
-    .bar-fill {
-      height: 100%;
-      min-width: 3px;
-      background: var(--color-ink);
-      transition: width var(--dur-micro) var(--ease-out);
-    }
-
-    /* Tables — clean, hairline, workbench reference / work surface */
-    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: var(--text-sm);
-      min-width: 640px;
-    }
-    th, td {
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--color-rule);
-      text-align: left;
-      vertical-align: top;
-      font-weight: normal;
-    }
-    th {
-      background: var(--color-paper);
-      font-size: 10px;
-      font-family: var(--font-label);
-      letter-spacing: var(--tracking-label);
-      text-transform: uppercase;
-      color: var(--color-muted);
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      cursor: default;
-      user-select: none;
-    }
-    th[style*="cursor: pointer"] { cursor: pointer; }
-    th.sorted-asc::after { content: ' ↑'; font-size: 0.9em; }
-    th.sorted-desc::after { content: ' ↓'; font-size: 0.9em; }
-    td {
-      font-size: var(--text-sm);
-      max-width: 38ch;
-      overflow-wrap: anywhere;
-      font-variant-numeric: tabular-nums;
-    }
-    tr:last-child td { border-bottom: 0; }
-    .field-cell {
-      width: 170px;
-      font-family: var(--font-label);
-      font-size: 10px;
-      letter-spacing: var(--tracking-label);
-      color: var(--color-muted);
-      background: transparent;
-      white-space: nowrap;
-    }
-
-    /* Pills — Quiet restraint + semantic tint */
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      min-height: 18px;
-      padding: 1px 7px;
-      border-radius: var(--radius-pill);
-      font-size: 10px;
-      font-family: var(--font-label);
-      letter-spacing: var(--tracking-label);
-      font-weight: 500;
-      white-space: nowrap;
-      border: 1px solid var(--color-rule);
-    }
-    .pill.good { color: var(--color-good); border-color: var(--color-good); background: color-mix(in oklch, var(--color-good) 8%, var(--color-paper)); }
-    .pill.warn { color: var(--color-warn); border-color: var(--color-warn); background: color-mix(in oklch, var(--color-warn) 8%, var(--color-paper)); }
-    .pill.bad  { color: var(--color-bad);  border-color: var(--color-bad);  background: color-mix(in oklch, var(--color-bad) 8%, var(--color-paper)); }
-    .pill.neutral { color: var(--color-muted); border-color: var(--color-rule); background: var(--color-paper-3); }
-
-    .best { background: color-mix(in oklch, var(--color-best) 12%, var(--color-paper)) !important; font-weight: 600; }
-
-    /* Toolbar / controls — integrated, quiet */
-    .panel-toolbar {
-      display: flex;
-      gap: var(--space-sm);
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: var(--space-sm);
-    }
-    .filter-input {
-      flex: 1 1 220px;
-      min-width: 160px;
-      padding: 4px 8px;
-      border: 1px solid var(--color-rule);
-      border-radius: var(--radius-input);
-      background: var(--color-paper);
-      color: var(--color-ink);
-      font-family: var(--font-body);
-      font-size: var(--text-sm);
-    }
-    .filter-input:focus {
-      outline: 1px solid var(--color-focus);
-      outline-offset: -1px;
-      border-color: var(--color-focus);
-    }
-    .export-btn {
-      font-size: 10px;
-      font-family: var(--font-label);
-      letter-spacing: var(--tracking-label);
-      padding: 3px 8px;
-      border-radius: var(--radius-pill);
-      border: 1px solid var(--color-rule);
-      background: var(--color-paper);
-      color: var(--color-ink);
-      cursor: pointer;
-      transition: background var(--dur-micro) var(--ease-out);
-    }
-    .export-btn:hover { background: var(--color-paper-3); }
-    .export-btn:focus-visible { outline: 1px solid var(--color-focus); outline-offset: 1px; }
-    .export-btn:active { background: var(--color-paper-2); transform: translateY(0.5px); }
-
-    /* Footer */
-    footer {
-      margin-top: var(--space-xl);
-      padding: var(--space-sm) var(--space-lg);
-      border-top: 1px solid var(--color-rule);
-      color: var(--color-muted);
-      font-size: 10px;
-      font-family: var(--font-label);
-      letter-spacing: var(--tracking-label);
-      display: flex;
-      gap: var(--space-sm);
-      flex-wrap: wrap;
-    }
-
-    /* Misc */
-    .muted { color: var(--color-muted); }
-    .workbench-header .methodology { display: none; } /* moved to footer for quiet */
-
-    @media (max-width: 720px) {
-      .workbench { padding: var(--space-sm); }
-      .bar-row { grid-template-columns: 64px 1fr auto; font-size: 10px; }
-      table { min-width: 520px; }
-    }
+    .skip-link { position: absolute; left: .5rem; top: -3rem; z-index: 1000; padding: .4rem .75rem; background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
+    .skip-link:focus { top: .5rem; }
+    [id] { scroll-margin-top: 1rem; }
+    .app-summary { margin: 0; }
+    .app-summary__row { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-bottom: 1px solid rgba(128, 128, 128, .3); }
+    .app-summary__row:last-child { border-bottom: 0; }
+    .app-summary dt { color: color-mix(in srgb, CanvasText 70%, Canvas); }
+    .app-summary dd { margin: 0; font-weight: 600; text-align: end; overflow-wrap: anywhere; }
+    .rail { position: sticky; top: 1rem; }
+    @media (max-width: 920px) { .rail { position: static; } }
+    .muted { color: color-mix(in srgb, CanvasText 70%, Canvas); }
+    .app-pill-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem; }
+    .app-charts { display: flex; flex-direction: column; gap: 1.25rem; }
+    .app-error { border: 1px solid CanvasText; padding: .75rem 1rem; margin: 1rem 0; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
   </style>
 </head>
-<body>
-  <header class="workbench-header">
-    <h1>Website Comparison Dashboard</h1>
-    <p class="muted">Generated <span id="generated-at"></span>. <span class="methodology-note">Self-contained · homepage + direct resources only (no JS execution)</span></p>
+
+<body class="dd-g">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Polite live region for filter/sort/copy announcements (4.1.3). Authored
+       statically and OUTSIDE any container that gets rebuilt, so it can announce
+       reliably. -->
+  <div id="row-status" class="visually-hidden" role="status" aria-live="polite"></div>
+
+  <header class="dd-header dd-u-1-1">
+    <div class="dd-header__top">
+      <div class="dd-g">
+        <div class="dd-header__logo dd-u-1-1 l-box">
+          <img src="assets/imgs/logo-mini.svg" alt="" class="dd-img" />
+          <h1>Website Comparison Dashboard</h1>
+          <p class="muted">Generated <span id="generated-at">…</span> · homepage + direct resources only (no JS execution)</p>
+        </div>
+      </div>
+    </div>
   </header>
 
-  <div class="workbench">
-    <!-- Rail: summary + visualizations as "monitors" / inspector (Workbench macro) -->
-    <aside class="rail">
-      <section class="panel" id="summary-panel">
-        <div class="panel-label">Summary</div>
-        <div id="summary-grid" class="summary-grid"></div>
-      </section>
+  <main id="main-content" tabindex="-1" class="dd-u-1-1">
+    <div class="dd-g">
+      <!-- Static landmarks/headings/labels live here so the document is
+           structured before (and even if) the JS data-build runs (B2). -->
+      <div class="dd-u-1-1 l-box">
+        <noscript>
+          <p class="app-error">This comparison dashboard needs JavaScript to render the metrics. The underlying data is available in the accompanying <code>data.json</code> file.</p>
+        </noscript>
+        <div id="app-error" class="app-error" role="alert" hidden></div>
+      </div>
 
-      <section class="panel" id="viz-panel">
-        <div class="panel-label">Visualizations</div>
-        <div id="chart-grid" class="chart-grid"></div>
-      </section>
-    </aside>
+      <!-- Rail: summary readout + per-metric bar charts -->
+      <aside class="rail dd-u-1-1 dd-u-lg-8-24 l-box" aria-label="Summary and visualizations">
+        <section class="dd-section" aria-labelledby="summary-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="summary-label">Summary</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <dl id="summary-grid" class="app-summary"></dl>
+              </div>
+            </div>
+          </div>
+        </section>
 
-    <!-- Canvas: the main comparison "work surface" -->
-    <div class="canvas">
-      <section class="panel" id="comparison-panel">
-        <div class="panel-label">Field Comparison</div>
-        <div id="comparison-table" class="table-wrap"></div>
-      </section>
+        <section class="dd-section" aria-labelledby="viz-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="viz-label">Visualizations</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <div id="chart-grid" class="app-charts"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </aside>
 
-      <section class="panel" id="detail-panel">
-        <div class="panel-toolbar">
-          <div class="panel-label">Site Detail</div>
-          <input id="filter" class="filter-input" type="search" placeholder="Filter rows (URL or any value)..." aria-label="Filter table rows">
-          <button class="export-btn" id="export-csv" type="button">CSV</button>
-          <button class="export-btn" id="export-json" type="button">JSON</button>
-        </div>
-        <div id="detail-table" class="table-wrap"></div>
-      </section>
+      <!-- Canvas: the comparison work surface -->
+      <div class="dd-u-1-1 dd-u-lg-16-24 l-box">
+        <section class="dd-section" id="comparison" tabindex="-1" aria-labelledby="comparison-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="comparison-label">Field Comparison</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <div id="comparison-table"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="detail" tabindex="-1" aria-labelledby="detail-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="detail-label">Site Detail</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <label for="filter" class="visually-hidden">Filter rows by URL or any value</label>
+                <input id="filter" type="search" placeholder="Filter rows (URL or any value)…" aria-controls="comparison-table detail-table">
+                <button id="export-csv" type="button" class="dd-button -secondary" aria-controls="detail-table" aria-label="Download CSV">CSV</button>
+                <button id="export-json" type="button" class="dd-button -secondary" aria-controls="detail-table" aria-label="Copy JSON to clipboard">Copy JSON</button>
+                <div id="detail-table"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
-  </div>
+  </main>
 
-  <footer>
-    <span id="field-list"></span>
+  <!-- contentinfo landmark must be OUTSIDE <main> -->
+  <footer class="dd-footer dd-u-1-1">
+    <div class="dd-g">
+      <div class="dd-footer__copyright dd-u-1-1">
+        <div class="l-box muted">Fields: <span id="field-list"></span></div>
+      </div>
+    </div>
   </footer>
 
   <script type="application/json" id="dashboard-data">__DASHBOARD_DATA_JSON__</script>
   <script>
-    const chartDefinitions = [
-      ["response_time", "Response Time", "seconds"],
-      ["page_size", "Page Size", "bytes"],
-      ["total_page_load_size", "Total Page Load Size", "bytes"],
-      ["resource_count", "Resource Count", "count"],
-      ["js_file_count", "JS File Count", "count"],
-      ["css_file_count", "CSS File Count", "count"],
-      ["h1_count", "H1 Count", "count"],
-      ["word_count", "Word Count (v1.1)", "count"],
-      ["image_count", "Image Count", "count"],
-      ["link_count", "Link Count", "count"]
-    ];
+    (function () {
+      "use strict";
 
-    const dashboard = JSON.parse(document.getElementById("dashboard-data").textContent);
-    let rows = dashboard.results || [];
-    const fields = dashboard.field_order || [];
-    let currentSort = { field: null, dir: 1 };
-    let detailTbodyRef = null;
-    let detailRowsData = [];
-
-    function wireFilterAndExports() {
-      const filter = document.getElementById("filter");
-      if (filter) {
-        filter.addEventListener("input", () => {
-          const q = filter.value.toLowerCase().trim();
-          renderComparisonTable(q);
-          renderDetailTable(q);
-        });
-      }
-      const csvBtn = document.getElementById("export-csv");
-      if (csvBtn) csvBtn.addEventListener("click", exportCSV);
-      const jsonBtn = document.getElementById("export-json");
-      if (jsonBtn) jsonBtn.addEventListener("click", () => {
-        navigator.clipboard.writeText(JSON.stringify({ generated_at: dashboard.generated_at, results: rows }, null, 2))
-          .then(() => { jsonBtn.textContent = "Copied!"; setTimeout(() => { jsonBtn.textContent = "Copy JSON"; }, 1200); })
-          .catch(() => { /* fallback */ prompt("JSON:", JSON.stringify(dashboard, null, 2)); });
-      });
-    }
-
-    function renderSummary() {
-      const successful = rows.filter((row) => row.status_code >= 200 && row.status_code < 400).length;
-      const errors = rows.filter((row) => row.error && row.error !== "None").length;
-      const timedRows = rows.filter((row) => typeof row.response_time === "number");
-      const sizedRows = rows.filter((row) => typeof row.total_page_load_size === "number");
-      const fastest = timedRows.length ? timedRows.slice().sort((a, b) => a.response_time - b.response_time)[0] : null;
-      const largest = sizedRows.length ? sizedRows.slice().sort((a, b) => b.total_page_load_size - a.total_page_load_size)[0] : null;
-      const items = [
-        ["Websites Compared", rows.length],
-        ["Successful Responses", successful],
-        ["Fastest Homepage", fastest ? `${shortUrl(fastest.URL)} (${fastest.response_time.toFixed(2)}s)` : "N/A"],
-        ["Largest Load", largest ? `${shortUrl(largest.URL)} (${formatBytes(largest.total_page_load_size)})` : "N/A"],
-        ["Errors", errors]
+      const chartDefinitions = [
+        ["response_time", "Response Time", "seconds"],
+        ["page_size", "Page Size", "bytes"],
+        ["total_page_load_size", "Total Page Load Size", "bytes"],
+        ["resource_count", "Resource Count", "count"],
+        ["js_file_count", "JS File Count", "count"],
+        ["css_file_count", "CSS File Count", "count"],
+        ["h1_count", "H1 Count", "count"],
+        ["word_count", "Word Count (v1.1)", "count"],
+        ["image_count", "Image Count", "count"],
+        ["link_count", "Link Count", "count"]
       ];
-      const grid = document.getElementById("summary-grid");
-      grid.innerHTML = "";
-      items.forEach(([label, value]) => {
-        const item = createElement("div", "summary-item");
-        item.append(createElement("div", "summary-label", label));
-        item.append(createElement("div", "summary-value", String(value)));
-        grid.append(item);
-      });
-    }
 
-    function renderCharts() {
-      const grid = document.getElementById("chart-grid");
-      grid.innerHTML = "";
-      chartDefinitions.forEach(([fieldName, title, unit]) => {
-        const values = rows
-          .map((row) => [row, row[fieldName]])
-          .filter(([_row, value]) => typeof value === "number");
-        if (!values.length) return;
+      let dashboard, rows, fields;
+      // Row registries so filtering hides rows in place (no tbody rebuild →
+      // framework sort order and focused sort button both survive).
+      let comparisonRows = [];   // { field, tr }
+      let detailRows = [];       // { row, tr }
+      let comparisonEmpty, detailEmpty;
+      let announceTimer;
 
-        const chart = createElement("div", "chart");
-        chart.append(createElement("h3", "", title));
-        const maxValue = Math.max(...values.map(([_row, value]) => value)) || 1;
-        values.forEach(([row, value]) => {
-          const percent = Math.max((value / maxValue) * 100, 1);
-          const item = createElement("div", "bar-row");
-          const label = createElement("div", "url-label", shortUrl(row.URL));
-          label.title = row.URL;
-          const track = createElement("div", "bar-track");
-          const fill = createElement("div", "bar-fill");
-          fill.style.width = `${percent.toFixed(2)}%`;
-          track.append(fill);
-          item.append(label);
-          item.append(track);
-          item.append(createElement("div", "", formatChartValue(value, unit)));
-          chart.append(item);
-        });
-        grid.append(chart);
-      });
-      if (!grid.children.length) {
-        grid.append(createElement("div", "chart", "No numerical data available."));
+      // --- element helpers -----------------------------------------------
+      function mk(tag, className, text, attrs) {
+        const el = document.createElement(tag);
+        if (className) el.className = className;
+        if (text != null && text !== "") el.textContent = text;
+        if (attrs) for (const k in attrs) { if (attrs[k] != null) el.setAttribute(k, attrs[k]); }
+        return el;
       }
-    }
 
-    function renderComparisonTable(filterQ = "") {
-      const container = document.getElementById("comparison-table");
-      container.innerHTML = "";
-      const table = createElement("table");
-      const thead = createElement("thead");
-      const headRow = createElement("tr");
-      headRow.append(createElement("th", "", "Field"));
-      rows.forEach((row) => headRow.append(createElement("th", "", row.URL)));
-      thead.append(headRow);
-      table.append(thead);
+      // dd-badge: meaning is carried by the label TEXT, not color alone (1.4.1).
+      function badge(mod, label) {
+        const span = mk("span", mod ? `dd-badge ${mod}` : "dd-badge");
+        span.append(mk("span", "dd-badge__label", String(label)));
+        return span;
+      }
 
-      const tbody = createElement("tbody");
-      const q = (filterQ || "").toLowerCase();
-      fields.forEach((fieldName) => {
-        const rowVals = rows.map(r => formatDisplayValue(fieldName, r[fieldName])).join(" ").toLowerCase();
-        if (q && !rowVals.includes(q) && !fieldName.toLowerCase().includes(q)) return;
-        const tr = createElement("tr");
-        tr.append(createElement("td", "field-cell", fieldName));
-        rows.forEach((row) => appendDisplayCell(tr, fieldName, row[fieldName], true));
-        tbody.append(tr);
-      });
-      table.append(tbody);
-      container.append(table);
-    }
+      function announce(message) {
+        const status = document.getElementById("row-status");
+        if (status) status.textContent = message;
+      }
 
-    function renderDetailTable(filterQ = "") {
-      const container = document.getElementById("detail-table");
-      container.innerHTML = "";
-      const table = createElement("table");
-      const thead = createElement("thead");
-      const headRow = createElement("tr");
-      fields.forEach((fieldName) => {
-        const th = createElement("th", "", fieldName);
-        th.style.cursor = "pointer";
-        th.title = "Click to sort";
-        if (currentSort.field === fieldName) {
-          th.classList.add(currentSort.dir > 0 ? 'sorted-asc' : 'sorted-desc');
+      // --- summary --------------------------------------------------------
+      function renderSummary() {
+        const successful = rows.filter((row) => row.status_code >= 200 && row.status_code < 400).length;
+        const errors = rows.filter((row) => row.error && row.error !== "None").length;
+        const timedRows = rows.filter((row) => typeof row.response_time === "number");
+        const sizedRows = rows.filter((row) => typeof row.total_page_load_size === "number");
+        const fastest = timedRows.length ? timedRows.slice().sort((a, b) => a.response_time - b.response_time)[0] : null;
+        const largest = sizedRows.length ? sizedRows.slice().sort((a, b) => b.total_page_load_size - a.total_page_load_size)[0] : null;
+        const items = [
+          ["Websites Compared", String(rows.length)],
+          ["Successful Responses", String(successful)],
+          ["Fastest Homepage", fastest ? `${shortUrl(fastest.URL)} (${fastest.response_time.toFixed(2)}s)` : "N/A"],
+          ["Largest Load", largest ? `${shortUrl(largest.URL)} (${formatBytes(largest.total_page_load_size)})` : "N/A"],
+          ["Errors", String(errors)]
+        ];
+        const grid = document.getElementById("summary-grid");
+        grid.innerHTML = "";
+        items.forEach(([label, value]) => {
+          const row = mk("div", "app-summary__row");
+          row.append(mk("dt", "", label));
+          row.append(mk("dd", "", value));
+          grid.append(row);
+        });
+      }
+
+      // --- charts (dd-bar-chart) -----------------------------------------
+      function renderCharts() {
+        const grid = document.getElementById("chart-grid");
+        grid.innerHTML = "";
+        chartDefinitions.forEach(([fieldName, title, unit], idx) => {
+          const values = rows
+            .map((row) => [row, row[fieldName]])
+            .filter(([, value]) => typeof value === "number");
+          if (!values.length) return;
+
+          const capId = `chart-cap-${idx}`;
+          const fig = mk("figure", "dd-bar-chart", "", { role: "group", "aria-labelledby": capId });
+          fig.append(mk("figcaption", "dd-bar-chart__caption", title, { id: capId }));
+          const list = mk("ul", "dd-bar-chart__list");
+          const maxValue = Math.max(...values.map(([, value]) => value)) || 1;
+          values.forEach(([row, value]) => {
+            const percent = Math.max((value / maxValue) * 100, 1);
+            const li = mk("li", "dd-bar-chart__row");
+            li.append(mk("span", "dd-bar-chart__label", shortUrl(row.URL)));
+            const track = mk("span", "dd-bar-chart__track", "", { "aria-hidden": "true" });
+            const fill = mk("span", "dd-bar-chart__fill");
+            fill.style.inlineSize = `${percent.toFixed(2)}%`;
+            track.append(fill);
+            li.append(track);
+            li.append(mk("span", "dd-bar-chart__value", formatChartValue(value, unit)));
+            list.append(li);
+          });
+          fig.append(list);
+          grid.append(fig);
+        });
+        if (!grid.children.length) {
+          grid.append(mk("p", "muted", "No numerical data available."));
         }
-        th.addEventListener("click", () => {
-          if (currentSort.field === fieldName) currentSort.dir *= -1;
-          else { currentSort.field = fieldName; currentSort.dir = 1; }
-          // update th classes in place for immediate feedback (no full rebuild)
-          headRow.querySelectorAll('th').forEach((t, i) => {
-            t.classList.remove('sorted-asc', 'sorted-desc');
-            if (fields[i] === currentSort.field) {
-              t.classList.add(currentSort.dir > 0 ? 'sorted-asc' : 'sorted-desc');
+      }
+
+      // Build a dd-data-table shell; returns { wrap, table }.
+      function dataTable(caption, scrollLabel) {
+        const wrap = mk("div", "dd-data-table");
+        const scroll = mk("div", "dd-data-table__scroll", "", { "data-label": scrollLabel });
+        const table = mk("table", "dd-data-table__table");
+        table.append(mk("caption", "dd-data-table__caption visually-hidden", caption));
+        scroll.append(table);
+        wrap.append(scroll);
+        return { wrap, table };
+      }
+
+      // Field Comparison: fields×sites matrix, built ONCE. Field names are row
+      // headers (scope=row); short site URLs are column headers (scope=col);
+      // the corner is a plain <th> (no scope). Not sortable → no buttons.
+      function buildComparisonTable() {
+        const container = document.getElementById("comparison-table");
+        container.innerHTML = "";
+        const { wrap, table } = dataTable(
+          `Field-by-field comparison across ${rows.length} site${rows.length === 1 ? "" : "s"}`,
+          "Field comparison across sites, scrollable"
+        );
+        const thead = mk("thead");
+        const headRow = mk("tr");
+        headRow.append(mk("th", "dd-data-table__th", "Field"));
+        rows.forEach((row) => headRow.append(
+          mk("th", "dd-data-table__th", shortUrl(row.URL), { scope: "col", title: row.URL })
+        ));
+        thead.append(headRow);
+        table.append(thead);
+
+        const tbody = mk("tbody");
+        comparisonRows = [];
+        fields.forEach((fieldName) => {
+          const tr = mk("tr", "dd-data-table__row");
+          tr.append(mk("th", "dd-data-table__td", fieldName, { scope: "row" }));
+          rows.forEach((row) => appendDisplayCell(tr, fieldName, row[fieldName]));
+          tbody.append(tr);
+          comparisonRows.push({ field: fieldName, tr });
+        });
+        comparisonEmpty = mk("tr", "dd-data-table__row -empty", "", { hidden: "hidden" });
+        comparisonEmpty.append(mk("td", "dd-data-table__td", "No fields match the filter.", { colspan: String(rows.length + 1) }));
+        tbody.append(comparisonEmpty);
+        table.append(tbody);
+        container.append(wrap);
+      }
+
+      // Site Detail: one row per site. Sortable columns are native framework
+      // <button class="dd-data-table__sort"> — main.min.js owns the sort +
+      // aria-sort upkeep + scroll a11y. Built ONCE; filtering hides rows.
+      function buildDetailTable() {
+        const container = document.getElementById("detail-table");
+        container.innerHTML = "";
+        const { wrap, table } = dataTable(
+          "Per-site detail for every measured field",
+          "Site detail, scrollable"
+        );
+        const thead = mk("thead");
+        const headRow = mk("tr");
+        fields.forEach((fieldName) => {
+          const th = mk("th", "dd-data-table__th", "", { scope: "col", "aria-sort": "none" });
+          const btn = mk("button", "dd-data-table__sort", fieldName, { type: "button" });
+          btn.append(mk("span", "dd-data-table__sort-ind", "", { "aria-hidden": "true" }));
+          th.append(btn);
+          headRow.append(th);
+        });
+        thead.append(headRow);
+        table.append(thead);
+
+        const tbody = mk("tbody");
+        detailRows = [];
+        rows.forEach((row) => {
+          const tr = mk("tr", "dd-data-table__row");
+          fields.forEach((fieldName, i) => {
+            if (i === 0) {
+              const th = mk("th", "dd-data-table__td", formatDisplayValue(fieldName, row[fieldName]), { scope: "row" });
+              tr.append(th);
+            } else {
+              appendDisplayCell(tr, fieldName, row[fieldName]);
             }
           });
-          sortAndRenderDetail(filterQ);
+          tbody.append(tr);
+          detailRows.push({ row, tr });
         });
-        headRow.append(th);
-      });
-      thead.append(headRow);
-      table.append(thead);
+        detailEmpty = mk("tr", "dd-data-table__row -empty", "", { hidden: "hidden" });
+        detailEmpty.append(mk("td", "dd-data-table__td", "No sites match the filter.", { colspan: String(fields.length) }));
+        tbody.append(detailEmpty);
+        table.append(tbody);
+        container.append(wrap);
 
-      const tbody = createElement("tbody");
-      detailTbodyRef = tbody;
-      detailRowsData = rows.slice();
-      table.append(tbody);
-      container.append(table);
-
-      sortAndRenderDetail(filterQ);
-    }
-
-    function sortAndRenderDetail(filterQ = "") {
-      if (!detailTbodyRef) return;
-      const q = (filterQ || "").toLowerCase();
-      let visible = detailRowsData.filter(row => {
-        if (!q) return true;
-        return fields.some(f => String(formatDisplayValue(f, row[f]) || "").toLowerCase().includes(q));
-      });
-
-      if (currentSort.field) {
-        const f = currentSort.field;
-        visible.sort((a, b) => {
-          let va = a[f], vb = b[f];
-          if (va == null) va = (typeof vb === "number" ? -Infinity : "");
-          if (vb == null) vb = (typeof va === "number" ? -Infinity : "");
-          if (typeof va === "number" && typeof vb === "number") return (va - vb) * currentSort.dir;
-          if (Array.isArray(va)) va = va.length; if (Array.isArray(vb)) vb = vb.length;
-          return String(va).localeCompare(String(vb), undefined, {numeric:true}) * currentSort.dir;
+        // Announce sort changes (framework updates aria-sort + row order but
+        // doesn't announce). Listener only announces — it never sorts, so it
+        // cannot conflict with dd_data_table's own handler.
+        thead.addEventListener("click", (e) => {
+          const btn = e.target.closest(".dd-data-table__sort");
+          if (!btn) return;
+          const th = btn.closest("th");
+          setTimeout(() => {
+            const dir = th.getAttribute("aria-sort");
+            if (dir && dir !== "none") announce(`Sorted by ${btn.textContent.trim()}, ${dir}`);
+          }, 0);
         });
       }
 
-      detailTbodyRef.innerHTML = "";
-      visible.forEach((row) => {
-        const tr = createElement("tr");
-        fields.forEach((fieldName) => appendDisplayCell(tr, fieldName, row[fieldName]));
-        detailTbodyRef.append(tr);
-      });
-    }
+      function appendDisplayCell(rowElement, fieldName, value) {
+        const cell = mk("td", "dd-data-table__td");
+        if (fieldName === "status_code") {
+          cell.append(statusBadge(value));
+        } else if (["mobile_responsive", "has_favicon", "has_canonical", "redirected"].includes(fieldName)) {
+          const boolVal = (value === true || value === "true");
+          cell.append(badge(boolVal ? "-pass" : "-critical", boolVal ? "Yes" : "No"));
+        } else if (["trackers", "technologies", "keywords"].includes(fieldName)) {
+          cell.append(renderPills(value));
+        } else {
+          cell.textContent = formatDisplayValue(fieldName, value);
+        }
+        rowElement.append(cell);
+      }
 
-    function appendDisplayCell(rowElement, fieldName, value, forBest = false) {
-      const cell = createElement("td");
-      if (fieldName === "status_code") {
-        cell.append(statusPill(value));
-      } else if (fieldName === "mobile_responsive" || fieldName === "has_favicon" || fieldName === "has_canonical" || fieldName === "redirected") {
-        const boolVal = (value === true || value === "true");
-        cell.append(boolVal ? createElement("span", "pill good", "Yes") : createElement("span", "pill bad", "No"));
-      } else if (["trackers", "technologies", "keywords"].includes(fieldName)) {
-        cell.append(renderPills(value));
-      } else {
-        cell.textContent = formatDisplayValue(fieldName, value);
+      // A real list so screen readers enumerate the tags; "None detected" text
+      // when empty (not an empty list).
+      function renderPills(arr) {
+        if (!Array.isArray(arr) || !arr.length) return document.createTextNode("None detected");
+        const list = mk("ul", "app-pill-list");
+        arr.forEach((v) => {
+          const li = mk("li");
+          li.append(badge("", String(v)));
+          list.append(li);
+        });
+        return list;
       }
-      if (forBest && isNumericField(fieldName) && value != null) {
-        // best styling applied via .best on cells in comparison if needed
-      }
-      rowElement.append(cell);
-    }
 
-    function renderPills(arr) {
-      const wrap = document.createElement("div");
-      wrap.style.display = "flex";
-      wrap.style.flexWrap = "wrap";
-      wrap.style.gap = "3px";
-      if (!Array.isArray(arr) || !arr.length) {
-        wrap.appendChild(document.createTextNode("None detected"));
-        return wrap;
-      }
-      arr.forEach(v => {
-        const p = createElement("span", "pill", String(v));
-        p.style.fontSize = "11px";
-        p.style.padding = "1px 6px";
-        wrap.appendChild(p);
-      });
-      return wrap;
-    }
+      // --- filtering (hide rows in place) --------------------------------
+      function applyFilter(rawQ) {
+        const q = (rawQ || "").toLowerCase().trim();
+        let fieldsShown = 0;
+        comparisonRows.forEach(({ field, tr }) => {
+          const hay = (field + " " + rows.map((r) => formatDisplayValue(field, r[field])).join(" ")).toLowerCase();
+          const match = !q || hay.includes(q);
+          tr.hidden = !match;
+          if (match) fieldsShown++;
+        });
+        if (comparisonEmpty) comparisonEmpty.hidden = fieldsShown !== 0;
 
-    function isNumericField(f) {
-      return ["response_time","page_size","total_page_load_size","resource_count","js_file_count","css_file_count","h1_count","h2_count","h3_count","image_count","images_missing_alt","link_count","external_link_count","json_ld_count","word_count"].includes(f);
-    }
+        let sitesShown = 0;
+        detailRows.forEach(({ row, tr }) => {
+          const match = !q || fields.some((f) => String(formatDisplayValue(f, row[f]) || "").toLowerCase().includes(q));
+          tr.hidden = !match;
+          if (match) sitesShown++;
+        });
+        if (detailEmpty) detailEmpty.hidden = sitesShown !== 0;
 
-    function formatDisplayValue(fieldName, value) {
-      if (fieldName === "response_time") {
-        return typeof value === "number" ? `${value.toFixed(2)} seconds` : "N/A";
+        clearTimeout(announceTimer);
+        announceTimer = setTimeout(() => {
+          if (!q) { announce(""); return; }
+          if (!fieldsShown && !sitesShown) { announce("No matching rows"); return; }
+          announce(`${fieldsShown} of ${fields.length} fields, ${sitesShown} of ${rows.length} sites match`);
+        }, 400);
       }
-      if (fieldName === "page_size" || fieldName === "total_page_load_size") {
-        return formatBytes(value);
-      }
-      if (fieldName === "largest_item") {
-        return value ? `${shortUrl(value.url || "N/A")} (${formatBytes(value.bytes)})` : "N/A";
-      }
-      if (["trackers", "technologies", "keywords"].includes(fieldName)) {
-        return Array.isArray(value) && value.length ? value.join(", ") : "None detected";
-      }
-      if (fieldName === "final_url" || fieldName === "URL") {
-        return value || "N/A";
-      }
-      if (fieldName === "error") {
-        return value || "None";
-      }
-      if (value === null || value === undefined || value === "") {
-        return "N/A";
-      }
-      if (typeof value === "boolean") return value ? "Yes" : "No";
-      return String(value);
-    }
 
-    function statusPill(value) {
-      if (value === null || value === undefined) {
-        return createElement("span", "pill neutral", "N/A");
+      function wireFilterAndExports() {
+        const filter = document.getElementById("filter");
+        if (filter) filter.addEventListener("input", () => applyFilter(filter.value));
+
+        const csvBtn = document.getElementById("export-csv");
+        if (csvBtn) csvBtn.addEventListener("click", exportCSV);
+
+        const jsonBtn = document.getElementById("export-json");
+        if (jsonBtn) jsonBtn.addEventListener("click", () => {
+          const payload = JSON.stringify({ generated_at: dashboard.generated_at, results: rows }, null, 2);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(payload)
+              .then(() => announce("Comparison JSON copied to clipboard"))
+              .catch(() => { announce("Copy failed — showing JSON in a prompt"); prompt("JSON:", payload); });
+          } else {
+            announce("Copy not supported — showing JSON in a prompt");
+            prompt("JSON:", payload);
+          }
+        });
       }
-      const code = Number(value);
-      let state = "neutral";
-      if (code >= 200 && code < 300) state = "good";
-      else if (code >= 300 && code < 400) state = "warn";
-      else if (!Number.isNaN(code)) state = "bad";
-      return createElement("span", `pill ${state}`, String(value));
-    }
 
-    function formatBytes(value) {
-      if (!Number.isInteger(value)) return "N/A";
-      const units = ["bytes", "KB", "MB", "GB"];
-      let amount = value;
-      let unit = units[0];
-      for (const candidateUnit of units) {
-        unit = candidateUnit;
-        if (amount < 1024 || unit === units[units.length - 1]) break;
-        amount /= 1024;
+      // --- formatting (unchanged behavior) -------------------------------
+      function formatDisplayValue(fieldName, value) {
+        if (fieldName === "response_time") return typeof value === "number" ? `${value.toFixed(2)} seconds` : "N/A";
+        if (fieldName === "page_size" || fieldName === "total_page_load_size") return formatBytes(value);
+        if (fieldName === "largest_item") return value ? `${shortUrl(value.url || "N/A")} (${formatBytes(value.bytes)})` : "N/A";
+        if (["trackers", "technologies", "keywords"].includes(fieldName)) return Array.isArray(value) && value.length ? value.join(", ") : "None detected";
+        if (fieldName === "final_url" || fieldName === "URL") return value || "N/A";
+        if (fieldName === "error") return value || "None";
+        if (value === null || value === undefined || value === "") return "N/A";
+        if (typeof value === "boolean") return value ? "Yes" : "No";
+        return String(value);
       }
-      return unit === "bytes" ? `${value} bytes` : `${amount.toFixed(2)} ${unit} (${value} bytes)`;
-    }
 
-    function formatChartValue(value, unit) {
-      if (unit === "seconds") return `${value.toFixed(2)}s`;
-      if (unit === "bytes") return formatBytes(Math.round(value)).split(" (")[0];
-      return String(Math.round(value));
-    }
+      function statusBadge(value) {
+        if (value === null || value === undefined) return badge("", "N/A");
+        const code = Number(value);
+        let mod = "";
+        if (code >= 200 && code < 300) mod = "-pass";
+        else if (code >= 300 && code < 400) mod = "-warning";
+        else if (!Number.isNaN(code)) mod = "-critical";
+        return badge(mod, String(value));
+      }
 
-    function shortUrl(url) {
+      function formatBytes(value) {
+        if (!Number.isInteger(value)) return "N/A";
+        const units = ["bytes", "KB", "MB", "GB"];
+        let amount = value;
+        let unit = units[0];
+        for (const candidateUnit of units) {
+          unit = candidateUnit;
+          if (amount < 1024 || unit === units[units.length - 1]) break;
+          amount /= 1024;
+        }
+        return unit === "bytes" ? `${value} bytes` : `${amount.toFixed(2)} ${unit} (${value} bytes)`;
+      }
+
+      function formatChartValue(value, unit) {
+        if (unit === "seconds") return `${value.toFixed(2)}s`;
+        if (unit === "bytes") return formatBytes(Math.round(value)).split(" (")[0];
+        return String(Math.round(value));
+      }
+
+      function shortUrl(url) {
+        try {
+          const parsed = new URL(url);
+          const path = parsed.pathname.replace(/\/$/, "");
+          return path ? `${parsed.host}${path}` : parsed.host;
+        } catch (_error) {
+          return url;
+        }
+      }
+
+      function exportCSV() {
+        const header = fields;
+        const lines = [header.join(",")];
+        rows.forEach((row) => {
+          const vals = header.map((f) => {
+            let v = row[f];
+            if (Array.isArray(v)) v = v.join("; ");
+            if (v && typeof v === "object") v = JSON.stringify(v);
+            v = (v == null ? "" : String(v)).replace(/"/g, '""');
+            if (/[,"\n]/.test(v)) v = `"${v}"`;
+            return v;
+          });
+          lines.push(vals.join(","));
+        });
+        const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "site_comparison.csv";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      // --- init (guarded so a data/render failure can't blank the page) ---
       try {
-        const parsed = new URL(url);
-        const path = parsed.pathname.replace(/\/$/, "");
-        return path ? `${parsed.host}${path}` : parsed.host;
-      } catch (_error) {
-        return url;
+        dashboard = JSON.parse(document.getElementById("dashboard-data").textContent);
+        rows = dashboard.results || [];
+        fields = dashboard.field_order || [];
+        document.getElementById("generated-at").textContent = dashboard.generated_at || "unknown";
+        document.getElementById("field-list").textContent = fields.join(", ");
+        renderSummary();
+        renderCharts();
+        buildComparisonTable();
+        buildDetailTable();
+        wireFilterAndExports();
+      } catch (err) {
+        const box = document.getElementById("app-error");
+        if (box) {
+          box.hidden = false;
+          box.textContent = "The comparison data could not be rendered. The raw data is available in data.json. (" + (err && err.message ? err.message : err) + ")";
+        }
       }
-    }
-
-    function createElement(tagName, className = "", text = "") {
-      const element = document.createElement(tagName);
-      if (className) element.className = className;
-      if (text !== "") element.textContent = text;
-      return element;
-    }
-
-    function exportCSV() {
-      const header = fields;
-      const lines = [header.join(",")];
-      rows.forEach(row => {
-        const vals = header.map(f => {
-          let v = row[f];
-          if (Array.isArray(v)) v = v.join("; ");
-          if (v && typeof v === "object") v = JSON.stringify(v);
-          v = (v == null ? "" : String(v)).replace(/"/g, '""');
-          if (/[,"\n]/.test(v)) v = `"${v}"`;
-          return v;
-        });
-        lines.push(vals.join(","));
-      });
-      const blob = new Blob([lines.join("\n")], {type: "text/csv"});
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "site_comparison.csv";
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }
-
-    // Initialize everything after all declarations and functions are defined
-    // (avoids TDZ for let/const and ensures function hoisting is not relied upon for init order)
-    document.getElementById("generated-at").textContent = dashboard.generated_at || "unknown";
-    document.getElementById("field-list").textContent = fields.join(", ");
-    renderSummary();
-    renderCharts();
-    renderComparisonTable();
-    renderDetailTable();
-    wireFilterAndExports();
+    })();
   </script>
 </body>
+
 </html>

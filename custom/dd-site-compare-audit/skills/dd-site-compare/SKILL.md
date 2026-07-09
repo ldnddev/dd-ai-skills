@@ -28,7 +28,7 @@ argument-hint: "[urls...] [--web] [--urls-file file.txt] [--skip-resources] [--m
    (e.g. `web/example.com-compare-audit-2025-06-02/index.html`).
    This follows the required naming convention for web-served audits.
 4. **Run `python3 scripts/verify.py`** (or the manual equivalent in the Verification section) and confirm the output includes **every field** listed in the current `references/fields.md` (the contract is now 31 fields).
-5. Report the generated HTML (and JSON) path(s). Explicitly note any URLs that failed or redirected. Mention that the dashboard is fully self-contained (open it in any browser, no server).
+5. Report the generated HTML (and JSON) path(s). Explicitly note any URLs that failed or redirected. Mention that the dashboard opens in any browser with no server, as long as its sibling `assets/` folder (framework css/js, copied in by the script) travels with `index.html`.
 
 ## Quick Start
 
@@ -44,7 +44,8 @@ This creates (for example):
 
 ```
 web/example.com-compare-audit-2025-06-02/
-├── index.html   # the self-contained dashboard
+├── index.html   # the dashboard (ldnddev Framework)
+├── assets/      # framework css/js, copied in (no CDNs)
 └── data.json    # raw results
 ```
 

@@ -1,6 +1,6 @@
 # dd-site-compare — Website Comparison Dashboard Skill
 
-Compare 2+ websites into a **self-contained HTML + JSON dashboard**. One pure-stdlib Python CLI fetches each homepage (plus linked resources), extracts **31 quantitative + qualitative signals**, and injects them into a dependency-free dashboard with client-side sort, filter, export, and dark mode. Parallel by default (4 workers). No runtime dependencies — just system Python 3.
+Compare 2+ websites into a **self-contained HTML + JSON dashboard**. One pure-stdlib Python CLI fetches each homepage (plus linked resources), extracts **31 quantitative + qualitative signals**, and injects them into an ldnddev Framework dashboard (bundled `assets/`, no CDNs) with client-side sort, filter, export, and system (`prefers-color-scheme`) dark mode. Parallel by default (4 workers). No runtime Python dependencies — just system Python 3.
 
 ## Install — Claude Code plugin
 
@@ -31,7 +31,8 @@ With `--web` (recommended), writes the conventional bundle:
 
 ```
 web/<primary-domain>-compare-audit-YYYY-MM-DD/
-├── index.html   # self-contained dashboard — open in any browser, no server
+├── index.html   # dashboard — open in any browser (keep the sibling assets/ folder)
+├── assets/      # ldnddev Framework build (css/js) — copied in, no CDNs
 └── data.json    # raw 31-field results
 ```
 
