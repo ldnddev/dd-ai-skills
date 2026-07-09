@@ -27,11 +27,11 @@
     .app-summary { margin: 0; }
     .app-summary__row { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-bottom: 1px solid rgba(128, 128, 128, .3); }
     .app-summary__row:last-child { border-bottom: 0; }
-    .app-summary dt { color: GrayText; }
+    .app-summary dt { color: color-mix(in srgb, CanvasText 70%, Canvas); }
     .app-summary dd { margin: 0; font-weight: 600; text-align: end; overflow-wrap: anywhere; }
     .rail { position: sticky; top: 1rem; }
     @media (max-width: 920px) { .rail { position: static; } }
-    .muted { color: GrayText; }
+    .muted { color: color-mix(in srgb, CanvasText 70%, Canvas); }
     /* Static status tables inside collapsible findings (not the primary
        sortable dd-data-table) — plain semantic tables, lightly styled. */
     .dd-accordion__copy table { width: 100%; border-collapse: collapse; margin: .5rem 0; }
