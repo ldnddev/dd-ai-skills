@@ -49,7 +49,8 @@ npm run verify   # smoke-tests Chromium launch
 - `ACCESSIBILITY-ACTION-PLAN.md`
 - `REMEDIATION-TASKS.csv`
 - `A11Y-CLIENT-REPORT.docx`
-- `index.html`
+- `index.html` — ldnddev Framework dashboard
+- `assets/` — framework build (`css/style.min.css` + `js/main.min.js`) + favicon/logo, copied from `templates/assets/`
 
 Multi-page adds:
 
@@ -57,7 +58,7 @@ Multi-page adds:
 - `pages/<page-slug>/screenshots/full-page.png`
 - `pages/<page-slug>/screenshots/A11Y-###.png`
 
-CSV includes page-level context + screenshot paths. HTML dashboard links to report files and issue screenshots. DOCX embeds page-level screenshots.
+CSV includes page-level context + screenshot paths. The HTML dashboard is built on the ldnddev Framework (compiled `assets/` css/js copied into the bundle; dark mode via `prefers-color-scheme`, no manual toggle) and links to report files and issue screenshots. DOCX embeds page-level screenshots.
 
 ## UI-edit hook gating
 

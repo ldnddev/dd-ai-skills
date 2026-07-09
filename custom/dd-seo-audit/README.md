@@ -54,11 +54,11 @@ required. See [root README](../../README.md#codex-install-legacy) for context.
 - `FULL-AUDIT-REPORT.md`
 - `ACTION-PLAN.md`
 - Optional client bundle via `generate_report.py` — written into `web/<domain>-seo-audit-<YYYY-MM-DD>/`:
-  - `index.html` — branded interactive dashboard (driven by `templates/dashboard.html` + `templates/brand.json`)
+  - `index.html` — branded ldnddev Framework dashboard (driven by `templates/dashboard.html` + `templates/brand.json`; dark mode via `prefers-color-scheme`, no manual toggle)
   - `FULL-AUDIT-REPORT.docx` — findings + scoring narrative
   - `ACTION-PLAN.docx` — prioritized remediation tasks (P0/P1/P2 grouping)
   - `tasks.csv` — same tasks in CSV form (project-tracker-ready)
-  - `assets/` — agency logo and other branded assets copied from `templates/assets/`
+  - `assets/` — ldnddev Framework build (`css/style.min.css` + `js/main.min.js`), agency logo, and favicon set, copied from `templates/assets/`
 - GitHub repo audits via `github_seo_report.py` always emit four files:
   - `GITHUB-SEO-REPORT.md`
   - `GITHUB-ACTION-PLAN.md`

@@ -56,7 +56,7 @@ Every successful run writes the full set:
 
 | File | Purpose |
 |---|---|
-| `index.html` | Templated dashboard, axe-core 0 violations. Sidebar nav, KPI cards, severity table, per-page test/prod/diff grid, download buttons. |
+| `index.html` | ldnddev Framework dashboard, axe-core 0 violations. Rail (summary readout + severity bar chart + contents nav), diffs `dd-data-table`, per-page `<figure>` test/prod/diff comparison, `dd-button` downloads. Dark mode via `prefers-color-scheme`, no manual toggle. |
 | `DIFF-REPORT.docx` | Client-ready Word doc with severity summary + findings table. |
 | `DIFFS.csv` | One row per page × viewport, severity-sorted. Project tracker import. |
 | `ACTION-PLAN.md` | Severity-grouped remediation list with false-positive-pattern citations. |
@@ -64,7 +64,7 @@ Every successful run writes the full set:
 | `metrics.json` | Raw per-result objects. |
 | `screenshots/` | Test + prod PNGs per page-per-viewport. |
 | `diffs/` | Pixelmatch overlay PNGs. |
-| `assets/` | Logo + favicon set. |
+| `assets/` | ldnddev Framework build (`css/style.min.css` + `js/main.min.js`) + logo + favicon set. |
 
 Same-day re-runs overwrite the directory.
 
@@ -94,9 +94,9 @@ dd-vreg-audit/
 ├── install.sh
 ├── scripts/run_visual_regression.js       ← single-file orchestrator (root-level, matches dd-a11y)
 ├── templates/                             ← shared layout with dd-a11y / dd-seo
-│   ├── dashboard.html
+│   ├── dashboard.html                     ← ldnddev Framework (style.min.css + main.min.js)
 │   ├── brand.json
-│   └── assets/{imgs/logo-mini.svg, favicon/*}
+│   └── assets/{css/*, js/*, imgs/logo-mini.svg, favicon/*}
 └── skills/dd-vreg/
     ├── SKILL.md
     └── references/
