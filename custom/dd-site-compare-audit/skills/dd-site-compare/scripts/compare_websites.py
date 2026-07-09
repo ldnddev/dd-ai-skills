@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import sys
 import time
 from collections import OrderedDict
@@ -689,6 +690,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html_output, encoding="utf-8")
+    copy_template_assets(Path(args.template), output_path.parent)
 
     if args.json_output:
         json_path = Path(args.json_output)
@@ -1133,6 +1135,20 @@ def render_dashboard(payload: Dict[str, object], template_path: Path) -> str:
     if placeholder not in template:
         raise ValueError(f"Dashboard template is missing {placeholder}")
     return template.replace(placeholder, json_for_html(payload))
+
+
+def copy_template_assets(template_path: Path, output_dir: Path) -> None:
+    """Copy the ldnddev Framework build (css/js) next to the rendered HTML so
+    the dashboard's <link>/<script> resolve. Sourced from the template's sibling
+    assets/ folder. No-op if the template has no assets/ (e.g. a custom template).
+    """
+    src = template_path.parent / "assets"
+    if not src.is_dir():
+        return
+    for sub in ("css", "js"):
+        candidate = src / sub
+        if candidate.is_dir():
+            shutil.copytree(candidate, output_dir / "assets" / sub, dirs_exist_ok=True)
 
 
 def json_for_html(payload: Dict[str, object]) -> str:
