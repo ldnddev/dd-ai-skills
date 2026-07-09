@@ -1145,7 +1145,7 @@ def copy_template_assets(template_path: Path, output_dir: Path) -> None:
     src = template_path.parent / "assets"
     if not src.is_dir():
         return
-    for sub in ("css", "js"):
+    for sub in ("css", "js", "favicon", "imgs"):
         candidate = src / sub
         if candidate.is_dir():
             shutil.copytree(candidate, output_dir / "assets" / sub, dirs_exist_ok=True)
