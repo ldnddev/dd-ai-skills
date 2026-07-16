@@ -1,6 +1,6 @@
 {
   "name": "dd-vreg",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Visual regression reporter — Playwright + pixelmatch screenshot diff between two sites with severity bucketing. Emits client bundle: templated dashboard, DOCX, CSV, action plan, Markdown summary, raw metrics.",
   "license": "MIT",
   "author": {

@@ -1,7 +1,8 @@
 {
   "agency_name": "ldnddev, LLC",
   "agency_kicker": "Visual Regression",
-  "agency_logo": "assets/imgs/logo-mini.svg",
+  "agency_logo": "assets/imgs/logo-full-black-text.svg",
+  "agency_logo_dark": "assets/imgs/logo-full-white-text.svg",
   "report_title": "Visual Regression Report",
   "report_subtitle": "Pixel-diff comparison between two environments across desktop and mobile viewports.",
   "downloads_note": "Word document is formatted for client delivery; the CSV is ready for project trackers (Jira / Linear / Asana).",
