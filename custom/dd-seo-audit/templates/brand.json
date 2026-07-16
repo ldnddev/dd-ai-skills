@@ -1,7 +1,8 @@
 {
   "agency_name": "ldnddev, LLC",
   "agency_kicker": "SEO Audit",
-  "agency_logo": "assets/imgs/logo-mini.svg",
+  "agency_logo": "assets/imgs/logo-full-black-text.svg",
+  "agency_logo_dark": "assets/imgs/logo-full-white-text.svg",
   "report_title": "SEO Audit Dashboard",
   "report_subtitle": "Client-facing audit summary with downloadable remediation artifacts.",
   "downloads_note": "Word documents are formatted for client delivery; the CSV is ready for project trackers (Jira / Linear / Asana).",
