@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{REPORT_TITLE}} — {{AGENCY_NAME}}</title>
+  <meta name="description" content="{{REPORT_SUBTITLE}}">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon/favicon-96x96.png" />
+  <link rel="shortcut icon" href="assets/favicon/favicon.ico" />
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="assets/favicon/site.webmanifest" />
+
+  <link rel="stylesheet" href="assets/css/style.min.css">
+  <script src="assets/js/main.min.js" defer></script>
+
+  <style>
+    .skip-link { position: absolute; left: .5rem; top: -3rem; z-index: 1000; padding: .4rem .75rem; background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
+    .skip-link:focus { top: .5rem; }
+    [id] { scroll-margin-top: 1rem; }
+    .app-summary { margin: 0; }
+    .app-summary__row { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-bottom: 1px solid rgba(128, 128, 128, .3); }
+    .app-summary__row:last-child { border-bottom: 0; }
+    .app-summary dt { color: color-mix(in srgb, CanvasText 70%, Canvas); }
+    .app-summary dd { margin: 0; font-weight: 600; text-align: end; overflow-wrap: anywhere; }
+    .rail { position: sticky; top: 1rem; }
+    @media (max-width: 920px) { .rail { position: static; } }
+    .muted { color: color-mix(in srgb, CanvasText 70%, Canvas); }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+  </style>
+</head>
+
+<body class="dd-g">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div id="task-status" class="visually-hidden" role="status" aria-live="polite"></div>
+
+  <header class="dd-header dd-u-1-1">
+    <div class="dd-header__top">
+      <div class="dd-g">
+        <div class="dd-header__logo dd-u-1-1 l-box">
+          <picture>
+            <source srcset="{{AGENCY_LOGO_DARK}}" media="(prefers-color-scheme: dark)">
+            <img src="{{AGENCY_LOGO}}" alt="ldnddev, LLC. logo" class="dd-img">
+          </picture>
+          <h1>{{REPORT_TITLE}}</h1>
+          <p>{{AGENCY_KICKER}} · {{AGENCY_NAME}} · {{REPORT_SUBTITLE}}</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1" class="dd-u-1-1">
+    <div class="dd-g">
+      <aside class="rail dd-u-1-1 dd-u-lg-8-24 l-box" aria-label="Audit summary and navigation">
+        <section class="dd-section" aria-labelledby="summary-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="summary-label">Audit Summary</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <dl class="app-summary">
+                  <div class="app-summary__row"><dt>Overall Score</dt><dd>{{SCORE_VALUE}} / 100</dd></div>
+                  <div class="app-summary__row"><dt>Rating</dt><dd>{{SCORE_RATING}}</dd></div>
+                  <div class="app-summary__row"><dt>Mobile / Desktop</dt><dd>{{MOBILE_SCORE}} / {{DESKTOP_SCORE}}</dd></div>
+                  <div class="app-summary__row"><dt>Pages Audited</dt><dd>{{PAGE_COUNT}}</dd></div>
+                  <div class="app-summary__row"><dt>Tasks</dt><dd>{{TASK_COUNT}}</dd></div>
+                  <div class="app-summary__row"><dt>Critical / High</dt><dd>{{CRITICAL_COUNT}} / {{HIGH_COUNT}}</dd></div>
+                  <div class="app-summary__row"><dt>Medium / Low</dt><dd>{{MEDIUM_COUNT}} / {{LOW_COUNT}}</dd></div>
+                  <div class="app-summary__row"><dt>Primary URL</dt><dd>{{AUDIT_URL}}</dd></div>
+                  <div class="app-summary__row"><dt>Stack</dt><dd>{{STACK_LABELS}}</dd></div>
+                  <div class="app-summary__row"><dt>Audit Date</dt><dd>{{AUDIT_DATE}}</dd></div>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" aria-labelledby="scores-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="scores-label">Performance Scores</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <figure class="dd-bar-chart" role="group" aria-labelledby="scores-cap">
+                  <figcaption class="dd-bar-chart__caption" id="scores-cap">Lighthouse performance scores out of 100</figcaption>
+                  <ul class="dd-bar-chart__list">
+                    {{SCORE_BARS}}
+                  </ul>
+                </figure>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" aria-labelledby="severity-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="severity-label">Task Severity</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <figure class="dd-bar-chart" role="group" aria-labelledby="severity-cap">
+                  <figcaption class="dd-bar-chart__caption" id="severity-cap">Remediation tasks by severity</figcaption>
+                  <ul class="dd-bar-chart__list">
+                    {{SEVERITY_BARS}}
+                  </ul>
+                </figure>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <nav class="dd-section" aria-labelledby="contents-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="contents-label">Contents</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <ul class="-nostyle">
+                  <li><a href="#pages">Pages</a></li>
+                  <li><a href="#metrics">Core Web Vitals</a></li>
+                  <li><a href="#tasks">Prioritized Tasks</a></li>
+                  <li><a href="#downloads">Downloads</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </aside>
+
+      <div class="dd-u-1-1 dd-u-lg-16-24 l-box">
+        <section class="dd-section" id="pages" tabindex="-1" aria-labelledby="pages-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="pages-label">Pages</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <div class="dd-card">
+                  <div class="dd-card__items dd-g">
+                    {{PAGE_CARDS}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="metrics" tabindex="-1" aria-labelledby="metrics-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="metrics-label">Core Web Vitals</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p class="muted">Primary page metrics (mobile preferred; field CrUX when available, otherwise lab).</p>
+                <div class="dd-data-table">
+                  <div class="dd-data-table__scroll" data-label="Core Web Vitals metrics">
+                    <table class="dd-data-table__table" id="metric-table">
+                      <caption class="dd-data-table__caption visually-hidden">Core Web Vitals and related metrics</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col" class="dd-data-table__th">Metric</th>
+                          <th scope="col" class="dd-data-table__th">Value</th>
+                          <th scope="col" class="dd-data-table__th">Rating</th>
+                          <th scope="col" class="dd-data-table__th">Source</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {{METRIC_ROWS}}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="tasks" tabindex="-1" aria-labelledby="tasks-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="tasks-label">Prioritized Tasks</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p>{{TASKS_NOTE}}</p>
+                <label for="task-filter" class="visually-hidden">Filter task rows</label>
+                <input id="task-filter" type="search" placeholder="Filter tasks (any value)…" aria-controls="task-table">
+                <button id="task-csv" type="button" class="dd-button -secondary" aria-controls="task-table" aria-label="Download tasks as CSV">CSV</button>
+
+                <div class="dd-data-table">
+                  <div class="dd-data-table__scroll" data-label="Speed remediation tasks, scrollable">
+                    <table class="dd-data-table__table" id="task-table">
+                      <caption class="dd-data-table__caption visually-hidden">Speed issues by priority, metric, and owner</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col" class="dd-data-table__th">ID</th>
+                          <th scope="col" class="dd-data-table__th" aria-sort="none">
+                            <button type="button" class="dd-data-table__sort" data-sort-key="priority">Priority<span class="dd-data-table__sort-ind" aria-hidden="true"></span></button>
+                          </th>
+                          <th scope="col" class="dd-data-table__th">Severity</th>
+                          <th scope="col" class="dd-data-table__th">Issue</th>
+                          <th scope="col" class="dd-data-table__th">Metric</th>
+                          <th scope="col" class="dd-data-table__th">Est. savings</th>
+                          <th scope="col" class="dd-data-table__th">Owner</th>
+                          <th scope="col" class="dd-data-table__th">Timeline</th>
+                          <th scope="col" class="dd-data-table__th">Page</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {{TASK_ROWS}}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <p class="muted">{{TASK_COUNT}} entries · full how-to text is in ACTION-PLAN.md and tasks.csv</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="downloads" tabindex="-1" aria-labelledby="downloads-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="downloads-label">Downloads</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p>{{DOWNLOADS_NOTE}}</p>
+              </div>
+              {{DOWNLOAD_LINKS}}
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="dd-footer dd-u-1-1">
+    <div class="dd-g">
+      <div class="dd-footer__copyright dd-u-1-1">
+        <div class="l-box">{{FOOTER_TEXT}}</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const table = document.getElementById('task-table');
+      if (!table) return;
+      const status = document.getElementById('task-status');
+      const filter = document.getElementById('task-filter');
+      let announce;
+
+      if (filter) {
+        filter.addEventListener('input', () => {
+          const q = filter.value.toLowerCase().trim();
+          let shown = 0;
+          table.querySelectorAll('tbody tr').forEach((tr) => {
+            const match = !q || tr.textContent.toLowerCase().includes(q);
+            tr.style.display = match ? '' : 'none';
+            if (match) shown++;
+          });
+          if (status) {
+            clearTimeout(announce);
+            announce = setTimeout(() => {
+              status.textContent = q
+                ? (shown ? shown + ' matching tasks' : 'No matching tasks')
+                : '';
+            }, 400);
+          }
+        });
+      }
+
+      const csvBtn = document.getElementById('task-csv');
+      if (csvBtn) {
+        csvBtn.addEventListener('click', () => {
+          const rows = Array.from(table.querySelectorAll('tr')).filter((tr) => tr.style.display !== 'none');
+          const csv = rows.map((tr) =>
+            Array.from(tr.querySelectorAll('th,td')).map((c) => {
+              const t = c.textContent.trim().replace(/"/g, '""');
+              return /[",\n]/.test(t) ? '"' + t + '"' : t;
+            }).join(',')
+          ).join('\n');
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'speed-tasks.csv';
+          a.click();
+          URL.revokeObjectURL(a.href);
+        });
+      }
+    })();
+
+    (function () {
+      function focusTarget(hash) {
+        if (!hash || hash === '#') return;
+        let el;
+        try { el = document.querySelector(hash); } catch (e) { return; }
+        if (!el) return;
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+        el.focus({ preventScroll: false });
+      }
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest('a[href^="#"]');
+        if (!a) return;
+        const hash = a.getAttribute('href');
+        if (hash.length > 1) { focusTarget(hash); }
+      });
+      window.addEventListener('hashchange', () => focusTarget(location.hash));
+    })();
+  </script>
+</body>
+
+</html>

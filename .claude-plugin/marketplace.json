@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Custom Claude Code plugins for design + development workflows.",
-    "version": "1.2.0"
+    "version": "1.3.0"
   },
   "plugins": [
     {
@@ -64,6 +64,13 @@
       "description": "Update, deploy, and maintain WordPress + Drupal sites on AWS (EC2/RDS/CloudFront) — access-aware per-site registry, Bitbucket Pipelines deploys, Lando local-first.",
       "category": "devops",
       "tags": ["aws", "ec2", "rds", "ssm", "cloudfront", "drupal", "wordpress"]
+    },
+    {
+      "name": "dd-site-speed",
+      "source": "./custom/dd-site-speed-audit",
+      "description": "Page speed and Core Web Vitals audit — Google PageSpeed Insights (mobile + desktop), stack-aware recommendations, branded dashboard + MD/DOCX/CSV task list.",
+      "category": "performance",
+      "tags": ["pagespeed", "performance", "cwv", "lighthouse", "lcp", "inp", "cls", "audit"]
     }
   ]
 }

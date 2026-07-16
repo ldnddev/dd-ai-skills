@@ -1,0 +1,11 @@
+{
+  "agency_name": "ldnddev, LLC",
+  "agency_kicker": "Page Speed Audit",
+  "agency_logo": "assets/imgs/logo-full-black-text.svg",
+  "agency_logo_dark": "assets/imgs/logo-full-white-text.svg",
+  "report_title": "Page Speed Audit Dashboard",
+  "report_subtitle": "Core Web Vitals, Lighthouse opportunities, and prioritized speed fixes.",
+  "downloads_note": "Use these links to review raw metrics and download packaged report files.",
+  "tasks_note": "Tasks are ranked by estimated savings and severity. Export CSV for Jira, Linear, or Asana.",
+  "footer_text": "Prepared by © ldnddev, LLC"
+}

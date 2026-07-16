@@ -1,0 +1,12 @@
+{
+  "name": "dd-site-speed",
+  "version": "1.0.1",
+  "description": "Page speed and Core Web Vitals audit — Google PageSpeed Insights (mobile + desktop), stack-aware recommendations, client deliverables (MD/CSV/DOCX/HTML dashboard).",
+  "license": "MIT",
+  "author": {
+    "name": "Jared Lyvers",
+    "email": "jared@ldnddev.com"
+  },
+  "keywords": ["pagespeed", "performance", "cwv", "lighthouse", "core-web-vitals", "audit", "lcp", "inp", "cls"],
+  "skills": ["./skills/dd-site-speed"]
+}
