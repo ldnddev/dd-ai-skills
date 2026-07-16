@@ -20,7 +20,12 @@ Use this HTML template for every blog post. Replace all `[placeholder]` values b
     <meta name="msapplication-TileColor" content="#ffffff" />
     <meta name="msapplication-config" content="/assets/favicon/browserconfig.xml" />
     <meta name="theme-color" content="#ffffff" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" />
     <link rel="stylesheet" href="/assets/css/style.css" />
+    
   </head>
   
 Reference
