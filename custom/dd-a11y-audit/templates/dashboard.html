@@ -48,7 +48,10 @@
     <div class="dd-header__top">
       <div class="dd-g">
         <div class="dd-header__logo dd-u-1-1 l-box">
-          <img src="{{AGENCY_LOGO}}" alt="" class="dd-img" />
+          <picture>
+            <source srcset="{{AGENCY_LOGO_DARK}}" media="(prefers-color-scheme: dark)">
+            <img src="{{AGENCY_LOGO}}" alt="ldnddev, LLC. logo" class="dd-img">
+          </picture>
           <h1>{{REPORT_TITLE}}</h1>
           <p>{{AGENCY_KICKER}} · {{AGENCY_NAME}} · {{REPORT_SUBTITLE}}</p>
         </div>
