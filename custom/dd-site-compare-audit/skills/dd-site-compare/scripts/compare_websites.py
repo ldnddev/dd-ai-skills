@@ -1129,12 +1129,27 @@ def build_dashboard_payload(results: Sequence[SiteResult], generated_at: str) ->
     }
 
 
+def load_brand_config(template_path: Path) -> Dict[str, object]:
+    """Load templates/brand.json beside the dashboard template (if present)."""
+    brand_path = template_path.parent / "brand.json"
+    if not brand_path.is_file():
+        return {}
+    return json.loads(brand_path.read_text(encoding="utf-8"))
+
+
 def render_dashboard(payload: Dict[str, object], template_path: Path) -> str:
     template = template_path.read_text(encoding="utf-8")
     placeholder = "__DASHBOARD_DATA_JSON__"
     if placeholder not in template:
         raise ValueError(f"Dashboard template is missing {placeholder}")
-    return template.replace(placeholder, json_for_html(payload))
+    brand = load_brand_config(template_path)
+    logo = str(brand.get("agency_logo") or "assets/imgs/logo-full-black-text.svg")
+    logo_dark = str(brand.get("agency_logo_dark") or "assets/imgs/logo-full-white-text.svg")
+    html = template.replace(placeholder, json_for_html(payload))
+    html = html.replace("{{AGENCY_LOGO}}", logo)
+    html = html.replace("{{AGENCY_LOGO_DARK}}", logo_dark)
+    return html
+
 
 
 def copy_template_assets(template_path: Path, output_dir: Path) -> None:

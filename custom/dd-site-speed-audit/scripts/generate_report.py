@@ -1041,7 +1041,10 @@ def build_dashboard(path: Path, results: dict, rows: list[dict]) -> None:
     brand = load_brand_config()
     output_dir = path.parent
     logo_path = ensure_brand_asset(
-        output_dir, brand.get("agency_logo", "assets/imgs/logo-mini.svg")
+        output_dir, brand.get("agency_logo", "assets/imgs/logo-full-black-text.svg")
+    )
+    logo_dark_path = ensure_brand_asset(
+        output_dir, brand.get("agency_logo_dark", "assets/imgs/logo-full-white-text.svg")
     )
     copy_framework_assets(output_dir)
     summary = summarize_results(results)
@@ -1071,6 +1074,7 @@ def build_dashboard(path: Path, results: dict, rows: list[dict]) -> None:
             "AGENCY_NAME": html.escape(brand.get("agency_name", "ldnddev, LLC")),
             "AGENCY_KICKER": html.escape(brand.get("agency_kicker", "Page Speed Audit")),
             "AGENCY_LOGO": html.escape(logo_path),
+            "AGENCY_LOGO_DARK": html.escape(logo_dark_path),
             "AUDIT_URL": html.escape(meta.get("url", "")),
             "AUDIT_DATE": html.escape(format_audit_date(meta.get("timestamp"))),
             "STACK_LABELS": html.escape(", ".join(meta.get("stack_labels") or []) or "—"),

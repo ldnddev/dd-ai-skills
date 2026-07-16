@@ -604,7 +604,12 @@ def build_dashboard(path, results, rows):
         raise FileNotFoundError(f"Dashboard template not found: {template_path}")
 
     brand = load_brand_config()
-    logo_path = ensure_brand_asset(path.parent, brand.get("agency_logo", "assets/imgs/logo-mini.svg"))
+    logo_path = ensure_brand_asset(
+        path.parent, brand.get("agency_logo", "assets/imgs/logo-full-black-text.svg")
+    )
+    logo_dark_path = ensure_brand_asset(
+        path.parent, brand.get("agency_logo_dark", "assets/imgs/logo-full-white-text.svg")
+    )
     copy_framework_assets(path.parent)
     score = results["metadata"]["score"]
     summary = results["summary"]
@@ -635,6 +640,7 @@ def build_dashboard(path, results, rows):
             "AGENCY_NAME": html.escape(brand.get("agency_name", "Accessibility Audit Team")),
             "AGENCY_KICKER": html.escape(brand.get("agency_kicker", "Accessibility Audit")),
             "AGENCY_LOGO": html.escape(logo_path),
+            "AGENCY_LOGO_DARK": html.escape(logo_dark_path),
             "AUDIT_URL": html.escape(results["metadata"]["url"]),
             "AUDIT_DATE": html.escape(format_audit_date(results["metadata"]["timestamp"])),
             "WCAG_TARGET": html.escape(f"Level {results['metadata']['wcag_level']}"),
