@@ -53,7 +53,10 @@
     <div class="dd-header__top">
       <div class="dd-g">
         <div class="dd-header__logo dd-u-1-1 l-box">
-          <img src="assets/imgs/logo-mini.svg" alt="" class="dd-img" />
+          <picture>
+            <source srcset="{{AGENCY_LOGO_DARK}}" media="(prefers-color-scheme: dark)">
+            <img src="{{AGENCY_LOGO}}" alt="ldnddev, LLC. logo" class="dd-img">
+          </picture>
           <h1>Website Comparison Dashboard</h1>
           <p class="muted">Generated <span id="generated-at">…</span> · homepage + direct resources only (no JS execution)</p>
         </div>
