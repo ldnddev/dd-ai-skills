@@ -32,6 +32,8 @@ TEMPLATES_DIR = SKILL_DIR / "templates"
 PLAYBOOK = {
     "render-blocking-resources": {
         "owner": "Frontend Development",
+        "what": "Stylesheets or scripts block the browser from painting the first screen until they finish downloading and executing.",
+        "why": "Increases Largest Contentful Paint and First Contentful Paint, delaying when users see primary content and lowering the performance score.",
         "how": "Defer non-critical CSS/JS, inline critical CSS, use async/defer on scripts, or split bundles so above-the-fold content is not blocked.",
         "effort": "M",
         "metric": "LCP",
@@ -181,6 +183,39 @@ PLAYBOOK = {
         "metric": "CLS",
     },
 }
+
+
+def resolve_insights(
+    opportunity_id: str,
+    *,
+    psi_description: str = "",
+    metric: str = "Performance",
+    playbook_entry: dict | None = None,
+) -> tuple[str, str, str]:
+    """Return (what, why, how) for an opportunity or CWV task id.
+
+    Prefer curated PLAYBOOK fields; fall back to PSI description / generics.
+    """
+    play = playbook_entry if playbook_entry is not None else PLAYBOOK.get(opportunity_id, {})
+    what = (play.get("what") or "").strip()
+    why = (play.get("why") or "").strip()
+    how = (play.get("how") or "").strip()
+
+    if not what:
+        desc = (psi_description or "").strip()
+        if len(desc) > 400:
+            desc = desc[:397] + "..."
+        what = desc or "Lighthouse flagged this opportunity during the performance audit."
+
+    if not why:
+        why = (
+            f"Improves {metric} and the overall performance score when addressed."
+        )
+
+    if not how:
+        how = "Review the Lighthouse opportunity and apply the documented fix."
+
+    return what, why, how
 
 
 def load_brand_config() -> dict:

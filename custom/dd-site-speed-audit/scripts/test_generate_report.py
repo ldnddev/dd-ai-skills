@@ -15,11 +15,45 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from generate_report import (  # noqa: E402
     build_task_rows,
     generate_all,
+    resolve_insights,
     score_label,
     _rating_badge,
     _score_bar_mod,
     _render_score_bars,
 )
+
+
+class TestResolveInsights(unittest.TestCase):
+    def test_known_id_uses_playbook(self):
+        what, why, how = resolve_insights(
+            "render-blocking-resources",
+            psi_description="PSI says something",
+            metric="LCP",
+        )
+        self.assertTrue(len(what) > 20)
+        self.assertTrue(len(why) > 20)
+        self.assertTrue(len(how) > 20)
+        self.assertNotIn("PSI says something", what)
+
+    def test_unknown_id_falls_back_to_psi_description(self):
+        what, why, how = resolve_insights(
+            "totally-unknown-audit-xyz",
+            psi_description="Custom PSI description about widgets.",
+            metric="TBT",
+        )
+        self.assertIn("widgets", what)
+        self.assertIn("TBT", why)
+        self.assertTrue(len(how) > 10)
+
+    def test_unknown_id_without_psi_uses_generic_what(self):
+        what, why, how = resolve_insights(
+            "totally-unknown-audit-xyz",
+            psi_description="",
+            metric="Performance",
+        )
+        self.assertIn("Lighthouse", what)
+        self.assertIn("performance score", why.lower())
+
 
 
 def _fixture() -> dict:
