@@ -881,7 +881,9 @@ def build_client_docx(path: Path, results: dict, rows: list[dict]) -> None:
                 f"{row['task_id']} | {row['priority']} | {row['severity']} | {row['title']} | "
                 f"Savings: {row['est_savings']} | Owner: {row['owner']}"
             )
-            paras.append(f"How: {row['how'][:500]}")
+            paras.append(f"What it means: {(row.get('what') or '')[:500]}")
+            paras.append(f"Why it matters: {(row.get('why') or '')[:500]}")
+            paras.append(f"How to fix: {(row.get('how') or '')[:500]}")
             paras.append(" ")
     _write_simple_docx(path, "Page Speed Audit Client Report", paras)
 
@@ -902,7 +904,9 @@ def build_action_plan_docx(path: Path, results: dict, rows: list[dict]) -> None:
             f"{row['task_id']} [{row['priority']}] {row['title']} — "
             f"{row['timeline']} — {row['owner']} — effort {row['effort']}"
         )
-        paras.append(row["how"][:600])
+        paras.append(f"What it means: {(row.get('what') or '')[:600]}")
+        paras.append(f"Why it matters: {(row.get('why') or '')[:600]}")
+        paras.append(f"How to fix: {(row.get('how') or '')[:600]}")
         paras.append(" ")
     if not rows:
         paras.append("No remediation tasks.")

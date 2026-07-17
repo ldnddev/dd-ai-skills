@@ -334,6 +334,18 @@ class TestGenerateReport(unittest.TestCase):
                 self.assertIn("Why it matters", doc)
                 self.assertIn("How to fix", doc)
 
+    def test_insights_in_docx(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "bundle"
+            generate_all(_fixture(), out)
+            from zipfile import ZipFile
+            for name in ("SPEED-CLIENT-REPORT.docx", "ACTION-PLAN.docx"):
+                with ZipFile(out / name) as zf:
+                    xml = zf.read("word/document.xml").decode("utf-8")
+                self.assertIn("What it means", xml)
+                self.assertIn("Why it matters", xml)
+                self.assertIn("How to fix", xml)
+
 
 if __name__ == "__main__":
     unittest.main()
