@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 import urllib.error
@@ -359,7 +360,11 @@ def main() -> None:
         help="Analysis strategy (default: both)",
     )
     parser.add_argument("--json", "-j", action="store_true", help="Output as JSON")
-    parser.add_argument("--api-key", help="Google API key for higher rate limits")
+    parser.add_argument(
+        "--api-key",
+        default=os.environ.get("PAGESPEED_API_KEY") or os.environ.get("PSI_API_KEY"),
+        help="Google PageSpeed API key (optional; also PAGESPEED_API_KEY / PSI_API_KEY env)",
+    )
     parser.add_argument("--timeout", type=int, default=90, help="HTTP timeout seconds")
     args = parser.parse_args()
 
