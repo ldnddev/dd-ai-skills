@@ -89,7 +89,7 @@ def fetch_page(url: str, timeout: int = 30) -> tuple[str, dict, str | None]:
         req = urllib.request.Request(
             url,
             headers={
-                "User-Agent": "dd-site-speed/1.0 (+https://ldnddev.com)",
+                "User-Agent": "dd-site-speed/1.1 (+https://ldnddev.com)",
                 "Accept": "text/html,application/xhtml+xml",
             },
         )

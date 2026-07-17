@@ -65,7 +65,7 @@ def _fixture() -> dict:
             "strategies": ["mobile", "desktop"],
             "stack_labels": ["WordPress", "Cloudflare"],
             "tool": "dd-site-speed",
-            "version": "1.0.1",
+            "version": "1.1.0",
         },
         "pages": [
             {

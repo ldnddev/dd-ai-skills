@@ -1,7 +1,7 @@
 {
   "name": "dd-site-speed",
-  "version": "1.0.2",
-  "description": "Page speed and Core Web Vitals audit — Google PageSpeed Insights (mobile + desktop), stack-aware recommendations, client deliverables (MD/CSV/DOCX/HTML dashboard).",
+  "version": "1.1.0",
+  "description": "Page speed and Core Web Vitals audit — Google PageSpeed Insights (mobile + desktop), What/Why/How issue insights, stack-aware recommendations, client deliverables (MD/CSV/DOCX/HTML dashboard).",
   "license": "MIT",
   "author": {
     "name": "Jared Lyvers",

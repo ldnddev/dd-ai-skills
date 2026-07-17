@@ -151,7 +151,7 @@ def run_audit(
             "strategies": strategies,
             "stack_labels": all_stack_labels,
             "tool": "dd-site-speed",
-            "version": "1.0.1",
+            "version": "1.1.0",
         },
         "pages": pages,
         "limitations": limitations,

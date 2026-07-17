@@ -128,7 +128,7 @@ def get_pagespeed(
         try:
             req = urllib.request.Request(
                 request_url,
-                headers={"User-Agent": "dd-site-speed/1.0 (+https://ldnddev.com)"},
+                headers={"User-Agent": "dd-site-speed/1.1 (+https://ldnddev.com)"},
             )
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 body = resp.read().decode("utf-8", errors="replace")
