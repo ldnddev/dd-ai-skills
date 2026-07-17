@@ -9,6 +9,7 @@ Inspired by [DeployHQ PageSpeed Analyzer](https://pagespeed.deployhq.com/): meas
 - **Mobile + desktop** PSI by default (lab Lighthouse + field CrUX when available)
 - **Stack detection** (WordPress, Next.js, Shopify, CDN/host signals, …)
 - **Prioritized tasks** with estimated savings, owner, effort, and how-to
+- **Issue insights** — What it means, Why it matters, How to fix on every task (dashboard expand + MD/DOCX/CSV)
 - **Client bundle**: branded `index.html` dashboard, MD + dual DOCX, `tasks.csv`, `data.json`
 - **Multi-page**: multiple URLs or `--urls-file`
 - **Optional API key** (`--api-key` or `PAGESPEED_API_KEY`) — free tier works without one

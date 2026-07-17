@@ -4,6 +4,18 @@
 
 Map common Lighthouse opportunity IDs to concrete fixes. Pair with `framework-tips.md` for stack-specific steps.
 
+## Issue insights (report fields)
+
+Every remediation task in the client bundle includes three fields resolved from the in-code PLAYBOOK in `scripts/generate_report.py`:
+
+| Field | Label in reports | Purpose |
+|-------|------------------|---------|
+| `what` | What it means | Plain-language description of the issue |
+| `why` | Why it matters | Impact on CWV / score / UX |
+| `how` | How to fix | Actionable remediation (stack tips may append) |
+
+Unknown Lighthouse IDs fall back to the PSI audit description for `what`, a generic metric-based `why`, and a generic `how`. Agents enriching recommendations should **not** invent savings numbers or reintroduce FID.
+
 ## LCP-focused
 
 | Opportunity ID | Fix summary |
