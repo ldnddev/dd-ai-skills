@@ -19,3 +19,6 @@ web/
 
 # Loose test/debug PNGs at repo root
 /*.png
+
+# Git worktrees (local isolation)
+.worktrees/
