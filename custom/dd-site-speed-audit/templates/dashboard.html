@@ -187,9 +187,7 @@
                       <thead>
                         <tr>
                           <th scope="col" class="dd-data-table__th">ID</th>
-                          <th scope="col" class="dd-data-table__th" aria-sort="none">
-                            <button type="button" class="dd-data-table__sort" data-sort-key="priority">Priority<span class="dd-data-table__sort-ind" aria-hidden="true"></span></button>
-                          </th>
+                          <th scope="col" class="dd-data-table__th">Priority</th>
                           <th scope="col" class="dd-data-table__th">Severity</th>
                           <th scope="col" class="dd-data-table__th">Issue</th>
                           <th scope="col" class="dd-data-table__th">Metric</th>
@@ -249,6 +247,7 @@
         const detail = id ? document.getElementById(id) : null;
         if (!detail) return;
         btn.setAttribute('aria-expanded', show ? 'true' : 'false');
+        detail.style.display = ''; // clear filter-side inline styles
         if (show) {
           detail.removeAttribute('hidden');
         } else {
@@ -276,13 +275,17 @@
             const detailId = btn && btn.getAttribute('aria-controls');
             const detail = detailId ? document.getElementById(detailId) : null;
             if (detail) {
+              detail.style.display = '';
               if (!match) {
                 detail.style.display = 'none';
+                // keep expanded state in aria but hide the row when parent filtered out
               } else {
                 const open = btn.getAttribute('aria-expanded') === 'true';
-                detail.style.display = open ? '' : 'none';
-                if (!open) detail.setAttribute('hidden', '');
-                else detail.removeAttribute('hidden');
+                if (open) {
+                  detail.removeAttribute('hidden');
+                } else {
+                  detail.setAttribute('hidden', '');
+                }
               }
             }
             if (match) shown++;
