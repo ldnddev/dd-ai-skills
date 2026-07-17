@@ -320,6 +320,20 @@ class TestGenerateReport(unittest.TestCase):
             data = json.loads((out / "data.json").read_text(encoding="utf-8"))
             self.assertEqual(len(data["pages"]), 2)
 
+    def test_insights_in_markdown_and_csv(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "bundle"
+            generate_all(_fixture(), out)
+            csv_text = (out / "tasks.csv").read_text(encoding="utf-8")
+            self.assertIn("what", csv_text.splitlines()[0])
+            self.assertIn("why", csv_text.splitlines()[0])
+            report = (out / "SPEED-AUDIT-REPORT.md").read_text(encoding="utf-8")
+            plan = (out / "ACTION-PLAN.md").read_text(encoding="utf-8")
+            for doc in (report, plan):
+                self.assertIn("What it means", doc)
+                self.assertIn("Why it matters", doc)
+                self.assertIn("How to fix", doc)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -710,8 +710,10 @@ def generate_markdown_report(results: dict, rows: list[dict]) -> str:
                 f"- **Est. savings:** {row['est_savings']}",
                 f"- **Effort / Owner:** {row['effort']} / {row['owner']}",
                 f"- **Stack context:** {row['stack'] or 'n/a'}",
-                f"- **Evidence:** {row['evidence']}",
+                f"- **What it means:** {row['what']}",
+                f"- **Why it matters:** {row['why']}",
                 f"- **How to fix:** {row['how']}",
+                f"- **Evidence:** {row['evidence']}",
                 "",
             ])
 
@@ -781,7 +783,9 @@ def generate_action_plan(results: dict, rows: list[dict]) -> str:
                 f"- Owner: {row['owner']}",
                 f"- Timeline: {row['timeline']}",
                 f"- Effort: {row['effort']}",
-                f"- How: {row['how']}",
+                f"- What it means: {row['what']}",
+                f"- Why it matters: {row['why']}",
+                f"- How to fix: {row['how']}",
                 "",
             ])
     return "\n".join(lines)
@@ -789,9 +793,11 @@ def generate_action_plan(results: dict, rows: list[dict]) -> str:
 
 def write_csv(path: Path, rows: list[dict]) -> None:
     fieldnames = [
-        "task_id", "priority", "severity", "title", "metric", "est_savings",
-        "est_savings_ms", "effort", "owner", "stack", "page_url", "strategy",
-        "timeline", "how", "evidence", "opportunity_id", "status",
+        "task_id", "priority", "severity", "title",
+        "what", "why", "how",
+        "metric", "est_savings", "est_savings_ms", "effort", "owner",
+        "stack", "page_url", "page_slug", "strategy", "timeline",
+        "evidence", "opportunity_id", "status",
     ]
     with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
