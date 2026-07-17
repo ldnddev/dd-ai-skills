@@ -1140,18 +1140,48 @@ def _render_task_rows(rows: list[dict]) -> str:
         )
     out = []
     for r in rows:
+        tid = html.escape(r["task_id"])
+        detail_id = f"task-insight-{html.escape(r['task_id'])}"
+        filter_text = " ".join([
+            r.get("task_id") or "",
+            r.get("title") or "",
+            r.get("what") or "",
+            r.get("why") or "",
+            r.get("how") or "",
+            r.get("metric") or "",
+            r.get("owner") or "",
+            r.get("page_url") or "",
+        ])
+        filter_attr = html.escape(filter_text, quote=True)
+        what = html.escape(r.get("what") or "")
+        why = html.escape(r.get("why") or "")
+        how = html.escape(r.get("how") or "")
         out.append(
-            f'<tr class="dd-data-table__row">'
-            f'<th scope="row" class="dd-data-table__td">{html.escape(r["task_id"])}</th>'
+            f'<tr class="dd-data-table__row" data-task-main="{tid}" data-filter-text="{filter_attr}">'
+            f'<th scope="row" class="dd-data-table__td">{tid}</th>'
             f'<td class="dd-data-table__td">{_badge(r["priority"], r["priority"])}</td>'
             f'<td class="dd-data-table__td">{_badge(r["severity"], r["severity"])}</td>'
-            f'<td class="dd-data-table__td">{html.escape(r["title"])}</td>'
+            f'<td class="dd-data-table__td">'
+            f'<button type="button" class="dd-button -secondary task-insight-toggle" '
+            f'aria-expanded="false" aria-controls="{detail_id}" '
+            f'data-expanded-label="Hide details" data-collapsed-label="Show details">'
+            f'{html.escape(r["title"])} <span class="muted">(details)</span></button>'
+            f'</td>'
             f'<td class="dd-data-table__td">{html.escape(r["metric"])}</td>'
             f'<td class="dd-data-table__td">{html.escape(str(r["est_savings"]))}</td>'
             f'<td class="dd-data-table__td">{html.escape(r["owner"])}</td>'
             f'<td class="dd-data-table__td">{html.escape(r["timeline"])}</td>'
             f'<td class="dd-data-table__td">{html.escape(r["page_url"])}</td>'
             f"</tr>"
+        )
+        out.append(
+            f'<tr class="dd-data-table__row task-insight-detail" id="{detail_id}" hidden>'
+            f'<td class="dd-data-table__td" colspan="9">'
+            f'<div class="task-insights l-box">'
+            f'<section><h3 class="h5">What it means</h3><p>{what}</p></section>'
+            f'<section><h3 class="h5">Why it matters</h3><p>{why}</p></section>'
+            f'<section><h3 class="h5">How to fix</h3><p>{how}</p></section>'
+            f"</div></td></tr>"
         )
     return "\n".join(out)
 

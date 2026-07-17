@@ -346,6 +346,18 @@ class TestGenerateReport(unittest.TestCase):
                 self.assertIn("Why it matters", xml)
                 self.assertIn("How to fix", xml)
 
+    def test_dashboard_expandable_insights(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "bundle"
+            generate_all(_fixture(), out)
+            html_text = (out / "index.html").read_text(encoding="utf-8")
+            self.assertIn('aria-expanded="false"', html_text)
+            self.assertIn("What it means", html_text)
+            self.assertIn("Why it matters", html_text)
+            self.assertIn("How to fix", html_text)
+            self.assertIn("task-insight-detail", html_text)
+            self.assertIn("data-filter-text", html_text)
+
 
 if __name__ == "__main__":
     unittest.main()

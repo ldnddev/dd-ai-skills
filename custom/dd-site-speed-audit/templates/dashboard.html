@@ -205,7 +205,7 @@
                     </table>
                   </div>
                 </div>
-                <p class="muted">{{TASK_COUNT}} entries · full how-to text is in ACTION-PLAN.md and tasks.csv</p>
+                <p class="muted">{{TASK_COUNT}} entries · expand a task for What / Why / How · full text also in ACTION-PLAN.md, DOCX, and tasks.csv</p>
               </div>
             </div>
           </div>
@@ -242,13 +242,49 @@
       const filter = document.getElementById('task-filter');
       let announce;
 
+      function setDetailVisibility(mainRow, show) {
+        const btn = mainRow.querySelector('.task-insight-toggle');
+        if (!btn) return;
+        const id = btn.getAttribute('aria-controls');
+        const detail = id ? document.getElementById(id) : null;
+        if (!detail) return;
+        btn.setAttribute('aria-expanded', show ? 'true' : 'false');
+        if (show) {
+          detail.removeAttribute('hidden');
+        } else {
+          detail.setAttribute('hidden', '');
+        }
+      }
+
+      table.addEventListener('click', (e) => {
+        const btn = e.target.closest('.task-insight-toggle');
+        if (!btn || !table.contains(btn)) return;
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        const mainRow = btn.closest('tr');
+        setDetailVisibility(mainRow, !expanded);
+      });
+
       if (filter) {
         filter.addEventListener('input', () => {
           const q = filter.value.toLowerCase().trim();
           let shown = 0;
-          table.querySelectorAll('tbody tr').forEach((tr) => {
-            const match = !q || tr.textContent.toLowerCase().includes(q);
+          table.querySelectorAll('tbody tr[data-task-main]').forEach((tr) => {
+            const hay = (tr.getAttribute('data-filter-text') || tr.textContent).toLowerCase();
+            const match = !q || hay.includes(q);
             tr.style.display = match ? '' : 'none';
+            const btn = tr.querySelector('.task-insight-toggle');
+            const detailId = btn && btn.getAttribute('aria-controls');
+            const detail = detailId ? document.getElementById(detailId) : null;
+            if (detail) {
+              if (!match) {
+                detail.style.display = 'none';
+              } else {
+                const open = btn.getAttribute('aria-expanded') === 'true';
+                detail.style.display = open ? '' : 'none';
+                if (!open) detail.setAttribute('hidden', '');
+                else detail.removeAttribute('hidden');
+              }
+            }
             if (match) shown++;
           });
           if (status) {
@@ -265,7 +301,9 @@
       const csvBtn = document.getElementById('task-csv');
       if (csvBtn) {
         csvBtn.addEventListener('click', () => {
-          const rows = Array.from(table.querySelectorAll('tr')).filter((tr) => tr.style.display !== 'none');
+          const rows = Array.from(table.querySelectorAll('tr[data-task-main], thead tr')).filter(
+            (tr) => tr.style.display !== 'none'
+          );
           const csv = rows.map((tr) =>
             Array.from(tr.querySelectorAll('th,td')).map((c) => {
               const t = c.textContent.trim().replace(/"/g, '""');
