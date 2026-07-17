@@ -188,6 +188,72 @@ def _fixture() -> dict:
     }
 
 
+class TestTaskInsights(unittest.TestCase):
+    def test_opportunity_rows_include_what_why_how(self):
+        rows = build_task_rows(_fixture())
+        rbr = next(r for r in rows if r["opportunity_id"] == "render-blocking-resources")
+        self.assertIn("block", rbr["what"].lower())
+        self.assertTrue(len(rbr["why"]) > 20)
+        self.assertIn("Defer", rbr["how"])  # playbook how
+        self.assertIn("WordPress", rbr["how"])  # stack tip still appended
+
+    def test_unknown_opportunity_uses_psi_description(self):
+        data = _fixture()
+        data["pages"][0]["strategies"]["mobile"]["opportunities"].append({
+            "id": "brand-new-audit-999",
+            "title": "Brand new audit",
+            "description": "Widgets are not optimized for speed.",
+            "savings_ms": 900,
+            "savings_bytes": 0,
+            "display": "0.9s",
+        })
+        rows = build_task_rows(data)
+        row = next(r for r in rows if r["opportunity_id"] == "brand-new-audit-999")
+        self.assertIn("Widgets", row["what"])
+        self.assertTrue(row["why"])
+        self.assertTrue(row["how"])
+
+    def test_cwv_tasks_use_curated_insights(self):
+        data = {
+            "metadata": {"stack_labels": []},
+            "pages": [{
+                "page_url": "https://example.com/cwv",
+                "page_slug": "cwv",
+                "stack": {"labels": []},
+                "strategies": {
+                    "mobile": {
+                        "strategy": "mobile",
+                        "performance_score": 40,
+                        "metrics": {
+                            "INP": {
+                                "value": 400,
+                                "unit": "ms",
+                                "label": "Interaction to Next Paint",
+                                "rating": "poor",
+                                "source": "lab",
+                            },
+                        },
+                        "opportunities": [],
+                        "error": None,
+                    },
+                    "desktop": {
+                        "strategy": "desktop",
+                        "performance_score": 50,
+                        "metrics": {},
+                        "opportunities": [],
+                        "error": None,
+                    },
+                },
+                "error": None,
+            }],
+        }
+        rows = build_task_rows(data)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["opportunity_id"], "cwv-inp")
+        self.assertIn("Interaction", rows[0]["what"])
+        self.assertIn("Core Web Vital", rows[0]["why"])
+
+
 class TestGenerateReport(unittest.TestCase):
     def test_score_label(self):
         self.assertEqual(score_label(95), "Excellent")

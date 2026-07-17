@@ -494,12 +494,17 @@ def build_task_rows(results: dict) -> list[dict]:
             savings_bytes = int(opp.get("savings_bytes") or 0)
             sev = severity_from_savings(savings_ms, savings_bytes)
             tip = stack_tips(labels, oid)
-            how = play.get("how") or (opp.get("description") or "Review the Lighthouse opportunity and apply the documented fix.")
-            if tip:
-                how = f"{how} {tip}"
             owner = play.get("owner") or "Frontend Development"
             metric = play.get("metric") or "Performance"
             effort = play.get("effort") or "M"
+            what, why, how = resolve_insights(
+                oid,
+                psi_description=opp.get("description") or "",
+                metric=metric,
+                playbook_entry=play,
+            )
+            if tip:
+                how = f"{how} {tip}"
             est = format_ms(savings_ms) if savings_ms else format_bytes(savings_bytes) or "—"
             rows.append({
                 "task_id": f"SPEED-{idx:03d}",
@@ -517,6 +522,8 @@ def build_task_rows(results: dict) -> list[dict]:
                 "owner": owner,
                 "stack": ", ".join(labels[:4]),
                 "strategy": opp.get("strategy") or "mobile",
+                "what": what,
+                "why": why,
                 "how": how,
                 "evidence": opp.get("display") or opp.get("description", "")[:180],
                 "timeline": timeline_from_severity(sev),
@@ -527,22 +534,32 @@ def build_task_rows(results: dict) -> list[dict]:
         # Metric-based tasks when CWV is poor and no opportunity captured the metric
         primary = pick_strategy_data(page, "mobile")
         metrics = primary.get("metrics") or {}
-        for mname, thresholds_note in (
-            ("LCP", "Optimize LCP element discovery, size, and server response."),
-            ("INP", "Reduce main-thread long tasks and heavy event handlers."),
-            ("CLS", "Reserve space for media/embeds and avoid late-injected content."),
+        for mname, _legacy_note in (
+            ("LCP", ""),
+            ("INP", ""),
+            ("CLS", ""),
         ):
             metric = metrics.get(mname) or {}
             rating = (metric.get("rating") or "").lower()
             if rating not in ("poor", "slow", "needs-improvement", "average"):
                 continue
-            # Skip if we already have tasks tagged with this metric for the page
             if any(r["page_url"] == page_url and r["metric"] == mname for r in rows):
                 continue
             sev = "Critical" if rating in ("poor", "slow") else "High"
             value = metric.get("value")
             unit = metric.get("unit") or ""
             display = f"{value}{unit}" if unit != "ms" else format_ms(value)
+            oid = f"cwv-{mname.lower()}"
+            play = PLAYBOOK.get(oid, {})
+            what, why, how = resolve_insights(
+                oid,
+                psi_description="",
+                metric=mname,
+                playbook_entry=play,
+            )
+            tip = stack_tips(labels, "")
+            if tip:
+                how = f"{how} {tip}".strip()
             rows.append({
                 "task_id": f"SPEED-{idx:03d}",
                 "page_url": page_url,
@@ -550,16 +567,18 @@ def build_task_rows(results: dict) -> list[dict]:
                 "priority": priority_from_severity(sev),
                 "severity": sev,
                 "title": f"Improve {mname} ({display}, {rating})",
-                "opportunity_id": f"cwv-{mname.lower()}",
+                "opportunity_id": oid,
                 "metric": mname,
                 "est_savings": "—",
                 "est_savings_ms": 0,
                 "est_savings_bytes": 0,
-                "effort": "M",
-                "owner": "Frontend Development",
+                "effort": play.get("effort") or "M",
+                "owner": play.get("owner") or "Frontend Development",
                 "stack": ", ".join(labels[:4]),
                 "strategy": primary.get("strategy") or "mobile",
-                "how": f"{thresholds_note} {stack_tips(labels, '')}".strip(),
+                "what": what,
+                "why": why,
+                "how": how,
                 "evidence": f"{mname}={display} rating={rating} source={metric.get('source', 'lab')}",
                 "timeline": timeline_from_severity(sev),
                 "status": "Open",
