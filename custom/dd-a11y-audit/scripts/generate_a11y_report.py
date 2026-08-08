@@ -14,6 +14,7 @@ import csv
 import html
 import json
 import shutil
+import struct
 from datetime import UTC, datetime
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -375,12 +376,97 @@ def paragraph_xml(text):
     )
 
 
-def build_docx(path, results, rows):
+def _png_size(path):
+    """Read PNG width/height from IHDR; fall back to 600x400."""
+    try:
+        with open(path, "rb") as handle:
+            sig = handle.read(8)
+            if sig != b"\x89PNG\r\n\x1a\n":
+                return 600, 400
+            length, ctype = struct.unpack(">I4s", handle.read(8))
+            if ctype != b"IHDR" or length < 8:
+                return 600, 400
+            w, h = struct.unpack(">II", handle.read(8))
+            return w, h
+    except OSError:
+        return 600, 400
+
+
+def _png_extent_emu(path, max_width_in=6.0):
+    w, h = _png_size(path)
+    if w <= 0 or h <= 0:
+        w, h = 600, 400
+    max_cx = int(max_width_in * 914400)
+    cx = max_cx
+    cy = int(max_cx * (h / w))
+    return cx, cy
+
+
+def image_paragraph_xml(rid, cx, cy, doc_pr_id=1):
+    return (
+        f"<w:p><w:r><w:drawing>"
+        f'<wp:inline distT="0" distB="0" distL="0" distR="0" '
+        f'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
+        f'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+        f'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
+        f'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        f'<wp:extent cx="{cx}" cy="{cy}"/>'
+        f'<wp:docPr id="{doc_pr_id}" name="Picture {doc_pr_id}"/>'
+        f'<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        f"<pic:pic><pic:nvPicPr><pic:cNvPr id=\"0\" name=\"image\"/><pic:cNvPicPr/></pic:nvPicPr>"
+        f'<pic:blipFill><a:blip r:embed="{rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+        f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
+        f'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>'
+        f"</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>"
+    )
+
+
+def _resolve_shot_path(rel_path, base_dir):
+    """Resolve a screenshot path relative to base_dir (JSON parent)."""
+    if not rel_path:
+        return None
+    candidate = Path(rel_path)
+    if not candidate.is_absolute():
+        candidate = Path(base_dir) / candidate
+    if candidate.is_file():
+        return candidate
+    return None
+
+
+def build_docx(path, results, rows, base_dir=None):
     body = []
     meta = results["metadata"]
     summary = results["summary"]
     utc_now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     pages = get_pages(results)
+    base = Path(base_dir) if base_dir else Path(".")
+    # Collect (rid, media_name, abs_path) for PNGs that exist on disk.
+    media_files = []
+    doc_pr_id = 1
+    next_img = 1
+
+    def register_image(rel_path):
+        nonlocal next_img
+        abs_path = _resolve_shot_path(rel_path, base)
+        if not abs_path:
+            return None, None
+        rid = f"rId{next_img}"
+        media_name = f"image{next_img}.png"
+        media_files.append((rid, media_name, abs_path))
+        next_img += 1
+        return rid, abs_path
+
+    def append_image_or_path(label, rel_path):
+        nonlocal doc_pr_id
+        rid, abs_path = register_image(rel_path)
+        if rid:
+            cx, cy = _png_extent_emu(abs_path)
+            body.append(paragraph_xml(label))
+            body.append(image_paragraph_xml(rid, cx, cy, doc_pr_id=doc_pr_id))
+            doc_pr_id += 1
+        elif rel_path:
+            body.append(paragraph_xml(f"{label} {rel_path}"))
+
     body.append(paragraph_xml("Accessibility Audit Client Report"))
     body.append(paragraph_xml(f"URL: {meta['url']}"))
     body.append(paragraph_xml(f"Generated: {meta['timestamp']}"))
@@ -397,9 +483,9 @@ def build_docx(path, results, rows):
         for page in pages:
             page_url = page.get("page_url") or page.get("metadata", {}).get("url", "")
             body.append(paragraph_xml(f"Page: {page_url}"))
-            full_page = page.get("screenshots", {}).get("full_page")
-            if full_page:
-                body.append(paragraph_xml(f"Full page screenshot: {full_page}"))
+            pin_map = _page_pin_map(page)
+            if pin_map:
+                append_image_or_path("Pin map:", pin_map)
             for row in [item for item in rows if item["page_url"] == page_url]:
                 body.append(paragraph_xml(
                     f"{row['task_id']} | {row['priority']} | {row['issue']} | "
@@ -407,7 +493,7 @@ def build_docx(path, results, rows):
                 ))
                 body.append(paragraph_xml(f"Fix: {row['fix']}"))
                 if row["issue_screenshot"]:
-                    body.append(paragraph_xml(f"Issue screenshot: {row['issue_screenshot']}"))
+                    append_image_or_path("Annotated issue screenshot:", row["issue_screenshot"])
 
     document_xml = (
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
@@ -418,11 +504,16 @@ def build_docx(path, results, rows):
         "w:footer=\"708\" w:gutter=\"0\"/></w:sectPr></w:body></w:document>"
     )
 
-    content_types = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    png_default = ""
+    if media_files:
+        png_default = (
+            '  <Default Extension="png" ContentType="image/png"/>\n'
+        )
+    content_types = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+{png_default}  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
   <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 </Types>"""
@@ -433,6 +524,21 @@ def build_docx(path, results, rows):
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
   <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
 </Relationships>"""
+
+    # word/document.xml.rels — image relationships for embedded PNGs
+    doc_rels_items = []
+    for rid, media_name, _abs in media_files:
+        doc_rels_items.append(
+            f'<Relationship Id="{rid}" '
+            f'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" '
+            f'Target="media/{media_name}"/>'
+        )
+    document_rels = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        f'{"".join(doc_rels_items)}'
+        "</Relationships>"
+    )
 
     core = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -454,6 +560,10 @@ def build_docx(path, results, rows):
         docx.writestr("docProps/core.xml", core)
         docx.writestr("docProps/app.xml", app)
         docx.writestr("word/document.xml", document_xml)
+        if media_files:
+            docx.writestr("word/_rels/document.xml.rels", document_rels)
+            for _rid, media_name, abs_path in media_files:
+                docx.write(str(abs_path), f"word/media/{media_name}")
 
 
 # --- dd-framework component builders -------------------------------------
@@ -519,12 +629,12 @@ def _render_severity_bars(summary):
 
 def _render_page_cards(pages):
     """dd-card grid — one card per audited page. The URL is the card <h3> title
-    (M1); the screenshot is illustrative → alt="" (1.1.1), reached via a
+    (M1); the pin map is illustrative → alt="" (1.1.1), reached via a
     self-describing link (2.4.4/2.5.3)."""
     cards = []
     for page in pages:
         page_url = page.get("page_url") or page.get("metadata", {}).get("url", "")
-        shot = page.get("screenshots", {}).get("full_page")
+        shot = _page_pin_map(page)
         score_val = page.get("metadata", {}).get("score", "n/a")
         esc_url = html.escape(page_url)
         image = ""
@@ -537,11 +647,14 @@ def _render_page_cards(pages):
             )
             extra = (
                 f'<div class="dd-card__links dd-g"><div class="dd-card__link">'
-                f'<a href="{esc_shot}" class="dd-button -secondary">View screenshot'
-                f'<span class="visually-hidden"> of {esc_url}</span></a></div></div>'
+                f'<a href="{esc_shot}" class="dd-button -secondary">View pin map'
+                f'<span class="visually-hidden"> of accessibility issues on {esc_url}</span></a></div></div>'
             )
         else:
-            extra = '<p class="muted">No screenshot captured for this page.</p>'
+            extra = (
+                '<p class="muted">No pin map captured for this page '
+                "(no locatable issues or capture skipped).</p>"
+            )
         cards.append(
             f'<div class="dd-card__item l-box dd-u-1-1 dd-u-md-12-24" data-aos="fade-up">'
             f'<div class="dd-card__body dd-g">'
@@ -573,16 +686,16 @@ def _render_task_rows(rows):
     for r in rows:
         priority = r["priority"]
         # Screenshot cell needs a unique, context-bearing accessible name
-        # (2.4.4/2.5.3) — the visible word ("Issue"/"Page") is a substring of it.
+        # (2.4.4/2.5.3) — the visible word ("Annotated"/"Pin map") is a substring of it.
         if r.get("issue_screenshot"):
             shot = (
-                f'<a href="{html.escape(r["issue_screenshot"])}">Issue'
+                f'<a href="{html.escape(r["issue_screenshot"])}">Annotated'
                 f'<span class="visually-hidden"> screenshot for {html.escape(r["task_id"])}</span></a>'
             )
         elif r.get("page_screenshot"):
             shot = (
-                f'<a href="{html.escape(r["page_screenshot"])}">Page'
-                f'<span class="visually-hidden"> screenshot for {html.escape(r["task_id"])}</span></a>'
+                f'<a href="{html.escape(r["page_screenshot"])}">Pin map'
+                f'<span class="visually-hidden"> for {html.escape(r["task_id"])}</span></a>'
             )
         else:
             shot = '<span class="muted">n/a</span>'
@@ -715,7 +828,7 @@ def main():
     md_report.write_text(generate_markdown_report(results), encoding="utf-8")
     action_plan.write_text(generate_action_plan(results), encoding="utf-8")
     write_csv(csv_path, rows)
-    build_docx(docx_path, results, rows)
+    build_docx(docx_path, results, rows, base_dir=Path(args.input).resolve().parent)
     build_dashboard(html_path, results, rows)
 
     artifacts = {

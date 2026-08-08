@@ -127,6 +127,51 @@ class TestScreenshotRows(unittest.TestCase):
         page = {"screenshots": {"full_page": "screenshots/legacy-full.png"}}
         self.assertEqual(r._page_pin_map(page), "screenshots/legacy-full.png")
 
+    def test_page_cards_use_pin_map_button_label(self):
+        pages = [{
+            "page_url": "https://ex.com/page",
+            "metadata": {"score": 42},
+            "screenshots": {"pin_map": "screenshots/pin-map.png"},
+        }]
+        html = r._render_page_cards(pages)
+        self.assertIn("View pin map", html)
+        self.assertIn("of accessibility issues on https://ex.com/page", html)
+        self.assertIn('src="screenshots/pin-map.png"', html)
+        self.assertNotIn("View screenshot", html)
+
+    def test_page_cards_empty_pin_map_message(self):
+        pages = [{"page_url": "https://ex.com", "metadata": {"score": 90}, "screenshots": {}}]
+        html = r._render_page_cards(pages)
+        self.assertIn("No pin map captured for this page", html)
+
+    def test_task_rows_annotated_and_pin_map_labels(self):
+        rows = [{
+            "task_id": "A11Y-001",
+            "page_url": "https://ex.com",
+            "priority": "Critical",
+            "issue": "Contrast",
+            "owner": "Frontend Development",
+            "timeline": "Immediate (1-2 days)",
+            "selector": ".x",
+            "issue_screenshot": "screenshots/A11Y-001.png",
+            "page_screenshot": "screenshots/pin-map.png",
+        }, {
+            "task_id": "A11Y-002",
+            "page_url": "https://ex.com",
+            "priority": "Serious",
+            "issue": "Name",
+            "owner": "Frontend Development",
+            "timeline": "Week 1",
+            "selector": "button",
+            "issue_screenshot": "",
+            "page_screenshot": "screenshots/pin-map.png",
+        }]
+        html = r._render_task_rows(rows)
+        self.assertIn(">Annotated<span", html)
+        self.assertIn("screenshot for A11Y-001", html)
+        self.assertIn(">Pin map<span", html)
+        self.assertIn("for A11Y-002", html)
+
 
 if __name__ == "__main__":
     unittest.main()
