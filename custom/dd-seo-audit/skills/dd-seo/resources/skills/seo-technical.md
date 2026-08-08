@@ -200,7 +200,7 @@ When invoked as an agent, execute these steps:
 1. Run `scripts/robots_checker.py "$URL" --json` for crawlability and AI crawler rules.
 2. Run `scripts/security_headers.py "$URL" --json` for security posture.
 3. Run `scripts/redirect_checker.py "$URL" --json` to verify redirect chains.
-4. Run `scripts/pagespeed.py "$URL" --strategy mobile --json` for Core Web Vitals mapping.
+4. Run `scripts/pagespeed.py "$URL" --strategy mobile --json --api-key "$PAGESPEED_API_KEY"` for Core Web Vitals mapping (ask for a PageSpeed API key first if none is set — unauthenticated PSI often fails).
 5. Run `scripts/hreflang_checker.py "$URL" --json` for international setup.
 6. Run `scripts/indexnow_checker.py "$URL" --key YOUR_KEY --json` if applicable.
 7. Synthesize all outputs into the Technical Score and Category Breakdown.

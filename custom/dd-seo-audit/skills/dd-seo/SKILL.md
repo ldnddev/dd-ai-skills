@@ -66,6 +66,27 @@ Parse the user's request to determine which sub-skill(s) to activate:
 - **GitHub repository SEO**: Read `resources/skills/seo-github.md` and use GitHub scripts with `--provider auto` for API/`gh` fallback.
 - **Generic `perform seo analysis on <url>` request**: treat as single-page full audit, read `resources/skills/seo-page.md`, and generate `FULL-AUDIT-REPORT.md` + `ACTION-PLAN.md`.
 
+### Step 1.5 — PageSpeed API key (before any CWV / report run)
+
+**Do this before** running `pagespeed.py`, `generate_report.py`, or any full/page audit that collects Core Web Vitals. Unauthenticated PageSpeed Insights calls are heavily rate-limited and **typically fail** (HTTP 429 / quota errors).
+
+1. Check whether `PAGESPEED_API_KEY` or `PSI_API_KEY` is already set in the environment.
+2. If a key is **already available**, use it (pass `--api-key` or rely on the env default) and continue — no need to re-ask.
+3. If **no key** is set, **ask the user before starting evidence collection**:
+   - Do they want to provide a Google PageSpeed Insights API key for this run?
+   - Explain briefly: without a key, PSI usually fails or is rate-limited, so CWV/performance scores will be missing or unreliable.
+   - How to get one (if they ask): Google Cloud Console → enable **PageSpeed Insights API** → create an API key.
+4. If they provide a key:
+   - Prefer exporting it for the session: `export PAGESPEED_API_KEY='…'`
+   - Or pass it explicitly on every pagespeed/report invocation:
+     ```bash
+     python3 <SKILL_DIR>/scripts/pagespeed.py <url> --strategy mobile --api-key "$PAGESPEED_API_KEY"
+     python3 <SKILL_DIR>/scripts/generate_report.py <url> --api-key "$PAGESPEED_API_KEY"
+     ```
+5. If they decline or skip: continue the audit without a key, treat PSI failures as an **Environment Limitation**, keep CWV confidence as `Hypothesis`, and do not block the rest of the report.
+
+GitHub-only workflows that never call PageSpeed may skip this step.
+
 ### Step 2 — Collect Evidence
 
 **Primary method (LLM-first)** — use the built-in `read_url_content` tool first:
@@ -116,8 +137,10 @@ python3 <SKILL_DIR>/scripts/robots_checker.py <url>
 # Check llms.txt for AI search readiness
 python3 <SKILL_DIR>/scripts/llms_txt_checker.py <url>
 
-# Get Core Web Vitals from PageSpeed Insights (free API, no key needed)
-python3 <SKILL_DIR>/scripts/pagespeed.py <url> --strategy mobile
+# Get Core Web Vitals from PageSpeed Insights (API key strongly recommended — see Step 1.5)
+python3 <SKILL_DIR>/scripts/pagespeed.py <url> --strategy mobile --api-key "$PAGESPEED_API_KEY"
+# generate_report.py also accepts --api-key (or PAGESPEED_API_KEY / PSI_API_KEY env)
+python3 <SKILL_DIR>/scripts/generate_report.py <url> --api-key "$PAGESPEED_API_KEY"
 
 # Check security headers (HSTS, CSP, X-Frame-Options, etc.)
 python3 <SKILL_DIR>/scripts/security_headers.py <url>
@@ -178,9 +201,10 @@ python3 <SKILL_DIR>/scripts/analyze_visual.py <url> --json
 **HTML Report Generator** — runs all analyzers and writes a branded client bundle (templated dashboard + two DOCX files + CSV) into `web/<domain>-seo-audit-<YYYY-MM-DD>/`:
 ```bash
 # Generate the bundle (default path: web/<domain>-seo-audit-<YYYY-MM-DD>/)
-python3 <SKILL_DIR>/scripts/generate_report.py <url>
+# Prefer --api-key or PAGESPEED_API_KEY so PageSpeed/CWV does not fail (Step 1.5)
+python3 <SKILL_DIR>/scripts/generate_report.py <url> --api-key "$PAGESPEED_API_KEY"
 # Override the output directory if needed:
-python3 <SKILL_DIR>/scripts/generate_report.py <url> --output-dir reports/acme-2026Q2/
+python3 <SKILL_DIR>/scripts/generate_report.py <url> --output-dir reports/acme-2026Q2/ --api-key "$PAGESPEED_API_KEY"
 # Produces inside the output directory:
 #   index.html                 ← templated dashboard (templates/dashboard.html + brand.json)
 #   FULL-AUDIT-REPORT.docx     ← findings + scoring narrative
@@ -351,19 +375,20 @@ Structure reports as:
 
 ## Critical Rules
 
-1. **INP not FID** — FID was removed September 9, 2024. The sole interactivity metric is INP (Interaction to Next Paint). Never reference FID.
-2. **FAQ schema is restricted** — FAQPage schema is limited to government and healthcare authority sites only (August 2023). Do NOT recommend for commercial sites.
-3. **HowTo schema is deprecated** — Rich results fully removed September 2023. Never recommend.
-4. **JSON-LD only** — Always use `<script type="application/ld+json">`. Never recommend Microdata or RDFa.
-5. **E-E-A-T everywhere** — As of December 2025, E-E-A-T applies to ALL competitive queries, not just YMYL.
-6. **Mobile-first is complete** — 100% mobile-first indexing since July 5, 2024.
-7. **Location page limits** — Warning at 30+ pages, hard stop at 50+ pages. Enforce unique content requirements.
-8. **AI crawler management** — Check robots.txt for GPTBot, ClaudeBot, PerplexityBot, Applebot-Extended, Google-Extended, Bytespider, CCBot.
-9. **LLM-first, resilient pipeline** — Start by reading the page with `read_url_content`, then always run relevant scripts for structured evidence. Scripts are the **preferred** evidence source — use them actively. However, if any script fails (timeout, network, parsing), the LLM MUST still produce a complete analysis using its own reasoning (confidence: `Likely`). Never block a report on a single script failure.
-10. **Always produce file artifacts for audit flows** — `FULL-AUDIT-REPORT.md`, `ACTION-PLAN.md`, **and** the full client bundle (`index.html` + `FULL-AUDIT-REPORT.docx` + `ACTION-PLAN.docx` + `tasks.csv` + `assets/`) via `generate_report.py` are required outputs for every full/page/generic audit. Bundle generation is default behavior, not opt-in. Only skip if `generate_report.py` itself fails — note as `Environment Limitation`.
-11. **Bound evidence retries** — Avoid long search/retry loops. If core checks fail due DNS/network, finalize promptly with confidence labels and file outputs.
-12. **Avoid redundant web fallbacks** — If direct fetch/scripts fail and one fallback also fails, stop retrying and finish the report with explicit limitations.
-13. **Signal freshness tracking** — Every reference file should contain a `<!-- Updated: YYYY-MM-DD -->` comment. Flag any reference file older than 90 days for review. When Google announces algorithm changes, verify affected reference files within 7 days. Key dates to track: core updates (quarterly), schema deprecations (schema-types.md), CWV threshold changes (cwv-thresholds.md).
+1. **Ask for a PageSpeed API key before CWV runs** — Before `pagespeed.py` or `generate_report.py` on full/page audits, follow Step 1.5. Unauthenticated PSI typically fails (429/quota). Do not claim CWV values without successful script output.
+2. **INP not FID** — FID was removed September 9, 2024. The sole interactivity metric is INP (Interaction to Next Paint). Never reference FID.
+3. **FAQ schema is restricted** — FAQPage schema is limited to government and healthcare authority sites only (August 2023). Do NOT recommend for commercial sites.
+4. **HowTo schema is deprecated** — Rich results fully removed September 2023. Never recommend.
+5. **JSON-LD only** — Always use `<script type="application/ld+json">`. Never recommend Microdata or RDFa.
+6. **E-E-A-T everywhere** — As of December 2025, E-E-A-T applies to ALL competitive queries, not just YMYL.
+7. **Mobile-first is complete** — 100% mobile-first indexing since July 5, 2024.
+8. **Location page limits** — Warning at 30+ pages, hard stop at 50+ pages. Enforce unique content requirements.
+9. **AI crawler management** — Check robots.txt for GPTBot, ClaudeBot, PerplexityBot, Applebot-Extended, Google-Extended, Bytespider, CCBot.
+10. **LLM-first, resilient pipeline** — Start by reading the page with `read_url_content`, then always run relevant scripts for structured evidence. Scripts are the **preferred** evidence source — use them actively. However, if any script fails (timeout, network, parsing), the LLM MUST still produce a complete analysis using its own reasoning (confidence: `Likely`). Never block a report on a single script failure.
+11. **Always produce file artifacts for audit flows** — `FULL-AUDIT-REPORT.md`, `ACTION-PLAN.md`, **and** the full client bundle (`index.html` + `FULL-AUDIT-REPORT.docx` + `ACTION-PLAN.docx` + `tasks.csv` + `assets/`) via `generate_report.py` are required outputs for every full/page/generic audit. Bundle generation is default behavior, not opt-in. Only skip if `generate_report.py` itself fails — note as `Environment Limitation`.
+12. **Bound evidence retries** — Avoid long search/retry loops. If core checks fail due DNS/network, finalize promptly with confidence labels and file outputs.
+13. **Avoid redundant web fallbacks** — If direct fetch/scripts fail and one fallback also fails, stop retrying and finish the report with explicit limitations.
+14. **Signal freshness tracking** — Every reference file should contain a `<!-- Updated: YYYY-MM-DD -->` comment. Flag any reference file older than 90 days for review. When Google announces algorithm changes, verify affected reference files within 7 days. Key dates to track: core updates (quarterly), schema deprecations (schema-types.md), CWV threshold changes (cwv-thresholds.md).
 
 ---
 

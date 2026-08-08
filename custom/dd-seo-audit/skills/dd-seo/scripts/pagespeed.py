@@ -2,16 +2,19 @@
 """
 Fetch Core Web Vitals and performance data from Google PageSpeed Insights API.
 
-Uses the free PSI API v5 (no API key required, rate-limited).
+Uses PSI API v5. An API key is strongly recommended — unauthenticated requests
+are heavily rate-limited and often fail in practice.
 
 Usage:
     python pagespeed.py https://example.com
     python pagespeed.py https://example.com --strategy mobile
     python pagespeed.py https://example.com --json
+    python pagespeed.py https://example.com --api-key "$PAGESPEED_API_KEY"
 """
 
 import argparse
 import json
+import os
 import sys
 import time
 
@@ -52,7 +55,7 @@ def get_pagespeed(url: str, strategy: str = "mobile", api_key: str = None) -> di
     Args:
         url: URL to analyze
         strategy: 'mobile' or 'desktop'
-        api_key: Optional Google API key for higher rate limits
+        api_key: Optional Google API key (strongly recommended to avoid 429s)
 
     Returns:
         Dictionary with CWV metrics, performance score, and opportunities
@@ -77,6 +80,7 @@ def get_pagespeed(url: str, strategy: str = "mobile", api_key: str = None) -> di
         params["key"] = api_key
 
     max_retries = 3
+    data = None
     for attempt in range(max_retries):
         try:
             resp = requests.get(PSI_API, params=params, timeout=60)
@@ -88,15 +92,24 @@ def get_pagespeed(url: str, strategy: str = "mobile", api_key: str = None) -> di
                     time.sleep(wait_time)
                     continue
                 else:
-                    result["error"] = "Rate limited by Google API. Wait a few minutes or add an API key."
+                    result["error"] = (
+                        "Rate limited by Google API. Wait a few minutes or pass "
+                        "--api-key / set PAGESPEED_API_KEY."
+                    )
                     return result
 
             if resp.status_code != 200:
-                result["error"] = f"API error: HTTP {resp.status_code}"
+                # Surface API body when available (quota / key errors)
+                try:
+                    err_json = resp.json()
+                    msg = err_json.get("error", {}).get("message") or resp.text[:200]
+                except Exception:
+                    msg = resp.text[:200] if resp.text else f"HTTP {resp.status_code}"
+                result["error"] = f"API error: HTTP {resp.status_code}: {msg}"
                 return result
 
             data = resp.json()
-            break  # Success
+            break  # Success — parse below, outside the retry loop
 
         except requests.exceptions.Timeout:
             if attempt < max_retries - 1:
@@ -112,99 +125,103 @@ def get_pagespeed(url: str, strategy: str = "mobile", api_key: str = None) -> di
             result["error"] = f"Failed to parse API response: {e}"
             return result
 
-        # Extract performance score
-        lighthouse = data.get("lighthouseResult", {})
-        categories = lighthouse.get("categories", {})
-        perf = categories.get("performance", {})
-        result["performance_score"] = int((perf.get("score", 0) or 0) * 100)
+    if data is None:
+        result["error"] = "No data returned from PageSpeed Insights"
+        return result
 
-        # Extract CrUX field data (real user metrics)
-        loading = data.get("loadingExperience", {})
-        crux_metrics = loading.get("metrics", {})
+    # --- Parse successful response (must run after the retry loop, not inside it) ---
+    lighthouse = data.get("lighthouseResult", {})
+    categories = lighthouse.get("categories", {})
+    perf = categories.get("performance", {})
+    result["performance_score"] = int((perf.get("score", 0) or 0) * 100)
 
-        if crux_metrics:
-            result["field_data_available"] = True
-            for api_name, label in PSI_METRIC_MAP.items():
-                metric_data = crux_metrics.get(api_name)
-                if metric_data:
-                    percentile = metric_data.get("percentile")
-                    category = metric_data.get("category", "").lower()
+    # Extract CrUX field data (real user metrics)
+    loading = data.get("loadingExperience", {})
+    crux_metrics = loading.get("metrics", {})
 
-                    thresholds = CWV_THRESHOLDS.get(label, {})
-                    result["metrics"][label] = {
-                        "value": percentile,
-                        "unit": thresholds.get("unit", ""),
-                        "label": thresholds.get("label", label),
-                        "rating": category,  # FAST, AVERAGE, SLOW
-                    }
+    if crux_metrics:
+        result["field_data_available"] = True
+        for api_name, label in PSI_METRIC_MAP.items():
+            metric_data = crux_metrics.get(api_name)
+            if metric_data:
+                percentile = metric_data.get("percentile")
+                category = metric_data.get("category", "").lower()
 
-        # Fall back to Lighthouse lab data if no field data
-        if not result["field_data_available"]:
-            audits = lighthouse.get("audits", {})
-            lab_map = {
-                "largest-contentful-paint": "LCP",
-                "interaction-to-next-paint": "INP",
-                "cumulative-layout-shift": "CLS",
-                "first-contentful-paint": "FCP",
-                "server-response-time": "TTFB",
-            }
-            for audit_id, label in lab_map.items():
-                audit = audits.get(audit_id, {})
-                if audit and audit.get("numericValue") is not None:
-                    value = audit["numericValue"]
-                    thresholds = CWV_THRESHOLDS.get(label, {})
+                thresholds = CWV_THRESHOLDS.get(label, {})
+                result["metrics"][label] = {
+                    "value": percentile,
+                    "unit": thresholds.get("unit", ""),
+                    "label": thresholds.get("label", label),
+                    "rating": category,  # FAST, AVERAGE, SLOW
+                }
 
-                    # Determine rating
-                    good = thresholds.get("good", float("inf"))
-                    poor = thresholds.get("poor", float("inf"))
-                    if value <= good:
-                        rating = "good"
-                    elif value <= poor:
-                        rating = "needs-improvement"
-                    else:
-                        rating = "poor"
-
-                    # CLS is reported as a score, not ms
-                    if label == "CLS":
-                        value = round(value, 3)
-                    else:
-                        value = round(value)
-
-                    result["metrics"][label] = {
-                        "value": value,
-                        "unit": thresholds.get("unit", ""),
-                        "label": thresholds.get("label", label),
-                        "rating": rating,
-                    }
-
-        # Extract opportunities
+    # Fall back to Lighthouse lab data if no field data
+    if not result["field_data_available"]:
         audits = lighthouse.get("audits", {})
-        for audit_id, audit in audits.items():
-            if audit.get("details", {}).get("type") == "opportunity":
-                savings = audit.get("details", {}).get("overallSavingsMs")
-                if savings and savings > 100:
-                    result["opportunities"].append({
-                        "title": audit.get("title", audit_id),
-                        "savings_ms": round(savings),
-                        "description": audit.get("description", "")[:200],
-                    })
+        lab_map = {
+            "largest-contentful-paint": "LCP",
+            "interaction-to-next-paint": "INP",
+            "cumulative-layout-shift": "CLS",
+            "first-contentful-paint": "FCP",
+            "server-response-time": "TTFB",
+        }
+        for audit_id, label in lab_map.items():
+            audit = audits.get(audit_id, {})
+            if audit and audit.get("numericValue") is not None:
+                value = audit["numericValue"]
+                thresholds = CWV_THRESHOLDS.get(label, {})
 
-        # Sort opportunities by savings
-        result["opportunities"].sort(key=lambda x: x["savings_ms"], reverse=True)
+                # Determine rating
+                good = thresholds.get("good", float("inf"))
+                poor = thresholds.get("poor", float("inf"))
+                if value <= good:
+                    rating = "good"
+                elif value <= poor:
+                    rating = "needs-improvement"
+                else:
+                    rating = "poor"
 
-        # Extract key diagnostics
-        diagnostic_ids = [
-            "dom-size", "total-byte-weight", "render-blocking-resources",
-            "uses-responsive-images", "uses-webp-images", "font-display",
-        ]
-        for diag_id in diagnostic_ids:
-            diag = audits.get(diag_id, {})
-            if diag and diag.get("score") is not None and diag["score"] < 1:
-                result["diagnostics"].append({
-                    "title": diag.get("title", diag_id),
-                    "score": round(diag["score"] * 100),
-                    "display": diag.get("displayValue", ""),
+                # CLS is reported as a score, not ms
+                if label == "CLS":
+                    value = round(value, 3)
+                else:
+                    value = round(value)
+
+                result["metrics"][label] = {
+                    "value": value,
+                    "unit": thresholds.get("unit", ""),
+                    "label": thresholds.get("label", label),
+                    "rating": rating,
+                }
+
+    # Extract opportunities
+    audits = lighthouse.get("audits", {})
+    for audit_id, audit in audits.items():
+        if audit.get("details", {}).get("type") == "opportunity":
+            savings = audit.get("details", {}).get("overallSavingsMs")
+            if savings and savings > 100:
+                result["opportunities"].append({
+                    "title": audit.get("title", audit_id),
+                    "savings_ms": round(savings),
+                    "description": audit.get("description", "")[:200],
                 })
+
+    # Sort opportunities by savings
+    result["opportunities"].sort(key=lambda x: x["savings_ms"], reverse=True)
+
+    # Extract key diagnostics
+    diagnostic_ids = [
+        "dom-size", "total-byte-weight", "render-blocking-resources",
+        "uses-responsive-images", "uses-webp-images", "font-display",
+    ]
+    for diag_id in diagnostic_ids:
+        diag = audits.get(diag_id, {})
+        if diag and diag.get("score") is not None and diag["score"] < 1:
+            result["diagnostics"].append({
+                "title": diag.get("title", diag_id),
+                "score": round(diag["score"] * 100),
+                "display": diag.get("displayValue", ""),
+            })
 
     return result
 
@@ -215,7 +232,11 @@ def main():
     parser.add_argument("--strategy", "-s", default="mobile",
                         choices=["mobile", "desktop"], help="Analysis strategy")
     parser.add_argument("--json", "-j", action="store_true", help="Output as JSON")
-    parser.add_argument("--api-key", help="Google API key for higher rate limits")
+    parser.add_argument(
+        "--api-key",
+        default=os.environ.get("PAGESPEED_API_KEY") or os.environ.get("PSI_API_KEY"),
+        help="Google PageSpeed API key (recommended; also PAGESPEED_API_KEY / PSI_API_KEY env)",
+    )
 
     args = parser.parse_args()
     result = get_pagespeed(args.url, strategy=args.strategy, api_key=args.api_key)

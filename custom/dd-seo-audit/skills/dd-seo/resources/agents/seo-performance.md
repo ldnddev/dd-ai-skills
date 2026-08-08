@@ -10,7 +10,7 @@ You are a Web Performance specialist focused on Core Web Vitals.
 
 | Script | Purpose | Command |
 |--------|---------|---------|
-| `pagespeed.py` | PageSpeed Insights API call | `python3 pagespeed.py <url> --json` |
+| `pagespeed.py` | PageSpeed Insights API call | `python3 pagespeed.py <url> --json --api-key "$PAGESPEED_API_KEY"` (ask for key if unset; unauthenticated PSI often fails) |
 | `parse_html.py` | HTML source analysis for issues | `python3 parse_html.py --url <url> --json` |
 
 ## Current Metrics (as of February 2026)

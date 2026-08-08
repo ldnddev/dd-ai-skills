@@ -345,7 +345,7 @@ def render_environment_fixes(fixes: list) -> str:
 
 
 def collect_data(url: str, gsc_path: str = None, brand: str = None,
-                 min_impressions: int = 50) -> dict:
+                 min_impressions: int = 50, pagespeed_api_key: str = None) -> dict:
     """Run all analysis scripts and collect results."""
     print(f"🔍 Analyzing {url}...")
     data = {
@@ -367,6 +367,10 @@ def collect_data(url: str, gsc_path: str = None, brand: str = None,
             page_html = ""
     data["environment"] = detect_environment(page_html, url)
 
+    pagespeed_args = [url, "--strategy", "mobile"]
+    if pagespeed_api_key:
+        pagespeed_args += ["--api-key", pagespeed_api_key]
+
     analyses = [
         ("robots", "robots_checker.py", [url]),
         ("security", "security_headers.py", [url]),
@@ -375,7 +379,7 @@ def collect_data(url: str, gsc_path: str = None, brand: str = None,
         ("llms_txt", "llms_txt_checker.py", [url]),
         ("broken_links", "broken_links.py", [url, "--workers", "5", "--timeout", "8"]),
         ("internal_links", "internal_links.py", [url, "--depth", "1", "--max-pages", "15"]),
-        ("pagespeed", "pagespeed.py", [url, "--strategy", "mobile"]),
+        ("pagespeed", "pagespeed.py", pagespeed_args),
         # New analysis scripts (supplementary — failures don't block report)
         ("entity", "entity_checker.py", [url]),
         ("link_profile", "link_profile.py", [url, "--max-pages", "20"]),
@@ -1736,10 +1740,20 @@ def main():
                         help="Comma-separated brand tokens for the branded/non-branded split")
     parser.add_argument("--min-impressions", type=int, default=50,
                         help="Impression threshold for GSC striking-distance/low-CTR (default 50)")
+    parser.add_argument(
+        "--api-key",
+        default=os.environ.get("PAGESPEED_API_KEY") or os.environ.get("PSI_API_KEY"),
+        help="Google PageSpeed API key (recommended; also PAGESPEED_API_KEY / PSI_API_KEY env)",
+    )
     args = parser.parse_args()
 
-    data = collect_data(args.url, gsc_path=args.gsc_path, brand=args.brand,
-                        min_impressions=args.min_impressions)
+    data = collect_data(
+        args.url,
+        gsc_path=args.gsc_path,
+        brand=args.brand,
+        min_impressions=args.min_impressions,
+        pagespeed_api_key=args.api_key,
+    )
     scores = calculate_overall_score(data)
     rows = build_seo_tasks(data)
 

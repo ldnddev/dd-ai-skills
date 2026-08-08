@@ -90,7 +90,7 @@ Ready-to-use JSON-LD code for detected opportunities
 When invoked as an agent to analyze a specific URL, execute these steps:
 1. Run `scripts/parse_html.py "$URL" --json` to get title, meta, links, headings, alt text, and schema.
 2. Run `scripts/readability.py "$URL" --json` for text metrics and grade level.
-3. Run `scripts/pagespeed.py "$URL" --strategy mobile --json` for Core Web Vitals.
+3. Run `scripts/pagespeed.py "$URL" --strategy mobile --json --api-key "$PAGESPEED_API_KEY"` for Core Web Vitals (ask for a PageSpeed API key first if none is set — unauthenticated PSI often fails).
 4. If applicable, run `scripts/article_seo.py "$URL" --json` for a deeper dive on content scoring.
 5. Summarize all findings into the Page Score Card and Issues Found according to the evidence rules.
 6. **Mandatory** — run `python3 <SKILL_DIR>/scripts/generate_report.py "$URL"` to emit the client bundle (`index.html` + `FULL-AUDIT-REPORT.docx` + `ACTION-PLAN.docx` + `tasks.csv` + `assets/`). Required for every page audit. Only skip on environment failure (note as `Environment Limitation`).
