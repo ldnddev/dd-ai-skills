@@ -149,18 +149,32 @@ def get_pages(results):
     return [page]
 
 
+def _page_pin_map(page):
+    shots = page.get("screenshots") or {}
+    return shots.get("pin_map") or shots.get("full_page") or ""
+
+
+def _issue_shot_lookup(page):
+    lookup = {}
+    for item in (page.get("screenshots") or {}).get("issues", []):
+        tid = item.get("task_id")
+        if not tid:
+            continue
+        if item.get("status") and item.get("status") != "captured":
+            continue
+        if item.get("path"):
+            lookup[tid] = item["path"]
+    return lookup
+
+
 def build_task_rows(results):
     rows = []
     global_index = 1
     for page in get_pages(results):
         page_url = page.get("page_url") or page.get("metadata", {}).get("url", "")
         page_slug = page.get("page_slug", "page")
-        page_screenshot = page.get("screenshots", {}).get("full_page")
-        screenshot_lookup = {
-            item.get("task_id"): item.get("path")
-            for item in page.get("screenshots", {}).get("issues", [])
-            if item.get("task_id")
-        }
+        page_screenshot = _page_pin_map(page)
+        screenshot_lookup = _issue_shot_lookup(page)
         for local_index, violation in enumerate(page.get("violations", []), start=1):
             local_task_id = f"A11Y-{local_index:03d}"
             rows.append({
@@ -240,19 +254,21 @@ def generate_markdown_report(results):
                 f"{page.get('summary', {}).get('minor_violations', 0)}",
                 "",
             ])
-            full_page = page.get("screenshots", {}).get("full_page")
-            if full_page:
+            pin_map = _page_pin_map(page)
+            if pin_map:
                 lines.extend([
-                    f"![Full page screenshot]({full_page})",
+                    f"![Issue pin map]({pin_map})",
                     "",
                 ])
+            legend = (page.get("screenshots") or {}).get("pin_legend") or []
+            if legend:
+                lines.append("**Pin legend:** " + ", ".join(
+                    f"#{p['pin']} → {p['task_id']} ({p.get('rule_id', '')})" for p in legend
+                ))
+                lines.append("")
+            shot_lookup = _issue_shot_lookup(page)
             for local_index, violation in enumerate(page.get("violations", []), start=1):
                 local_task_id = f"A11Y-{local_index:03d}"
-                shot_lookup = {
-                    item.get("task_id"): item.get("path")
-                    for item in page.get("screenshots", {}).get("issues", [])
-                    if item.get("task_id")
-                }
                 row = next(
                     item for item in rows
                     if item["page_url"] == page_url and item["rule_id"] == violation.get("id")
@@ -268,7 +284,7 @@ def generate_markdown_report(results):
                     f"**Evidence:** `{row['evidence'][:180] or 'n/a'}`",
                 ])
                 if shot_lookup.get(local_task_id):
-                    lines.append(f"![Issue screenshot]({shot_lookup[local_task_id]})")
+                    lines.append(f"![Annotated issue {local_task_id}]({shot_lookup[local_task_id]})")
                 lines.append("")
 
     lines.extend([
