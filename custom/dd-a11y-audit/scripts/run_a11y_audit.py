@@ -105,7 +105,7 @@ def run_page_audit(url, level, output_json):
     return result.returncode
 
 
-def capture_screenshots(url, input_json, screenshots_dir):
+def capture_screenshots(url, input_json, screenshots_dir, cap=12):
     cmd = [
         sys.executable,
         str(SCRIPT_DIR / "capture_a11y_screenshots.py"),
@@ -114,6 +114,8 @@ def capture_screenshots(url, input_json, screenshots_dir):
         str(input_json),
         "--output-dir",
         str(screenshots_dir),
+        "--cap",
+        str(cap),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -123,6 +125,30 @@ def capture_screenshots(url, input_json, screenshots_dir):
 
 def relpath(path, root):
     return str(Path(path).relative_to(root))
+
+
+def normalize_screenshots(shot_data, output_dir):
+    """Map capture stdout into page_data['screenshots'] with relative paths."""
+    if shot_data.get("error"):
+        return {"error": True, "message": shot_data.get("message", "")}
+
+    def rel(p):
+        return relpath(p, output_dir) if p else None
+
+    pin_map = shot_data.get("pin_map") or shot_data.get("full_page")  # transition
+    issues = shot_data.get("issue_screenshots") or shot_data.get("issues") or []
+    return {
+        "pin_map": rel(pin_map) if pin_map else None,
+        "full_page": rel(pin_map) if pin_map else None,  # alias for one release
+        "pin_legend": shot_data.get("pin_legend") or [],
+        "issues": [
+            {
+                **item,
+                "path": rel(item["path"]) if item.get("path") else None,
+            }
+            for item in issues
+        ],
+    }
 
 
 def aggregate_pages(pages, root_url, level):
@@ -208,7 +234,7 @@ def aggregate_pages(pages, root_url, level):
     }
 
 
-def run_multi_audit(urls, level, output_dir):
+def run_multi_audit(urls, level, output_dir, screenshot_cap=12, no_screenshots=False):
     output_dir.mkdir(parents=True, exist_ok=True)
     pages_dir = output_dir / "pages"
     pages_dir.mkdir(exist_ok=True)
@@ -242,21 +268,9 @@ def run_multi_audit(urls, level, output_dir):
             "audit_json": relpath(page_json, output_dir),
         }
 
-        if not page_data.get("error"):
-            shot_data = capture_screenshots(url, page_json, screenshots_dir)
-            if not shot_data.get("error"):
-                page_data["screenshots"] = {
-                    "full_page": relpath(shot_data["full_page"], output_dir) if shot_data.get("full_page") else None,
-                    "issues": [
-                        {
-                            **item,
-                            "path": relpath(item["path"], output_dir) if item.get("path") else None,
-                        }
-                        for item in shot_data.get("issue_screenshots", [])
-                    ],
-                }
-            else:
-                page_data["screenshots"] = {"error": True, "message": shot_data.get("message", "")}
+        if not page_data.get("error") and not no_screenshots:
+            shot_data = capture_screenshots(url, page_json, screenshots_dir, cap=screenshot_cap)
+            page_data["screenshots"] = normalize_screenshots(shot_data, output_dir)
 
         page_json.write_text(json.dumps(page_data, indent=2))
 
@@ -276,6 +290,17 @@ def main():
     parser.add_argument("--max-urls", type=int, help="Limit the number of URLs processed")
     parser.add_argument("--level", choices=["A", "AA", "AAA"], default="AA")
     parser.add_argument("--output-dir", help="Directory for generated artifacts")
+    parser.add_argument(
+        "--screenshot-cap",
+        type=int,
+        default=12,
+        help="Max annotated issue screenshots per page (default 12)",
+    )
+    parser.add_argument(
+        "--no-screenshots",
+        action="store_true",
+        help="Skip screenshot capture entirely",
+    )
     args = parser.parse_args()
 
     urls = collect_urls(args)
@@ -289,26 +314,22 @@ def main():
     if len(urls) == 1:
         json_path = output_dir / "axe-results.json"
         audit_result = run_page_audit(urls[0], args.level, json_path)
-        if audit_result in (0, 2, 3) and json_path.exists():
+        if audit_result in (0, 2, 3) and json_path.exists() and not args.no_screenshots:
             screenshots_dir = output_dir / "screenshots"
-            shot_data = capture_screenshots(urls[0], json_path, screenshots_dir)
+            shot_data = capture_screenshots(
+                urls[0], json_path, screenshots_dir, cap=args.screenshot_cap
+            )
             page_data = json.loads(json_path.read_text())
-            if not shot_data.get("error"):
-                page_data["screenshots"] = {
-                    "full_page": relpath(shot_data["full_page"], output_dir) if shot_data.get("full_page") else None,
-                    "issues": [
-                        {
-                            **item,
-                            "path": relpath(item["path"], output_dir) if item.get("path") else None,
-                        }
-                        for item in shot_data.get("issue_screenshots", [])
-                    ],
-                }
-            else:
-                page_data["screenshots"] = {"error": True, "message": shot_data.get("message", "")}
+            page_data["screenshots"] = normalize_screenshots(shot_data, output_dir)
             json_path.write_text(json.dumps(page_data, indent=2))
     else:
-        json_path, audit_result = run_multi_audit(urls, args.level, output_dir)
+        json_path, audit_result = run_multi_audit(
+            urls,
+            args.level,
+            output_dir,
+            screenshot_cap=args.screenshot_cap,
+            no_screenshots=args.no_screenshots,
+        )
 
     if audit_result not in (0, 2, 3):
         sys.exit(audit_result)
