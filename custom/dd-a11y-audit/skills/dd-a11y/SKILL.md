@@ -28,11 +28,17 @@ Run automated WCAG 2.2 accessibility audits and produce a client-ready report se
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_a11y_audit.py <url> --level AA
 ```
 
-Multi-page:
+Multi-page (default **light** screenshots — keeps large runs small):
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_a11y_audit.py --urls-file ./urls.txt
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_a11y_audit.py --sitemap https://example.com/sitemap.xml --max-urls 25
+
+# Dense evidence (old behavior)
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_a11y_audit.py --urls-file ./urls.txt --screenshot-mode full
+
+# No images
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_a11y_audit.py --urls-file ./urls.txt --screenshot-mode off
 ```
 
 3. Chromium-blocked fallback (sandboxed runtimes):
@@ -51,10 +57,18 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/test_a11y_skill.py <url>
 - `A11Y-CLIENT-REPORT.docx`
 - `index.html`
 - `pages/<slug>/axe-results.json`
-- `pages/<slug>/screenshots/pin-map.png` — full-page map with numbered pins (locatable issues, impact-priority, capped)
-- `pages/<slug>/screenshots/A11Y-###.png` — annotated viewport shot (highlight + badge) when capture succeeded
+- `pages/<slug>/screenshots/pin-map.jpg` — JPEG pin map (every page in light mode)
+- `pages/<slug>/screenshots/A11Y-###.png` — annotated close-up when captured (critical only; worst pages)
 
-Hybrid visual evidence for clients and devs. Screenshots are best-effort: selector + HTML snippet remain the source of truth; non-locatable issues have no image. Default cap is 12 annotated shots per page (`--screenshot-cap`); skip capture entirely with `--no-screenshots`.
+### Screenshot modes (`--screenshot-mode`)
+
+| Mode | Behavior |
+|------|----------|
+| **`light` (default)** | Pin map on every page (JPEG). Annotated shots: **critical only**, cap **3**/page, only the **worst 15** pages (by critical/serious count + score). MD/DOCX **link** to files (no embeds). |
+| **`full`** | Prior dense capture (all impacts, higher caps, PNG pin maps). |
+| **`off`** | No screenshots (`--no-screenshots` is an alias). |
+
+Optional: `--screenshot-cap N`, `--annotated-pages N`, `--embed-screenshots` (inline images in DOCX/MD). Selector + HTML snippet remain the source of truth.
 
 ## Notes
 

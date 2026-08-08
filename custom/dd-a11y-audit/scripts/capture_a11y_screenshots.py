@@ -40,19 +40,52 @@ def _first_selector(violation):
     return str(t) if t else ""
 
 
-def build_capture_plan(results, cap=12, id_start=1):
-    """Build full task list (stable IDs) and capped image subset.
+def _normalize_impacts(impacts):
+    """Return list of impact names, or None meaning all impacts."""
+    if impacts is None:
+        return None
+    if isinstance(impacts, str):
+        impacts = [part.strip().lower() for part in impacts.split(",") if part.strip()]
+    cleaned = [name for name in impacts if name in IMPACT_ORDER]
+    return cleaned or None
+
+
+def _sort_tasks(tasks):
+    return sorted(
+        tasks,
+        key=lambda t: (IMPACT_ORDER.get(t["impact"], 9), t["task_id"]),
+    )
+
+
+def build_capture_plan(
+    results,
+    cap=12,
+    id_start=1,
+    impacts=None,
+    pin_impacts=None,
+    pin_cap=None,
+):
+    """Build full task list (stable IDs) and capped pin/annotate subsets.
 
     Task IDs are ``A11Y-{n:03d}`` with n starting at ``id_start`` so multi-page
     audits can assign globally unique IDs that match the report table.
 
+    - ``image_tasks``: annotated close-ups (severity-filtered + cap)
+    - ``pin_tasks``: pin-map markers (may include more severities than annotate)
+
     Returns:
       {
-        "all_tasks": [{task_id, rule_id, impact, selector}, ...],
-        "image_tasks": same shape, impact-sorted, selector required, max cap
+        "all_tasks": [...],
+        "image_tasks": [...],
+        "pin_tasks": [...],
       }
     """
     id_start = max(1, int(id_start))
+    impact_filter = _normalize_impacts(impacts)
+    pin_filter = _normalize_impacts(pin_impacts)
+    if pin_filter is None:
+        pin_filter = impact_filter
+
     all_tasks = []
     for index, violation in enumerate(results.get("violations", [])):
         task_num = id_start + index
@@ -66,22 +99,64 @@ def build_capture_plan(results, cap=12, id_start=1):
         )
 
     eligible = [t for t in all_tasks if t["selector"]]
-    eligible.sort(
-        key=lambda t: (IMPACT_ORDER.get(t["impact"], 9), t["task_id"])
-    )
-    # Copy so pin assignment does not mutate all_tasks entries
-    image_tasks = [dict(t) for t in eligible[: max(0, int(cap))]]
-    for pin, item in enumerate(image_tasks, start=1):
+
+    annotate_pool = eligible
+    if impact_filter is not None:
+        allowed = set(impact_filter)
+        annotate_pool = [t for t in eligible if t["impact"] in allowed]
+    annotate_pool = _sort_tasks(annotate_pool)
+    image_tasks = [dict(t) for t in annotate_pool[: max(0, int(cap))]]
+
+    pin_pool = eligible
+    if pin_filter is not None:
+        allowed_pins = set(pin_filter)
+        pin_pool = [t for t in eligible if t["impact"] in allowed_pins]
+    pin_pool = _sort_tasks(pin_pool)
+    pcap = int(pin_cap) if pin_cap is not None else max(int(cap), 8)
+    pin_tasks = [dict(t) for t in pin_pool[: max(0, pcap)]]
+    for pin, item in enumerate(pin_tasks, start=1):
         item["pin"] = pin
 
-    return {"all_tasks": all_tasks, "image_tasks": image_tasks}
+    pin_by_id = {t["task_id"]: t["pin"] for t in pin_tasks}
+    for item in image_tasks:
+        if item["task_id"] in pin_by_id:
+            item["pin"] = pin_by_id[item["task_id"]]
+
+    return {
+        "all_tasks": all_tasks,
+        "image_tasks": image_tasks,
+        "pin_tasks": pin_tasks,
+    }
 
 
-def run_capture(url, results_path, output_dir, cap=12, id_start=1):
+def run_capture(
+    url,
+    results_path,
+    output_dir,
+    cap=12,
+    id_start=1,
+    impacts=None,
+    pin_impacts=None,
+    pin_cap=None,
+    annotate=True,
+    pin_format="jpeg",
+):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    plan = build_capture_plan(load_results(results_path), cap=cap, id_start=id_start)
-    image_tasks = plan["image_tasks"]
+    plan = build_capture_plan(
+        load_results(results_path),
+        cap=cap,
+        id_start=id_start,
+        impacts=impacts,
+        pin_impacts=pin_impacts,
+        pin_cap=pin_cap,
+    )
+    image_tasks = plan["image_tasks"] if annotate else []
+    pin_tasks = plan["pin_tasks"]
+    pin_format = (pin_format or "jpeg").lower()
+    if pin_format not in ("jpeg", "jpg", "png"):
+        pin_format = "jpeg"
+    pin_ext = "jpg" if pin_format in ("jpeg", "jpg") else "png"
 
     script = f"""
 const fs = require('fs');
@@ -93,6 +168,9 @@ const {{ chromium }} = requireFromSkill('playwright');
 const url = {json.dumps(url)};
 const outputDir = {json.dumps(str(output_dir))};
 const plan = {json.dumps(image_tasks)};
+const pinPlan = {json.dumps(pin_tasks)};
+const pinExt = {json.dumps(pin_ext)};
+const pinIsJpeg = {json.dumps(pin_ext == "jpg")};
 
 async function clearOverlays(page) {{
   await page.evaluate(() => {{
@@ -220,45 +298,54 @@ function shotEntry(item, overrides) {{
   }};
   // Preserve image_tasks order in issue_screenshots
   const screenshotsByTaskId = new Map();
-  const locatable = [];
 
-  try {{
-    await page.goto(url, {{ waitUntil: 'networkidle' }});
-
-    for (const item of plan) {{
+  async function resolveLocatable(items, recordFailures) {{
+    const found = [];
+    for (const item of items) {{
       if (!item.selector) {{
-        screenshotsByTaskId.set(item.task_id, shotEntry(item, {{ status: 'missing-selector' }}));
+        if (recordFailures) {{
+          screenshotsByTaskId.set(item.task_id, shotEntry(item, {{ status: 'missing-selector' }}));
+        }}
         continue;
       }}
-
       try {{
         const locator = page.locator(item.selector).first();
         const count = await locator.count();
         if (!count) {{
-          screenshotsByTaskId.set(item.task_id, shotEntry(item, {{ status: 'not-found' }}));
+          if (recordFailures) {{
+            screenshotsByTaskId.set(item.task_id, shotEntry(item, {{ status: 'not-found' }}));
+          }}
           continue;
         }}
-
         const metrics = await measureLocator(locator);
         if (!metrics.visible) {{
-          screenshotsByTaskId.set(item.task_id, shotEntry(item, {{ status: 'not-visible' }}));
+          if (recordFailures) {{
+            screenshotsByTaskId.set(item.task_id, shotEntry(item, {{ status: 'not-visible' }}));
+          }}
           continue;
         }}
-
-        locatable.push(item);
+        found.push(item);
       }} catch (error) {{
-        screenshotsByTaskId.set(item.task_id, shotEntry(item, {{
-          status: 'capture-error',
-          message: error && error.message ? error.message : String(error),
-        }}));
+        if (recordFailures) {{
+          screenshotsByTaskId.set(item.task_id, shotEntry(item, {{
+            status: 'capture-error',
+            message: error && error.message ? error.message : String(error),
+          }}));
+        }}
       }}
     }}
+    return found;
+  }}
 
-    // Pin map: only legend entries for pins that actually applied
+  try {{
+    await page.goto(url, {{ waitUntil: 'networkidle' }});
+
+    // Pin map from pinPlan (may include more issues than annotated close-ups)
+    const pinLocatable = await resolveLocatable(pinPlan, false);
     const pinned = [];
-    if (locatable.length > 0) {{
+    if (pinLocatable.length > 0) {{
       await clearOverlays(page);
-      for (const item of locatable) {{
+      for (const item of pinLocatable) {{
         try {{
           const locator = page.locator(item.selector).first();
           const count = await locator.count();
@@ -270,8 +357,13 @@ function shotEntry(item, overrides) {{
         }}
       }}
       if (pinned.length > 0) {{
-        const pinMapPath = path.join(outputDir, 'pin-map.png');
-        await page.screenshot({{ path: pinMapPath, fullPage: true }});
+        const pinMapPath = path.join(outputDir, `pin-map.${{pinExt}}`);
+        const shotOpts = {{ path: pinMapPath, fullPage: true }};
+        if (pinIsJpeg) {{
+          shotOpts.type = 'jpeg';
+          shotOpts.quality = 72;
+        }}
+        await page.screenshot(shotOpts);
         result.pin_map = pinMapPath;
         result.pin_legend = pinned.map((item) => ({{
           pin: item.pin,
@@ -279,16 +371,12 @@ function shotEntry(item, overrides) {{
           rule_id: item.rule_id,
           impact: item.impact,
         }}));
-      }} else {{
-        result.pin_map = null;
-        result.pin_legend = [];
       }}
-    }} else {{
-      result.pin_map = null;
-      result.pin_legend = [];
     }}
 
-    for (const item of locatable) {{
+    // Annotated viewport shots (may be empty when annotate is off)
+    const annotateLocatable = await resolveLocatable(plan, true);
+    for (const item of annotateLocatable) {{
       try {{
         await clearOverlays(page);
         const locator = page.locator(item.selector).first();
@@ -299,7 +387,6 @@ function shotEntry(item, overrides) {{
         }}
 
         await scrollToCenter(locator);
-        // Prefer center scroll; also satisfy scrollIntoViewIfNeeded contract
         await locator.scrollIntoViewIfNeeded();
 
         let applied = false;
@@ -338,7 +425,6 @@ function shotEntry(item, overrides) {{
   }} finally {{
     await browser.close();
   }}
-
   console.log(JSON.stringify(result, null, 2));
 }})().catch(error => {{
   console.error(JSON.stringify({{ error: true, message: error.message }}));
@@ -382,14 +468,39 @@ def main():
     parser.add_argument("url")
     parser.add_argument("--input", required=True, help="Path to axe-results.json")
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--cap", type=int, default=12, help="Max annotated issue screenshots (default 12)")
+    parser.add_argument("--cap", type=int, default=3, help="Max annotated issue screenshots (default 3)")
     parser.add_argument(
         "--id-start",
         type=int,
         default=1,
         help="First A11Y-### number for this page (use multi-page global sequencing)",
     )
+    parser.add_argument(
+        "--impacts",
+        default="critical",
+        help="Comma-separated impacts for annotated shots (default: critical). Use 'all' for every impact.",
+    )
+    parser.add_argument(
+        "--pin-impacts",
+        default="critical,serious",
+        help="Comma-separated impacts for pin-map markers (default: critical,serious)",
+    )
+    parser.add_argument("--pin-cap", type=int, default=8, help="Max pins on pin-map (default 8)")
+    parser.add_argument(
+        "--no-annotate",
+        action="store_true",
+        help="Skip per-issue annotated viewport shots (pin-map only)",
+    )
+    parser.add_argument(
+        "--pin-format",
+        choices=["jpeg", "png"],
+        default="jpeg",
+        help="Pin-map image format (default jpeg)",
+    )
     args = parser.parse_args()
+
+    impacts = None if args.impacts.strip().lower() == "all" else args.impacts
+    pin_impacts = None if args.pin_impacts.strip().lower() == "all" else args.pin_impacts
 
     print(
         json.dumps(
@@ -399,6 +510,11 @@ def main():
                 args.output_dir,
                 cap=args.cap,
                 id_start=args.id_start,
+                impacts=impacts,
+                pin_impacts=pin_impacts,
+                pin_cap=args.pin_cap,
+                annotate=not args.no_annotate,
+                pin_format=args.pin_format,
             ),
             indent=2,
         )

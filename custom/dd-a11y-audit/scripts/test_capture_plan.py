@@ -48,7 +48,7 @@ class TestBuildCapturePlan(unittest.TestCase):
     def test_impact_order_critical_before_minor(self):
         self.assertLess(IMPACT_ORDER["critical"], IMPACT_ORDER["minor"])
 
-    def test_pins_only_on_image_tasks(self):
+    def test_pins_only_on_pin_tasks(self):
         results = {
             "violations": [
                 _violation("image-alt", "minor"),
@@ -57,15 +57,34 @@ class TestBuildCapturePlan(unittest.TestCase):
             ]
         }
         plan = build_capture_plan(results, cap=12)
-        k = len(plan["image_tasks"])
-        self.assertEqual([t["pin"] for t in plan["image_tasks"]], list(range(1, k + 1)))
+        k = len(plan["pin_tasks"])
+        self.assertEqual([t["pin"] for t in plan["pin_tasks"]], list(range(1, k + 1)))
         for task in plan["all_tasks"]:
             self.assertNotIn("pin", task)
+
+    def test_impact_filter_limits_annotated_not_all_tasks(self):
+        results = {
+            "violations": [
+                _violation("image-alt", "minor"),
+                _violation("color-contrast", "critical"),
+                _violation("label", "serious"),
+            ]
+        }
+        plan = build_capture_plan(
+            results, cap=12, impacts=["critical"], pin_impacts=["critical", "serious"]
+        )
+        self.assertEqual(len(plan["all_tasks"]), 3)
+        self.assertEqual([t["rule_id"] for t in plan["image_tasks"]], ["color-contrast"])
+        self.assertEqual(
+            {t["rule_id"] for t in plan["pin_tasks"]},
+            {"color-contrast", "label"},
+        )
 
     def test_empty_violations(self):
         plan = build_capture_plan({"violations": []}, cap=12)
         self.assertEqual(plan["all_tasks"], [])
         self.assertEqual(plan["image_tasks"], [])
+        self.assertEqual(plan["pin_tasks"], [])
 
     def test_nested_axe_target_list(self):
         results = {

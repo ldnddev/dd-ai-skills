@@ -1,7 +1,7 @@
 {
   "name": "dd-a11y",
-  "version": "1.2.1",
-  "description": "WCAG 2.2 accessibility audit skill — Playwright + axe-core, single or multi-page, annotated pin-map screenshots, generates client deliverables (MD/CSV/DOCX/HTML).",
+  "version": "1.2.2",
+  "description": "WCAG 2.2 accessibility audit skill — Playwright + axe-core, single or multi-page, light pin-map screenshots by default (bounded evidence for large runs), generates client deliverables (MD/CSV/DOCX/HTML).",
   "license": "MIT",
   "author": {
     "name": "Jared Lyvers",

@@ -45,11 +45,17 @@ class TestScreenshotRows(unittest.TestCase):
         self.assertEqual(rows[0]["issue_screenshot"], "screenshots/A11Y-001.png")
 
         md = r.generate_markdown_report(results)
-        self.assertIn("![Issue pin map](screenshots/pin-map.png)", md)
+        # Default: link only (small reports); embed is opt-in
+        self.assertIn("[Pin map](screenshots/pin-map.png)", md)
+        self.assertNotIn("![Issue pin map]", md)
         self.assertIn("**Pin legend:**", md)
         self.assertIn("#1 → A11Y-001 (color-contrast)", md)
-        self.assertIn("![Annotated issue A11Y-001](screenshots/A11Y-001.png)", md)
+        self.assertIn("[Annotated screenshot for A11Y-001](screenshots/A11Y-001.png)", md)
         self.assertNotIn("Full page screenshot", md)
+
+        md_embed = r.generate_markdown_report(results, embed_screenshots=True)
+        self.assertIn("![Issue pin map](screenshots/pin-map.png)", md_embed)
+        self.assertIn("![Annotated issue A11Y-001](screenshots/A11Y-001.png)", md_embed)
 
     def test_skips_non_captured_issue_path(self):
         results = {
@@ -262,7 +268,10 @@ class TestScreenshotRows(unittest.TestCase):
         self.assertIn("screenshot for A11Y-002", html)
 
         md = r.generate_markdown_report(results)
-        self.assertIn("![Annotated issue A11Y-002](pages/b/screenshots/A11Y-002.png)", md)
+        self.assertIn(
+            "[Annotated screenshot for A11Y-002](pages/b/screenshots/A11Y-002.png)",
+            md,
+        )
 
     def test_legacy_page_local_screenshot_fallback(self):
         """Older multi-page bundles stored A11Y-001 per page; still resolve content."""

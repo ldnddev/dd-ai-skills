@@ -217,7 +217,7 @@ def build_task_rows(results):
     return rows
 
 
-def generate_markdown_report(results):
+def generate_markdown_report(results, embed_screenshots=False):
     meta = results["metadata"]
     summary = results["summary"]
     score = meta["score"]
@@ -274,10 +274,10 @@ def generate_markdown_report(results):
             ])
             pin_map = _page_pin_map(page)
             if pin_map:
-                lines.extend([
-                    f"![Issue pin map]({pin_map})",
-                    "",
-                ])
+                if embed_screenshots:
+                    lines.extend([f"![Issue pin map]({pin_map})", ""])
+                else:
+                    lines.extend([f"[Pin map]({pin_map})", ""])
             legend = (page.get("screenshots") or {}).get("pin_legend") or []
             if legend:
                 lines.append("**Pin legend:** " + ", ".join(
@@ -299,9 +299,14 @@ def generate_markdown_report(results):
                     f"**Evidence:** `{row['evidence'][:180] or 'n/a'}`",
                 ])
                 if row.get("issue_screenshot"):
-                    lines.append(
-                        f"![Annotated issue {row['task_id']}]({row['issue_screenshot']})"
-                    )
+                    if embed_screenshots:
+                        lines.append(
+                            f"![Annotated issue {row['task_id']}]({row['issue_screenshot']})"
+                        )
+                    else:
+                        lines.append(
+                            f"[Annotated screenshot for {row['task_id']}]({row['issue_screenshot']})"
+                        )
                 lines.append("")
 
     lines.extend([
@@ -449,14 +454,14 @@ def _resolve_shot_path(rel_path, base_dir):
     return None
 
 
-def build_docx(path, results, rows, base_dir=None):
+def build_docx(path, results, rows, base_dir=None, embed_screenshots=False):
     body = []
     meta = results["metadata"]
     summary = results["summary"]
     utc_now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     pages = get_pages(results)
     base = Path(base_dir) if base_dir else Path(".")
-    # Collect (rid, media_name, abs_path) for PNGs that exist on disk.
+    # Collect (rid, media_name, abs_path) for images that exist on disk (opt-in embed).
     media_files = []
     doc_pr_id = 1
     next_img = 1
@@ -467,20 +472,23 @@ def build_docx(path, results, rows, base_dir=None):
         if not abs_path:
             return None, None
         rid = f"rId{next_img}"
-        media_name = f"image{next_img}.png"
+        suffix = abs_path.suffix.lower().lstrip(".") or "png"
+        media_name = f"image{next_img}.{suffix}"
         media_files.append((rid, media_name, abs_path))
         next_img += 1
         return rid, abs_path
 
     def append_image_or_path(label, rel_path):
         nonlocal doc_pr_id
-        rid, abs_path = register_image(rel_path)
-        if rid:
-            cx, cy = _png_extent_emu(abs_path)
-            body.append(paragraph_xml(label))
-            body.append(image_paragraph_xml(rid, cx, cy, doc_pr_id=doc_pr_id))
-            doc_pr_id += 1
-        elif rel_path:
+        if embed_screenshots:
+            rid, abs_path = register_image(rel_path)
+            if rid:
+                cx, cy = _png_extent_emu(abs_path)
+                body.append(paragraph_xml(label))
+                body.append(image_paragraph_xml(rid, cx, cy, doc_pr_id=doc_pr_id))
+                doc_pr_id += 1
+                return
+        if rel_path:
             body.append(paragraph_xml(f"{label} {rel_path}"))
 
     body.append(paragraph_xml("Accessibility Audit Client Report"))
@@ -520,16 +528,21 @@ def build_docx(path, results, rows, base_dir=None):
         "w:footer=\"708\" w:gutter=\"0\"/></w:sectPr></w:body></w:document>"
     )
 
-    png_default = ""
+    media_defaults = ""
     if media_files:
-        png_default = (
-            '  <Default Extension="png" ContentType="image/png"/>\n'
-        )
+        exts = {Path(name).suffix.lower().lstrip(".") for _, name, _ in media_files}
+        chunks = []
+        if "png" in exts:
+            chunks.append('  <Default Extension="png" ContentType="image/png"/>\n')
+        if "jpg" in exts or "jpeg" in exts:
+            chunks.append('  <Default Extension="jpg" ContentType="image/jpeg"/>\n')
+            chunks.append('  <Default Extension="jpeg" ContentType="image/jpeg"/>\n')
+        media_defaults = "".join(chunks)
     content_types = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
-{png_default}  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+{media_defaults}  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
   <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 </Types>"""
@@ -828,6 +841,11 @@ def main():
     parser = argparse.ArgumentParser(description="Generate accessibility audit deliverables from audit JSON")
     parser.add_argument("--input", required=True, help="Path to axe audit JSON")
     parser.add_argument("--output-dir", default=".", help="Directory for generated artifacts")
+    parser.add_argument(
+        "--embed-screenshots",
+        action="store_true",
+        help="Embed images in DOCX/Markdown (default: path links only for smaller reports)",
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
@@ -841,10 +859,19 @@ def main():
     docx_path = output_dir / "A11Y-CLIENT-REPORT.docx"
     html_path = output_dir / "index.html"
 
-    md_report.write_text(generate_markdown_report(results), encoding="utf-8")
+    md_report.write_text(
+        generate_markdown_report(results, embed_screenshots=args.embed_screenshots),
+        encoding="utf-8",
+    )
     action_plan.write_text(generate_action_plan(results), encoding="utf-8")
     write_csv(csv_path, rows)
-    build_docx(docx_path, results, rows, base_dir=Path(args.input).resolve().parent)
+    build_docx(
+        docx_path,
+        results,
+        rows,
+        base_dir=Path(args.input).resolve().parent,
+        embed_screenshots=args.embed_screenshots,
+    )
     build_dashboard(html_path, results, rows)
 
     artifacts = {

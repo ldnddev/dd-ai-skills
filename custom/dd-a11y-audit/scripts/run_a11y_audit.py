@@ -105,7 +105,18 @@ def run_page_audit(url, level, output_json):
     return result.returncode
 
 
-def capture_screenshots(url, input_json, screenshots_dir, cap=12, id_start=1):
+def capture_screenshots(
+    url,
+    input_json,
+    screenshots_dir,
+    cap=3,
+    id_start=1,
+    impacts="critical",
+    pin_impacts="critical,serious",
+    pin_cap=8,
+    annotate=True,
+    pin_format="jpeg",
+):
     cmd = [
         sys.executable,
         str(SCRIPT_DIR / "capture_a11y_screenshots.py"),
@@ -118,11 +129,41 @@ def capture_screenshots(url, input_json, screenshots_dir, cap=12, id_start=1):
         str(cap),
         "--id-start",
         str(id_start),
+        "--impacts",
+        impacts if impacts is not None else "all",
+        "--pin-impacts",
+        pin_impacts if pin_impacts is not None else "all",
+        "--pin-cap",
+        str(pin_cap),
+        "--pin-format",
+        pin_format,
     ]
+    if not annotate:
+        cmd.append("--no-annotate")
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         return {"error": True, "message": result.stderr or result.stdout}
     return json.loads(result.stdout)
+
+
+def page_worst_key(page):
+    """Sort key for worst pages first (more critical/serious, lower score)."""
+    summary = page.get("summary") or {}
+    score = page.get("metadata", {}).get("score")
+    if score is None:
+        score = 100
+    return (
+        -(summary.get("critical_violations") or 0),
+        -(summary.get("serious_violations") or 0),
+        score,
+    )
+
+
+def select_annotated_page_slugs(pages, limit=15):
+    """Return set of page_slug values that should get annotated issue shots."""
+    valid = [p for p in pages if not p.get("error")]
+    ranked = sorted(valid, key=page_worst_key)
+    return {p.get("page_slug") for p in ranked[: max(0, int(limit))]}
 
 
 def relpath(path, root):
@@ -236,7 +277,20 @@ def aggregate_pages(pages, root_url, level):
     }
 
 
-def run_multi_audit(urls, level, output_dir, screenshot_cap=12, no_screenshots=False):
+def run_multi_audit(
+    urls,
+    level,
+    output_dir,
+    screenshot_cap=3,
+    no_screenshots=False,
+    screenshot_mode="light",
+    annotated_pages=15,
+    impacts="critical",
+    pin_impacts="critical,serious",
+    pin_cap=8,
+    pin_format="jpeg",
+):
+    """Two-phase multi-page audit: axe all pages, then screenshots with light profile."""
     output_dir.mkdir(parents=True, exist_ok=True)
     pages_dir = output_dir / "pages"
     pages_dir.mkdir(exist_ok=True)
@@ -246,10 +300,10 @@ def run_multi_audit(urls, level, output_dir, screenshot_cap=12, no_screenshots=F
     # Globally unique A11Y-### across pages so report rows, filenames, and badges match.
     next_task_id = 1
 
+    # Phase 1 — axe only (so we can rank worst pages before capturing).
     for url in urls:
         page_slug = slugify_url(url, used_slugs)
         page_dir = pages_dir / page_slug
-        screenshots_dir = page_dir / "screenshots"
         page_dir.mkdir(parents=True, exist_ok=True)
         page_json = page_dir / "axe-results.json"
 
@@ -272,26 +326,51 @@ def run_multi_audit(urls, level, output_dir, screenshot_cap=12, no_screenshots=F
             "audit_json": relpath(page_json, output_dir),
         }
         page_data["task_id_start"] = next_task_id
+        if not page_data.get("error"):
+            next_task_id += len(page_data.get("violations") or [])
+        page_json.write_text(json.dumps(page_data, indent=2))
+        page_results.append(page_data)
 
-        if not page_data.get("error") and not no_screenshots:
+    # Phase 2 — screenshots (package A light profile by default).
+    if not no_screenshots and screenshot_mode != "off":
+        full = screenshot_mode == "full"
+        ann_impacts = "all" if full else impacts
+        pin_imp = "all" if full else pin_impacts
+        ann_cap = screenshot_cap if full else screenshot_cap
+        pcap = 12 if full else pin_cap
+        annotate_slugs = None
+        if not full:
+            annotate_slugs = select_annotated_page_slugs(page_results, limit=annotated_pages)
+
+        for page_data in page_results:
+            if page_data.get("error"):
+                continue
+            url = page_data["page_url"]
+            page_slug = page_data["page_slug"]
+            page_dir = pages_dir / page_slug
+            page_json = page_dir / "axe-results.json"
+            screenshots_dir = page_dir / "screenshots"
+            id_start = int(page_data.get("task_id_start") or 1)
+            do_annotate = full or (annotate_slugs is not None and page_slug in annotate_slugs)
             shot_data = capture_screenshots(
                 url,
                 page_json,
                 screenshots_dir,
-                cap=screenshot_cap,
-                id_start=next_task_id,
+                cap=ann_cap,
+                id_start=id_start,
+                impacts=ann_impacts,
+                pin_impacts=pin_imp,
+                pin_cap=pcap,
+                annotate=do_annotate,
+                pin_format="png" if full else pin_format,
             )
             page_data["screenshots"] = normalize_screenshots(shot_data, output_dir)
-
-        # Advance global sequence by this page's violation count (errors: 0).
-        if not page_data.get("error"):
-            next_task_id += len(page_data.get("violations") or [])
-
-        page_json.write_text(json.dumps(page_data, indent=2))
-
-        page_results.append(page_data)
+            page_data["screenshot_annotated"] = bool(do_annotate)
+            page_json.write_text(json.dumps(page_data, indent=2))
 
     combined = aggregate_pages(page_results, urls[0], level)
+    if not no_screenshots:
+        combined.setdefault("metadata", {})["screenshot_mode"] = screenshot_mode
     combined_json = output_dir / "axe-results.json"
     combined_json.write_text(json.dumps(combined, indent=2))
     return combined_json, highest_exit
@@ -306,21 +385,47 @@ def main():
     parser.add_argument("--level", choices=["A", "AA", "AAA"], default="AA")
     parser.add_argument("--output-dir", help="Directory for generated artifacts")
     parser.add_argument(
+        "--screenshot-mode",
+        choices=["light", "full", "off"],
+        default="light",
+        help=(
+            "light (default): pin-map every page (JPEG), critical annotated shots "
+            "cap 3 on worst 15 pages; full: previous dense capture; off: no screenshots"
+        ),
+    )
+    parser.add_argument(
         "--screenshot-cap",
         type=int,
-        default=12,
-        help="Max annotated issue screenshots per page (default 12)",
+        default=None,
+        help="Max annotated issue screenshots per page (default: 3 light, 12 full)",
+    )
+    parser.add_argument(
+        "--annotated-pages",
+        type=int,
+        default=15,
+        help="In light mode, only the N worst pages get annotated shots (default 15)",
     )
     parser.add_argument(
         "--no-screenshots",
         action="store_true",
-        help="Skip screenshot capture entirely",
+        help="Skip screenshot capture entirely (alias for --screenshot-mode off)",
+    )
+    parser.add_argument(
+        "--embed-screenshots",
+        action="store_true",
+        help="Embed PNGs in DOCX/Markdown (default: link to files only, keeps reports small)",
     )
     args = parser.parse_args()
 
     urls = collect_urls(args)
     if not urls:
         parser.error("Provide a URL, --urls-file, or --sitemap.")
+
+    mode = "off" if args.no_screenshots else args.screenshot_mode
+    if args.screenshot_cap is not None:
+        cap = args.screenshot_cap
+    else:
+        cap = 12 if mode == "full" else 3
 
     root_reference = args.url or urls[0]
     output_dir = Path(args.output_dir) if args.output_dir else default_output_dir(root_reference)
@@ -329,21 +434,34 @@ def main():
     if len(urls) == 1:
         json_path = output_dir / "axe-results.json"
         audit_result = run_page_audit(urls[0], args.level, json_path)
-        if audit_result in (0, 2, 3) and json_path.exists() and not args.no_screenshots:
+        if audit_result in (0, 2, 3) and json_path.exists() and mode != "off":
             screenshots_dir = output_dir / "screenshots"
+            full = mode == "full"
             shot_data = capture_screenshots(
-                urls[0], json_path, screenshots_dir, cap=args.screenshot_cap
+                urls[0],
+                json_path,
+                screenshots_dir,
+                cap=cap,
+                impacts="all" if full else "critical",
+                pin_impacts="all" if full else "critical,serious",
+                pin_cap=12 if full else 8,
+                annotate=True,
+                pin_format="png" if full else "jpeg",
             )
             page_data = json.loads(json_path.read_text())
             page_data["screenshots"] = normalize_screenshots(shot_data, output_dir)
+            page_data["screenshot_annotated"] = True
+            page_data.setdefault("metadata", {})["screenshot_mode"] = mode
             json_path.write_text(json.dumps(page_data, indent=2))
     else:
         json_path, audit_result = run_multi_audit(
             urls,
             args.level,
             output_dir,
-            screenshot_cap=args.screenshot_cap,
-            no_screenshots=args.no_screenshots,
+            screenshot_cap=cap,
+            no_screenshots=(mode == "off"),
+            screenshot_mode=mode,
+            annotated_pages=args.annotated_pages,
         )
 
     if audit_result not in (0, 2, 3):
@@ -357,6 +475,8 @@ def main():
         "--output-dir",
         str(output_dir),
     ]
+    if args.embed_screenshots:
+        report_cmd.append("--embed-screenshots")
     report_result = subprocess.run(report_cmd, capture_output=True, text=True)
     if report_result.returncode != 0:
         print(report_result.stderr or report_result.stdout, file=sys.stderr)
