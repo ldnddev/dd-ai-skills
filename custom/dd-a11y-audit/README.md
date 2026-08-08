@@ -55,10 +55,10 @@ npm run verify   # smoke-tests Chromium launch
 Multi-page adds:
 
 - `pages/<page-slug>/axe-results.json`
-- `pages/<page-slug>/screenshots/full-page.png`
-- `pages/<page-slug>/screenshots/A11Y-###.png`
+- `pages/<page-slug>/screenshots/pin-map.png` — full-page map with numbered pins (locatable issues, impact-priority, capped)
+- `pages/<page-slug>/screenshots/A11Y-###.png` — annotated viewport shot (highlight + badge) when capture succeeded
 
-CSV includes page-level context + screenshot paths. The HTML dashboard is built on the ldnddev Framework (compiled `assets/` css/js copied into the bundle; dark mode via `prefers-color-scheme`, no manual toggle) and links to report files and issue screenshots. DOCX embeds page-level screenshots.
+Screenshot capture is best-effort via `capture_a11y_screenshots.py` after axe (default cap 12; `--screenshot-cap` / `--no-screenshots`). Selector + HTML snippet remain the source of truth; non-locatable issues have no image. CSV includes page-level context + screenshot paths. The HTML dashboard is built on the ldnddev Framework (compiled `assets/` css/js copied into the bundle; dark mode via `prefers-color-scheme`, no manual toggle) and links to report files, pin maps, and annotated issue screenshots. DOCX embeds pin maps and per-issue shots when available.
 
 ## UI-edit hook gating
 

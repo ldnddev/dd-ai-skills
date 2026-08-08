@@ -40,7 +40,7 @@ Pipeline is a chain of subprocess-invoked Python scripts under `scripts/`. `run_
 run_a11y_audit.py
   ├─ axe_audit.py            (one subprocess per URL)
   │    └─ node -e <inline JS> using playwright + @axe-core/playwright
-  ├─ capture_a11y_screenshots.py   (per page, multi-mode only)
+  ├─ capture_a11y_screenshots.py   (per page after axe; pin-map + annotated shots, best-effort)
   └─ generate_a11y_report.py       (final stage, consumes combined JSON)
 ```
 
@@ -51,6 +51,7 @@ Key contracts between stages:
 - **`SKILL_DIR` resolves relative to the script file**, so `package.json` and `templates/` are found in the installed copy, not CWD. Output (`web/<domain>-a11y-audit-<date>/`) is written under CWD.
 - **Node-side execution**: `axe_audit.py` builds a JS string, writes it to a tempfile, runs `node` with `cwd=SKILL_DIR`, and uses `createRequire(<package.json>)` so the inline script resolves modules against the skill's `node_modules`. URL and level are interpolated directly into the JS string.
 - **Deliverables** (`generate_a11y_report.py`): `WCAG-AUDIT-REPORT.md`, `ACCESSIBILITY-ACTION-PLAN.md`, `REMEDIATION-TASKS.csv`, `A11Y-CLIENT-REPORT.docx` (built as a ZIP), `index.html`. Branding pulled from `templates/brand.json` and `templates/assets/`.
+- **Screenshots** (`capture_a11y_screenshots.py`, best-effort after axe): `pages/<slug>/screenshots/pin-map.png` (full-page numbered pin map for locatable issues, impact-priority, default cap 12) and `pages/<slug>/screenshots/A11Y-###.png` (annotated viewport highlight + badge when capture succeeds). Skip with `--no-screenshots`. Selector + HTML snippet remain source of truth; non-locatable issues have no image.
 
 ## Hooks (Codex/Claude Code integration)
 

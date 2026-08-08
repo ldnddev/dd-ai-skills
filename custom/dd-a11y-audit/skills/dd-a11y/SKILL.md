@@ -51,12 +51,14 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/test_a11y_skill.py <url>
 - `A11Y-CLIENT-REPORT.docx`
 - `index.html`
 - `pages/<slug>/axe-results.json`
-- `pages/<slug>/screenshots/full-page.png`
-- `pages/<slug>/screenshots/A11Y-###.png`
+- `pages/<slug>/screenshots/pin-map.png` — full-page map with numbered pins (locatable issues, impact-priority, capped)
+- `pages/<slug>/screenshots/A11Y-###.png` — annotated viewport shot (highlight + badge) when capture succeeded
+
+Hybrid visual evidence for clients and devs. Screenshots are best-effort: selector + HTML snippet remain the source of truth; non-locatable issues have no image. Default cap is 12 annotated shots per page (`--screenshot-cap`); skip capture entirely with `--no-screenshots`.
 
 ## Notes
 
 - Default WCAG level is AA. Pass `--level A` or `--level AAA` to override.
 - Node deps (`playwright`, `@axe-core/playwright`) and Chromium are installed by the plugin postinstall step.
 - If Chromium fails to launch, the runner emits a structured JSON error with `missing_dependencies` and `install_commands`. Document blocked checks as environment limitations.
-- Per-issue screenshots are best-effort. Page-level full-page screenshot is the floor.
+- Screenshot capture runs after axe via `capture_a11y_screenshots.py` (best-effort; failures do not block the report).
