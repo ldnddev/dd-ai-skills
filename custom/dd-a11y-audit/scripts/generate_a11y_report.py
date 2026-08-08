@@ -168,6 +168,21 @@ def _issue_shot_lookup(page):
     return lookup
 
 
+def _shot_path_for_task(page, task_id, local_index):
+    """Resolve annotated screenshot path for a task.
+
+    Prefer the global task_id (matches multi-page capture + table IDs). Fall back
+    to page-local A11Y-00N for older audits that renumbered per page only.
+    """
+    lookup = _issue_shot_lookup(page)
+    if task_id in lookup:
+        return lookup[task_id]
+    local_id = f"A11Y-{local_index:03d}"
+    if local_id != task_id and local_id in lookup:
+        return lookup[local_id]
+    return ""
+
+
 def build_task_rows(results):
     rows = []
     global_index = 1
@@ -175,15 +190,17 @@ def build_task_rows(results):
         page_url = page.get("page_url") or page.get("metadata", {}).get("url", "")
         page_slug = page.get("page_slug", "page")
         page_screenshot = _page_pin_map(page)
-        screenshot_lookup = _issue_shot_lookup(page)
+        # Prefer stored start (multi-page runner); else continue sequential numbering.
+        if page.get("task_id_start"):
+            global_index = int(page["task_id_start"])
         for local_index, violation in enumerate(page.get("violations", []), start=1):
-            local_task_id = f"A11Y-{local_index:03d}"
+            task_id = f"A11Y-{global_index:03d}"
             rows.append({
-                "task_id": f"A11Y-{global_index:03d}",
+                "task_id": task_id,
                 "page_url": page_url,
                 "page_slug": page_slug,
                 "page_screenshot": page_screenshot or "",
-                "issue_screenshot": screenshot_lookup.get(local_task_id, "") or "",
+                "issue_screenshot": _shot_path_for_task(page, task_id, local_index),
                 "priority": severity_label(violation.get("impact")),
                 "rule_id": violation.get("id", ""),
                 "issue": violation.get("description", ""),
@@ -267,14 +284,11 @@ def generate_markdown_report(results):
                     f"#{p['pin']} → {p['task_id']} ({p.get('rule_id', '')})" for p in legend
                 ))
                 lines.append("")
-            shot_lookup = _issue_shot_lookup(page)
-            for local_index, violation in enumerate(page.get("violations", []), start=1):
-                local_task_id = f"A11Y-{local_index:03d}"
-                row = next(
-                    item for item in rows
-                    if item["page_url"] == page_url and item["rule_id"] == violation.get("id")
-                    and item["selector"] == first_target(violation)
-                )
+            # Walk rows for this page in order so task_id and screenshot stay paired
+            # (avoids ambiguous rule_id+selector matches when duplicates exist).
+            page_rows = [item for item in rows if item["page_url"] == page_url]
+            violations = page.get("violations", [])
+            for row, violation in zip(page_rows, violations):
                 lines.extend([
                     f"#### {row['task_id']} — {row['issue']}",
                     f"**Severity:** {row['priority']}",
@@ -284,8 +298,10 @@ def generate_markdown_report(results):
                     f"**Fix:** {row['fix']}",
                     f"**Evidence:** `{row['evidence'][:180] or 'n/a'}`",
                 ])
-                if shot_lookup.get(local_task_id):
-                    lines.append(f"![Annotated issue {local_task_id}]({shot_lookup[local_task_id]})")
+                if row.get("issue_screenshot"):
+                    lines.append(
+                        f"![Annotated issue {row['task_id']}]({row['issue_screenshot']})"
+                    )
                 lines.append("")
 
     lines.extend([

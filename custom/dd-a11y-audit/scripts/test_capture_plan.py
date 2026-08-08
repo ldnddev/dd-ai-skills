@@ -83,6 +83,19 @@ class TestBuildCapturePlan(unittest.TestCase):
         self.assertEqual(plan["all_tasks"][0]["selector"], ".nested")
         self.assertEqual(plan["image_tasks"][0]["selector"], ".nested")
 
+    def test_id_start_offsets_task_ids(self):
+        results = {
+            "violations": [
+                _violation("image-alt", "minor"),
+                _violation("color-contrast", "critical"),
+            ]
+        }
+        plan = build_capture_plan(results, cap=12, id_start=5)
+        self.assertEqual([p["task_id"] for p in plan["all_tasks"]], ["A11Y-005", "A11Y-006"])
+        # Critical still first in image_tasks; IDs remain global
+        self.assertEqual(plan["image_tasks"][0]["task_id"], "A11Y-006")
+        self.assertEqual(plan["image_tasks"][0]["rule_id"], "color-contrast")
+
 
 if __name__ == "__main__":
     unittest.main()

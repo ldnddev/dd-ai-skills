@@ -40,8 +40,11 @@ def _first_selector(violation):
     return str(t) if t else ""
 
 
-def build_capture_plan(results, cap=12):
+def build_capture_plan(results, cap=12, id_start=1):
     """Build full task list (stable IDs) and capped image subset.
+
+    Task IDs are ``A11Y-{n:03d}`` with n starting at ``id_start`` so multi-page
+    audits can assign globally unique IDs that match the report table.
 
     Returns:
       {
@@ -49,11 +52,13 @@ def build_capture_plan(results, cap=12):
         "image_tasks": same shape, impact-sorted, selector required, max cap
       }
     """
+    id_start = max(1, int(id_start))
     all_tasks = []
-    for index, violation in enumerate(results.get("violations", []), start=1):
+    for index, violation in enumerate(results.get("violations", [])):
+        task_num = id_start + index
         all_tasks.append(
             {
-                "task_id": f"A11Y-{index:03d}",
+                "task_id": f"A11Y-{task_num:03d}",
                 "rule_id": violation.get("id", ""),
                 "impact": (violation.get("impact") or "minor").lower(),
                 "selector": _first_selector(violation),
@@ -72,10 +77,10 @@ def build_capture_plan(results, cap=12):
     return {"all_tasks": all_tasks, "image_tasks": image_tasks}
 
 
-def run_capture(url, results_path, output_dir, cap=12):
+def run_capture(url, results_path, output_dir, cap=12, id_start=1):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    plan = build_capture_plan(load_results(results_path), cap=cap)
+    plan = build_capture_plan(load_results(results_path), cap=cap, id_start=id_start)
     image_tasks = plan["image_tasks"]
 
     script = f"""
@@ -378,9 +383,26 @@ def main():
     parser.add_argument("--input", required=True, help="Path to axe-results.json")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--cap", type=int, default=12, help="Max annotated issue screenshots (default 12)")
+    parser.add_argument(
+        "--id-start",
+        type=int,
+        default=1,
+        help="First A11Y-### number for this page (use multi-page global sequencing)",
+    )
     args = parser.parse_args()
 
-    print(json.dumps(run_capture(args.url, args.input, args.output_dir, cap=args.cap), indent=2))
+    print(
+        json.dumps(
+            run_capture(
+                args.url,
+                args.input,
+                args.output_dir,
+                cap=args.cap,
+                id_start=args.id_start,
+            ),
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -105,7 +105,7 @@ def run_page_audit(url, level, output_json):
     return result.returncode
 
 
-def capture_screenshots(url, input_json, screenshots_dir, cap=12):
+def capture_screenshots(url, input_json, screenshots_dir, cap=12, id_start=1):
     cmd = [
         sys.executable,
         str(SCRIPT_DIR / "capture_a11y_screenshots.py"),
@@ -116,6 +116,8 @@ def capture_screenshots(url, input_json, screenshots_dir, cap=12):
         str(screenshots_dir),
         "--cap",
         str(cap),
+        "--id-start",
+        str(id_start),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -241,6 +243,8 @@ def run_multi_audit(urls, level, output_dir, screenshot_cap=12, no_screenshots=F
     used_slugs = set()
     page_results = []
     highest_exit = 0
+    # Globally unique A11Y-### across pages so report rows, filenames, and badges match.
+    next_task_id = 1
 
     for url in urls:
         page_slug = slugify_url(url, used_slugs)
@@ -267,10 +271,21 @@ def run_multi_audit(urls, level, output_dir, screenshot_cap=12, no_screenshots=F
         page_data["artifacts"] = {
             "audit_json": relpath(page_json, output_dir),
         }
+        page_data["task_id_start"] = next_task_id
 
         if not page_data.get("error") and not no_screenshots:
-            shot_data = capture_screenshots(url, page_json, screenshots_dir, cap=screenshot_cap)
+            shot_data = capture_screenshots(
+                url,
+                page_json,
+                screenshots_dir,
+                cap=screenshot_cap,
+                id_start=next_task_id,
+            )
             page_data["screenshots"] = normalize_screenshots(shot_data, output_dir)
+
+        # Advance global sequence by this page's violation count (errors: 0).
+        if not page_data.get("error"):
+            next_task_id += len(page_data.get("violations") or [])
 
         page_json.write_text(json.dumps(page_data, indent=2))
 

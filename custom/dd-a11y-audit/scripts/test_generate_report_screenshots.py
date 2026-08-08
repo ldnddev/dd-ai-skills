@@ -169,8 +169,169 @@ class TestScreenshotRows(unittest.TestCase):
         html = r._render_task_rows(rows)
         self.assertIn(">Annotated<span", html)
         self.assertIn("screenshot for A11Y-001", html)
+        self.assertIn('href="screenshots/A11Y-001.png"', html)
         self.assertIn(">Pin map<span", html)
         self.assertIn("for A11Y-002", html)
+
+    def test_multi_page_global_task_ids_match_screenshot_paths(self):
+        """Table task IDs must link to files named with the same global A11Y-###."""
+        results = {
+            "metadata": {
+                "url": "https://ex.com", "timestamp": "t", "score": 50,
+                "wcag_level": "AA", "mode": "multi",
+            },
+            "summary": {
+                "critical_violations": 2, "serious_violations": 0,
+                "moderate_violations": 0, "minor_violations": 0,
+                "total_violations": 2, "total_passes": 0,
+                "total_incomplete": 0, "total_inapplicable": 0,
+            },
+            "principle_counts": {
+                "perceivable": 1, "operable": 1, "understandable": 0, "robust": 0,
+            },
+            "pages": [
+                {
+                    "page_url": "https://ex.com/a",
+                    "page_slug": "a",
+                    "task_id_start": 1,
+                    "metadata": {"url": "https://ex.com/a", "score": 40},
+                    "summary": {
+                        "critical_violations": 1, "serious_violations": 0,
+                        "moderate_violations": 0, "minor_violations": 0,
+                    },
+                    "violations": [{
+                        "id": "image-alt",
+                        "impact": "critical",
+                        "description": "img alt",
+                        "help": "add alt",
+                        "wcag_tags": [],
+                        "nodes_count": 1,
+                        "nodes_preview": [{"target": ["img"], "html": "<img>"}],
+                    }],
+                    "screenshots": {
+                        "pin_map": "pages/a/screenshots/pin-map.png",
+                        "issues": [{
+                            "task_id": "A11Y-001",
+                            "path": "pages/a/screenshots/A11Y-001.png",
+                            "status": "captured",
+                            "rule_id": "image-alt",
+                        }],
+                    },
+                },
+                {
+                    "page_url": "https://ex.com/b",
+                    "page_slug": "b",
+                    "task_id_start": 2,
+                    "metadata": {"url": "https://ex.com/b", "score": 40},
+                    "summary": {
+                        "critical_violations": 1, "serious_violations": 0,
+                        "moderate_violations": 0, "minor_violations": 0,
+                    },
+                    "violations": [{
+                        "id": "button-name",
+                        "impact": "critical",
+                        "description": "btn name",
+                        "help": "name",
+                        "wcag_tags": [],
+                        "nodes_count": 1,
+                        "nodes_preview": [{"target": ["button"], "html": "<button>"}],
+                    }],
+                    "screenshots": {
+                        "pin_map": "pages/b/screenshots/pin-map.png",
+                        "issues": [{
+                            "task_id": "A11Y-002",
+                            "path": "pages/b/screenshots/A11Y-002.png",
+                            "status": "captured",
+                            "rule_id": "button-name",
+                        }],
+                    },
+                },
+            ],
+            "recommendations": [],
+        }
+        rows = r.build_task_rows(results)
+        self.assertEqual(rows[0]["task_id"], "A11Y-001")
+        self.assertEqual(rows[0]["issue_screenshot"], "pages/a/screenshots/A11Y-001.png")
+        self.assertEqual(rows[1]["task_id"], "A11Y-002")
+        self.assertEqual(rows[1]["issue_screenshot"], "pages/b/screenshots/A11Y-002.png")
+        # Must not point page-2 task at page-local A11Y-001.png
+        self.assertNotEqual(rows[1]["issue_screenshot"], "pages/b/screenshots/A11Y-001.png")
+
+        html = r._render_task_rows(rows)
+        self.assertIn('href="pages/b/screenshots/A11Y-002.png"', html)
+        self.assertIn("screenshot for A11Y-002", html)
+
+        md = r.generate_markdown_report(results)
+        self.assertIn("![Annotated issue A11Y-002](pages/b/screenshots/A11Y-002.png)", md)
+
+    def test_legacy_page_local_screenshot_fallback(self):
+        """Older multi-page bundles stored A11Y-001 per page; still resolve content."""
+        results = {
+            "metadata": {
+                "url": "https://ex.com", "timestamp": "t", "score": 50,
+                "wcag_level": "AA", "mode": "multi",
+            },
+            "summary": {
+                "critical_violations": 2, "serious_violations": 0,
+                "moderate_violations": 0, "minor_violations": 0,
+                "total_violations": 2, "total_passes": 0,
+                "total_incomplete": 0, "total_inapplicable": 0,
+            },
+            "principle_counts": {
+                "perceivable": 1, "operable": 1, "understandable": 0, "robust": 0,
+            },
+            "pages": [
+                {
+                    "page_url": "https://ex.com/a",
+                    "page_slug": "a",
+                    "metadata": {"score": 40},
+                    "summary": {
+                        "critical_violations": 1, "serious_violations": 0,
+                        "moderate_violations": 0, "minor_violations": 0,
+                    },
+                    "violations": [{
+                        "id": "image-alt", "impact": "critical",
+                        "description": "img", "help": "alt", "wcag_tags": [],
+                        "nodes_count": 1,
+                        "nodes_preview": [{"target": ["img"], "html": "<img>"}],
+                    }],
+                    "screenshots": {
+                        "issues": [{
+                            "task_id": "A11Y-001",
+                            "path": "pages/a/screenshots/A11Y-001.png",
+                            "status": "captured",
+                        }],
+                    },
+                },
+                {
+                    "page_url": "https://ex.com/b",
+                    "page_slug": "b",
+                    "metadata": {"score": 40},
+                    "summary": {
+                        "critical_violations": 1, "serious_violations": 0,
+                        "moderate_violations": 0, "minor_violations": 0,
+                    },
+                    "violations": [{
+                        "id": "button-name", "impact": "critical",
+                        "description": "btn", "help": "name", "wcag_tags": [],
+                        "nodes_count": 1,
+                        "nodes_preview": [{"target": ["button"], "html": "<button>"}],
+                    }],
+                    "screenshots": {
+                        "issues": [{
+                            "task_id": "A11Y-001",
+                            "path": "pages/b/screenshots/A11Y-001.png",
+                            "status": "captured",
+                        }],
+                    },
+                },
+            ],
+            "recommendations": [],
+        }
+        rows = r.build_task_rows(results)
+        self.assertEqual(rows[1]["task_id"], "A11Y-002")
+        # Legacy: path still page-local filename, but content is that page's first issue
+        self.assertEqual(rows[1]["issue_screenshot"], "pages/b/screenshots/A11Y-001.png")
 
 
 if __name__ == "__main__":
