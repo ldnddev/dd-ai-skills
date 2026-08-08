@@ -64,7 +64,8 @@ def build_capture_plan(results, cap=12):
     eligible.sort(
         key=lambda t: (IMPACT_ORDER.get(t["impact"], 9), t["task_id"])
     )
-    image_tasks = eligible[: max(0, int(cap))]
+    # Copy so pin assignment does not mutate all_tasks entries
+    image_tasks = [dict(t) for t in eligible[: max(0, int(cap))]]
     for pin, item in enumerate(image_tasks, start=1):
         item["pin"] = pin
 
@@ -75,8 +76,7 @@ def run_capture(url, results_path, output_dir):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     plan = build_capture_plan(load_results(results_path))
-    # New shape is a dict; keep list-compat for safety during migration
-    image_plan = plan["image_tasks"] if isinstance(plan, dict) else plan
+    image_tasks = plan["image_tasks"]
 
     script = f"""
 const fs = require('fs');
@@ -87,7 +87,7 @@ const {{ chromium }} = requireFromSkill('playwright');
 
 const url = {json.dumps(url)};
 const outputDir = {json.dumps(str(output_dir))};
-const plan = {json.dumps(image_plan)};
+const plan = {json.dumps(image_tasks)};
 
 (async () => {{
   const browser = await chromium.launch({{ headless: true, channel: 'chromium' }});

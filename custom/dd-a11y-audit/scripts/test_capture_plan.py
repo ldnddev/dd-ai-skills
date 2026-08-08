@@ -48,6 +48,41 @@ class TestBuildCapturePlan(unittest.TestCase):
     def test_impact_order_critical_before_minor(self):
         self.assertLess(IMPACT_ORDER["critical"], IMPACT_ORDER["minor"])
 
+    def test_pins_only_on_image_tasks(self):
+        results = {
+            "violations": [
+                _violation("image-alt", "minor"),
+                _violation("color-contrast", "critical"),
+                _violation("label", "serious"),
+            ]
+        }
+        plan = build_capture_plan(results, cap=12)
+        k = len(plan["image_tasks"])
+        self.assertEqual([t["pin"] for t in plan["image_tasks"]], list(range(1, k + 1)))
+        for task in plan["all_tasks"]:
+            self.assertNotIn("pin", task)
+
+    def test_empty_violations(self):
+        plan = build_capture_plan({"violations": []}, cap=12)
+        self.assertEqual(plan["all_tasks"], [])
+        self.assertEqual(plan["image_tasks"], [])
+
+    def test_nested_axe_target_list(self):
+        results = {
+            "violations": [
+                {
+                    "id": "nested-rule",
+                    "impact": "serious",
+                    "nodes_preview": [
+                        {"target": [[".nested"]], "html": "<div class='nested'>x</div>"}
+                    ],
+                }
+            ]
+        }
+        plan = build_capture_plan(results, cap=12)
+        self.assertEqual(plan["all_tasks"][0]["selector"], ".nested")
+        self.assertEqual(plan["image_tasks"][0]["selector"], ".nested")
+
 
 if __name__ == "__main__":
     unittest.main()
