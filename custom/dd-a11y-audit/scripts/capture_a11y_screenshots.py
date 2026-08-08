@@ -117,59 +117,54 @@ async function measureLocator(locator) {{
   }});
 }}
 
-async function addPins(page, items) {{
-  await page.evaluate((items) => {{
-    items.forEach((item) => {{
-      let el;
-      try {{
-        el = document.querySelector(item.selector);
-      }} catch (e) {{
-        return;
-      }}
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      if (r.width <= 0 || r.height <= 0) return;
-      const pin = document.createElement('div');
-      pin.setAttribute('data-dd-a11y-overlay', 'pin');
-      pin.textContent = String(item.pin);
-      pin.style.cssText = [
-        'position:absolute',
-        `left:${{r.left + window.scrollX + r.width / 2 - 12}}px`,
-        `top:${{r.top + window.scrollY + r.height / 2 - 12}}px`,
-        'width:24px',
-        'height:24px',
-        'border-radius:50%',
-        'background:#b00020',
-        'color:#fff',
-        'font:bold 12px/24px sans-serif',
-        'text-align:center',
-        'border:2px solid #fff',
-        'box-shadow:0 0 0 1px #000',
-        'z-index:2147483646',
-        'pointer-events:none',
-      ].join(';');
-      document.documentElement.appendChild(pin);
-    }});
-  }}, items);
+/** Apply pin via the same locator used for count/measure. Returns true if pin DOM was added. */
+async function addPin(locator, item) {{
+  return locator.evaluate((el, item) => {{
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return false;
+    const pin = document.createElement('div');
+    pin.setAttribute('data-dd-a11y-overlay', 'pin');
+    pin.textContent = String(item.pin);
+    pin.style.cssText = [
+      'position:absolute',
+      `left:${{r.left + window.scrollX + r.width / 2 - 12}}px`,
+      `top:${{r.top + window.scrollY + r.height / 2 - 12}}px`,
+      'width:24px',
+      'height:24px',
+      'border-radius:50%',
+      'background:#b00020',
+      'color:#fff',
+      'font:bold 12px/24px sans-serif',
+      'text-align:center',
+      'border:2px solid #fff',
+      'box-shadow:0 0 0 1px #000',
+      'z-index:2147483646',
+      'pointer-events:none',
+    ].join(';');
+    document.documentElement.appendChild(pin);
+    return true;
+  }}, item);
 }}
 
-async function highlightIssue(page, item) {{
-  await page.evaluate((item) => {{
-    let el;
-    try {{
-      el = document.querySelector(item.selector);
-    }} catch (e) {{
-      return;
-    }}
-    if (!el) return;
+/**
+ * Highlight + badge via the same locator. Returns true if overlay applied.
+ * Places badge below the box when the element is near the top of the viewport
+ * (getBoundingClientRect().top < 36) so the badge is not clipped.
+ */
+async function highlightIssue(locator, item) {{
+  return locator.evaluate((el, item) => {{
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return false;
     el.setAttribute('data-dd-a11y-overlay-target', '1');
     el.style.outline = '3px solid #b00020';
     el.style.outlineOffset = '2px';
-    const r = el.getBoundingClientRect();
     const badge = document.createElement('div');
     badge.setAttribute('data-dd-a11y-overlay', 'badge');
     badge.textContent = `${{item.task_id}} · ${{item.rule_id}} · ${{item.impact}}`;
-    const top = Math.max(0, r.top + window.scrollY - 32);
+    const placeBelow = r.top < 36;
+    const top = placeBelow
+      ? r.bottom + window.scrollY + 4
+      : Math.max(0, r.top + window.scrollY - 32);
     const left = Math.max(0, r.left + window.scrollX);
     badge.style.cssText = [
       'position:absolute',
@@ -189,7 +184,24 @@ async function highlightIssue(page, item) {{
       'text-overflow:ellipsis',
     ].join(';');
     document.documentElement.appendChild(badge);
+    return true;
   }}, item);
+}}
+
+async function scrollToCenter(locator) {{
+  await locator.evaluate((el) => {{
+    el.scrollIntoView({{ block: 'center', inline: 'nearest' }});
+  }});
+}}
+
+function shotEntry(item, overrides) {{
+  return Object.assign({{
+    task_id: item.task_id,
+    rule_id: item.rule_id,
+    selector: item.selector || '',
+    pin: item.pin,
+    path: null,
+  }}, overrides);
 }}
 
 (async () => {{
@@ -201,22 +213,16 @@ async function highlightIssue(page, item) {{
     pin_legend: [],
     issue_screenshots: [],
   }};
+  // Preserve image_tasks order in issue_screenshots
+  const screenshotsByTaskId = new Map();
+  const locatable = [];
 
   try {{
     await page.goto(url, {{ waitUntil: 'networkidle' }});
 
-    const locatable = [];
-
     for (const item of plan) {{
       if (!item.selector) {{
-        result.issue_screenshots.push({{
-          task_id: item.task_id,
-          rule_id: item.rule_id,
-          selector: item.selector || '',
-          pin: item.pin,
-          path: null,
-          status: 'missing-selector',
-        }});
+        screenshotsByTaskId.set(item.task_id, shotEntry(item, {{ status: 'missing-selector' }}));
         continue;
       }}
 
@@ -224,56 +230,54 @@ async function highlightIssue(page, item) {{
         const locator = page.locator(item.selector).first();
         const count = await locator.count();
         if (!count) {{
-          result.issue_screenshots.push({{
-            task_id: item.task_id,
-            rule_id: item.rule_id,
-            selector: item.selector,
-            pin: item.pin,
-            path: null,
-            status: 'not-found',
-          }});
+          screenshotsByTaskId.set(item.task_id, shotEntry(item, {{ status: 'not-found' }}));
           continue;
         }}
 
         const metrics = await measureLocator(locator);
         if (!metrics.visible) {{
-          result.issue_screenshots.push({{
-            task_id: item.task_id,
-            rule_id: item.rule_id,
-            selector: item.selector,
-            pin: item.pin,
-            path: null,
-            status: 'not-visible',
-          }});
+          screenshotsByTaskId.set(item.task_id, shotEntry(item, {{ status: 'not-visible' }}));
           continue;
         }}
 
         locatable.push(item);
       }} catch (error) {{
-        result.issue_screenshots.push({{
-          task_id: item.task_id,
-          rule_id: item.rule_id,
-          selector: item.selector,
-          pin: item.pin,
-          path: null,
+        screenshotsByTaskId.set(item.task_id, shotEntry(item, {{
           status: 'capture-error',
           message: error && error.message ? error.message : String(error),
-        }});
+        }}));
       }}
     }}
 
+    // Pin map: only legend entries for pins that actually applied
+    const pinned = [];
     if (locatable.length > 0) {{
       await clearOverlays(page);
-      await addPins(page, locatable);
-      const pinMapPath = path.join(outputDir, 'pin-map.png');
-      await page.screenshot({{ path: pinMapPath, fullPage: true }});
-      result.pin_map = pinMapPath;
-      result.pin_legend = locatable.map((item) => ({{
-        pin: item.pin,
-        task_id: item.task_id,
-        rule_id: item.rule_id,
-        impact: item.impact,
-      }}));
+      for (const item of locatable) {{
+        try {{
+          const locator = page.locator(item.selector).first();
+          const count = await locator.count();
+          if (!count) continue;
+          const applied = await addPin(locator, item);
+          if (applied) pinned.push(item);
+        }} catch (e) {{
+          // skip failed pin; do not claim it in pin_legend
+        }}
+      }}
+      if (pinned.length > 0) {{
+        const pinMapPath = path.join(outputDir, 'pin-map.png');
+        await page.screenshot({{ path: pinMapPath, fullPage: true }});
+        result.pin_map = pinMapPath;
+        result.pin_legend = pinned.map((item) => ({{
+          pin: item.pin,
+          task_id: item.task_id,
+          rule_id: item.rule_id,
+          impact: item.impact,
+        }}));
+      }} else {{
+        result.pin_map = null;
+        result.pin_legend = [];
+      }}
     }} else {{
       result.pin_map = null;
       result.pin_legend = [];
@@ -283,30 +287,49 @@ async function highlightIssue(page, item) {{
       try {{
         await clearOverlays(page);
         const locator = page.locator(item.selector).first();
+        const count = await locator.count();
+        if (!count) {{
+          screenshotsByTaskId.set(item.task_id, shotEntry(item, {{ status: 'not-found' }}));
+          continue;
+        }}
+
+        await scrollToCenter(locator);
+        // Prefer center scroll; also satisfy scrollIntoViewIfNeeded contract
         await locator.scrollIntoViewIfNeeded();
-        await highlightIssue(page, item);
+
+        let applied = false;
+        try {{
+          applied = await highlightIssue(locator, item);
+        }} catch (overlayErr) {{
+          screenshotsByTaskId.set(item.task_id, shotEntry(item, {{
+            status: 'capture-error',
+            message: overlayErr && overlayErr.message ? overlayErr.message : String(overlayErr),
+          }}));
+          continue;
+        }}
+
+        if (!applied) {{
+          screenshotsByTaskId.set(item.task_id, shotEntry(item, {{ status: 'not-found' }}));
+          continue;
+        }}
+
         const shotPath = path.join(outputDir, `${{item.task_id}}.png`);
         await page.screenshot({{ path: shotPath }});
-        result.issue_screenshots.push({{
-          task_id: item.task_id,
-          rule_id: item.rule_id,
-          selector: item.selector,
-          pin: item.pin,
+        screenshotsByTaskId.set(item.task_id, shotEntry(item, {{
           path: shotPath,
           status: 'captured',
-        }});
+        }}));
       }} catch (error) {{
-        result.issue_screenshots.push({{
-          task_id: item.task_id,
-          rule_id: item.rule_id,
-          selector: item.selector,
-          pin: item.pin,
-          path: null,
+        screenshotsByTaskId.set(item.task_id, shotEntry(item, {{
           status: 'capture-error',
           message: error && error.message ? error.message : String(error),
-        }});
+        }}));
       }}
     }}
+
+    result.issue_screenshots = plan
+      .map((item) => screenshotsByTaskId.get(item.task_id))
+      .filter(Boolean);
   }} finally {{
     await browser.close();
   }}
@@ -335,7 +358,15 @@ async function highlightIssue(page, item) {{
                 "error": True,
                 "message": result.stderr.strip() or result.stdout.strip(),
             }
-        return json.loads(result.stdout)
+        try:
+            return json.loads(result.stdout)
+        except json.JSONDecodeError as exc:
+            return {
+                "error": True,
+                "message": f"Invalid capture JSON: {exc}",
+                "stdout": (result.stdout or "")[:2000],
+                "stderr": (result.stderr or "").strip(),
+            }
     finally:
         if os.path.exists(js_file):
             os.unlink(js_file)
