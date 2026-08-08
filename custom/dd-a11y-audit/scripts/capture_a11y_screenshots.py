@@ -19,29 +19,64 @@ def load_results(path):
     return json.loads(Path(path).read_text())
 
 
-def build_capture_plan(results):
-    plan = []
+IMPACT_ORDER = {
+    "critical": 0,
+    "serious": 1,
+    "moderate": 2,
+    "minor": 3,
+}
+
+
+def _first_selector(violation):
+    previews = violation.get("nodes_preview") or []
+    if not previews:
+        return ""
+    targets = previews[0].get("target") or []
+    if not targets:
+        return ""
+    t = targets[0]
+    if isinstance(t, list):
+        return t[0] if t else ""
+    return str(t) if t else ""
+
+
+def build_capture_plan(results, cap=12):
+    """Build full task list (stable IDs) and capped image subset.
+
+    Returns:
+      {
+        "all_tasks": [{task_id, rule_id, impact, selector}, ...],
+        "image_tasks": same shape, impact-sorted, selector required, max cap
+      }
+    """
+    all_tasks = []
     for index, violation in enumerate(results.get("violations", []), start=1):
-        selector = ""
-        previews = violation.get("nodes_preview") or []
-        if previews:
-            targets = previews[0].get("target") or []
-            if targets:
-                selector = targets[0]
-        plan.append(
+        all_tasks.append(
             {
                 "task_id": f"A11Y-{index:03d}",
                 "rule_id": violation.get("id", ""),
-                "selector": selector,
+                "impact": (violation.get("impact") or "minor").lower(),
+                "selector": _first_selector(violation),
             }
         )
-    return plan
+
+    eligible = [t for t in all_tasks if t["selector"]]
+    eligible.sort(
+        key=lambda t: (IMPACT_ORDER.get(t["impact"], 9), t["task_id"])
+    )
+    image_tasks = eligible[: max(0, int(cap))]
+    for pin, item in enumerate(image_tasks, start=1):
+        item["pin"] = pin
+
+    return {"all_tasks": all_tasks, "image_tasks": image_tasks}
 
 
 def run_capture(url, results_path, output_dir):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     plan = build_capture_plan(load_results(results_path))
+    # New shape is a dict; keep list-compat for safety during migration
+    image_plan = plan["image_tasks"] if isinstance(plan, dict) else plan
 
     script = f"""
 const fs = require('fs');
@@ -52,7 +87,7 @@ const {{ chromium }} = requireFromSkill('playwright');
 
 const url = {json.dumps(url)};
 const outputDir = {json.dumps(str(output_dir))};
-const plan = {json.dumps(plan)};
+const plan = {json.dumps(image_plan)};
 
 (async () => {{
   const browser = await chromium.launch({{ headless: true, channel: 'chromium' }});
