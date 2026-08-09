@@ -5,9 +5,11 @@ Orchestrate semantic design-system extraction for dd-designmd.
 Usage:
   python3 run_designmd.py https://www.ldnddev.com
   python3 run_designmd.py https://a.com https://a.com/about --force
+  python3 run_designmd.py --urls-file urls.txt --web
   python3 run_designmd.py --urls-file urls.txt --deep   # deep reserved
 
-Writes to CWD (default):
+Writes to CWD (default), or web/<domain>-designmd-YYYY-MM-DD/ with --web:
+  index.html               (Framework dashboard; always with --web, optional with --dashboard)
   {domain}-design.md
   {domain}-tokens.json
   {domain}-tokens.css
@@ -29,6 +31,7 @@ from emit_tokens import build_token_doc, tokens_to_css  # noqa: E402
 from extract_css import collect_css_for_page  # noqa: E402
 from extract_design_signals import extract_signals  # noqa: E402
 from fetch_pages import collect_urls, fetch_html  # noqa: E402
+from generate_dashboard import build_dashboard, default_web_dir  # noqa: E402
 
 
 def _now() -> str:
@@ -244,10 +247,10 @@ def run(
     max_extra: int = 8,
     deep: bool = False,
     output_dir: Path | None = None,
+    web: bool = False,
+    dashboard: bool = False,
+    project_root: Path | None = None,
 ) -> dict:
-    out_dir = output_dir or Path.cwd()
-    out_dir.mkdir(parents=True, exist_ok=True)
-
     multi = len(urls) > 1
     if multi:
         plan = [normalize_url(u) for u in urls][:25]
@@ -259,12 +262,25 @@ def run(
     domain = domain_from_url(plan[0])
     primary = plan[0]
 
+    if web:
+        out_dir = default_web_dir(domain, project_root or Path.cwd())
+        build_dash = True
+    else:
+        out_dir = output_dir or Path.cwd()
+        build_dash = dashboard
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     md_path = out_dir / f"{domain}-design.md"
     json_path = out_dir / f"{domain}-tokens.json"
     css_path = out_dir / f"{domain}-tokens.css"
+    evidence_path = out_dir / f"{domain}-designmd-evidence.json"
+    index_path = out_dir / "index.html"
 
     if not force:
-        existing = [p for p in (md_path, json_path, css_path) if p.exists()]
+        existing = [p for p in (md_path, json_path, css_path, evidence_path) if p.exists()]
+        if build_dash and index_path.exists():
+            existing.append(index_path)
         if existing:
             names = ", ".join(p.name for p in existing)
             raise SystemExit(
@@ -305,7 +321,6 @@ def run(
     css_path.write_text(tokens_to_css(token_doc), encoding="utf-8")
 
     # Side evidence for agents
-    evidence_path = out_dir / f"{domain}-designmd-evidence.json"
     evidence_path.write_text(
         json.dumps(
             {
@@ -332,15 +347,39 @@ def run(
         encoding="utf-8",
     )
 
-    return {
+    result = {
         "domain": domain,
+        "output_dir": str(out_dir.resolve()),
         "design_md": str(md_path.resolve()),
         "tokens_json": str(json_path.resolve()),
         "tokens_css": str(css_path.resolve()),
         "evidence_json": str(evidence_path.resolve()),
         "pages_scanned": len(pages),
         "mode": mode,
+        "evidence_mode": evidence_mode,
+        "dashboard_html": None,
     }
+
+    if build_dash:
+        dash = build_dashboard(
+            out_dir,
+            domain=domain,
+            primary_url=primary,
+            mode=mode,
+            evidence_mode=evidence_mode,
+            pages_scanned=len(pages),
+            token_doc=token_doc,
+            signals=signals,
+            file_basenames={
+                "design_md": md_path.name,
+                "tokens_json": json_path.name,
+                "tokens_css": css_path.name,
+                "evidence_json": evidence_path.name,
+            },
+        )
+        result["dashboard_html"] = str(dash.resolve())
+
+    return result
 
 
 def main():
@@ -350,7 +389,17 @@ def main():
     parser.add_argument("--max-extra", type=int, default=8, help="Nav expand cap for single URL")
     parser.add_argument("--force", action="store_true", help="Overwrite existing outputs")
     parser.add_argument("--deep", action="store_true", help="Request deep evidence mode (Playwright optional)")
-    parser.add_argument("--output-dir", default=".", help="Output directory (default CWD)")
+    parser.add_argument("--output-dir", default=None, help="Output directory (default CWD; ignored with --web)")
+    parser.add_argument(
+        "--web",
+        action="store_true",
+        help="Write bundle to web/<domain>-designmd-YYYY-MM-DD/ with Framework dashboard",
+    )
+    parser.add_argument(
+        "--dashboard",
+        action="store_true",
+        help="Also write index.html dashboard into --output-dir (implied by --web)",
+    )
     args = parser.parse_args()
 
     urls = list(args.urls or [])
@@ -362,12 +411,16 @@ def main():
     if not urls:
         parser.error("Provide URL(s) or --urls-file")
 
+    out = Path(args.output_dir) if args.output_dir else None
     result = run(
         urls,
         force=args.force,
         max_extra=args.max_extra,
         deep=args.deep,
-        output_dir=Path(args.output_dir),
+        output_dir=out,
+        web=args.web,
+        dashboard=args.dashboard or args.web,
+        project_root=Path.cwd(),
     )
     print(json.dumps(result, indent=2))
 

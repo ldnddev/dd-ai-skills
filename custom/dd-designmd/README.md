@@ -18,25 +18,37 @@ bash custom/dd-designmd/install.sh
 ## Usage
 
 ```bash
+# Files in CWD
 python3 scripts/run_designmd.py https://www.ldnddev.com
+
+# Client bundle + Framework dashboard
+python3 scripts/run_designmd.py https://www.ldnddev.com --web
 ```
 
-Writes in CWD:
+**CWD mode** writes:
 
 - `ldnddev.com-design.md`
 - `ldnddev.com-tokens.json`
 - `ldnddev.com-tokens.css`
 - `ldnddev.com-designmd-evidence.json`
 
+**`--web` mode** writes `web/ldnddev.com-designmd-YYYY-MM-DD/`:
+
+- `index.html` — light Framework dashboard (swatches, tokens, Framework map, downloads)
+- same design/token/evidence files as above
+- `assets/` — Framework CSS/JS + branding
+
 ### Options
 
 | Flag | Meaning |
 |------|---------|
+| `--web` | Bundle under `web/<domain>-designmd-<date>/` with dashboard |
+| `--dashboard` | Write `index.html` into `--output-dir` (implied by `--web`) |
 | `--force` | Overwrite existing outputs |
 | `--max-extra N` | Nav expand cap when single URL (default 8) |
 | `--deep` | Request deep evidence mode (optional Playwright later) |
 | `--urls-file path` | Multi-URL list |
-| `--output-dir path` | Output directory (default `.`) |
+| `--output-dir path` | Output directory (default `.`; ignored with `--web`) |
 
 ## Rules
 

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{REPORT_TITLE}} — {{DOMAIN}}</title>
+  <meta name="description" content="{{REPORT_SUBTITLE}}">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon/favicon-96x96.png" />
+  <link rel="shortcut icon" href="assets/favicon/favicon.ico" />
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="assets/favicon/site.webmanifest" />
+
+  <link rel="stylesheet" href="assets/css/style.min.css">
+  <script src="assets/js/main.min.js" defer></script>
+
+  <style>
+    .skip-link { position: absolute; left: .5rem; top: -3rem; z-index: 1000; padding: .4rem .75rem; background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
+    .skip-link:focus { top: .5rem; }
+    [id] { scroll-margin-top: 1rem; }
+    .app-summary { margin: 0; }
+    .app-summary__row { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-bottom: 1px solid rgba(128, 128, 128, .3); }
+    .app-summary__row:last-child { border-bottom: 0; }
+    .app-summary dt { color: color-mix(in srgb, CanvasText 70%, Canvas); }
+    .app-summary dd { margin: 0; font-weight: 600; text-align: end; overflow-wrap: anywhere; }
+    .rail { position: sticky; top: 1rem; }
+    @media (max-width: 920px) { .rail { position: static; } }
+    .muted { color: color-mix(in srgb, CanvasText 70%, Canvas); }
+    .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); gap: .75rem; margin: 0; padding: 0; list-style: none; }
+    .swatch { border: 1px solid rgba(128,128,128,.35); border-radius: .5rem; overflow: hidden; background: Canvas; }
+    .swatch__chip { display: block; height: 3.5rem; width: 100%; }
+    .swatch__meta { padding: .4rem .5rem; font-size: .8rem; }
+    .swatch__name { font-weight: 600; overflow-wrap: anywhere; }
+    .swatch__value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+    .chip { display: inline-block; padding: .25rem .55rem; border-radius: 999px; border: 1px solid rgba(128,128,128,.4); font-size: .85rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .type-sample { font-size: 1.25rem; line-height: 1.4; margin: .5rem 0 0; overflow-wrap: anywhere; }
+    .token-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    .token-table th, .token-table td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid rgba(128,128,128,.25); vertical-align: top; }
+    .token-table code { overflow-wrap: anywhere; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+  </style>
+</head>
+
+<body class="dd-g">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="dd-header dd-u-1-1">
+    <div class="dd-header__top">
+      <div class="dd-g">
+        <div class="dd-header__logo dd-u-1-1 l-box">
+          <picture>
+            <source srcset="{{AGENCY_LOGO_DARK}}" media="(prefers-color-scheme: dark)">
+            <img src="{{AGENCY_LOGO}}" alt="{{AGENCY_NAME}} logo" class="dd-img">
+          </picture>
+          <h1>{{REPORT_TITLE}}</h1>
+          <p>{{AGENCY_KICKER}} · {{AGENCY_NAME}} · {{REPORT_SUBTITLE}}</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1" class="dd-u-1-1">
+    <div class="dd-g">
+      <aside class="rail dd-u-1-1 dd-u-lg-8-24 l-box" aria-label="Extract summary and navigation">
+        <section class="dd-section" aria-labelledby="summary-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="summary-label">Extract Summary</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <dl class="app-summary">
+                  <div class="app-summary__row"><dt>Domain</dt><dd>{{DOMAIN}}</dd></div>
+                  <div class="app-summary__row"><dt>Primary URL</dt><dd>{{SOURCE_URL}}</dd></div>
+                  <div class="app-summary__row"><dt>Generated</dt><dd>{{GENERATED}}</dd></div>
+                  <div class="app-summary__row"><dt>Crawl mode</dt><dd>{{CRAWL_MODE}}</dd></div>
+                  <div class="app-summary__row"><dt>Evidence</dt><dd>{{EVIDENCE_MODE}}</dd></div>
+                  <div class="app-summary__row"><dt>Pages scanned</dt><dd>{{PAGE_COUNT}}</dd></div>
+                  <div class="app-summary__row"><dt>Tokens</dt><dd>{{TOKEN_COUNT}}</dd></div>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <nav class="dd-section" aria-labelledby="contents-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="contents-label">Contents</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <ul class="-nostyle">
+                  <li><a href="#colors">Colors</a></li>
+                  <li><a href="#typography">Typography</a></li>
+                  <li><a href="#space">Spacing</a></li>
+                  <li><a href="#tokens">Token table</a></li>
+                  <li><a href="#framework">Framework map</a></li>
+                  <li><a href="#questions">Open questions</a></li>
+                  <li><a href="#downloads">Downloads</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </aside>
+
+      <div class="dd-u-1-1 dd-u-lg-16-24">
+        <section class="dd-section" id="colors" tabindex="-1" aria-labelledby="colors-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="colors-label">Color foundations</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p class="muted">Measured CSS colors (frequency-ranked). Swatches only for hex values.</p>
+                <ul class="swatch-grid">
+                  {{COLOR_SWATCHES}}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="typography" tabindex="-1" aria-labelledby="type-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="type-label">Typography</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p><strong>Families</strong></p>
+                <ul class="chip-row">{{FONT_CHIPS}}</ul>
+                <p class="type-sample" style="font-family: {{PRIMARY_FONT}};">
+                  The quick brown fox jumps over the lazy dog — sample in primary stack.
+                </p>
+                <p class="muted" style="margin-top:.75rem"><strong>Sizes seen</strong></p>
+                <ul class="chip-row">{{SIZE_CHIPS}}</ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="space" tabindex="-1" aria-labelledby="space-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="space-label">Spacing &amp; radius</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 dd-u-md-12-24 l-box">
+                <p><strong>Spacing lengths</strong></p>
+                <ul class="chip-row">{{SPACE_CHIPS}}</ul>
+              </div>
+              <div class="dd-section__item dd-u-1-1 dd-u-md-12-24 l-box">
+                <p><strong>Border radii</strong></p>
+                <ul class="chip-row">{{RADIUS_CHIPS}}</ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="tokens" tabindex="-1" aria-labelledby="tokens-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="tokens-label">Semantic token candidates</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p class="muted">Provisional names promoted from measured CSS. Not an official brand book.</p>
+                <div class="dd-data-table">
+                  <div class="dd-data-table__scroll" data-label="Tokens, scrollable">
+                    <table class="dd-data-table__table token-table">
+                      <caption class="dd-data-table__caption visually-hidden">Token name, value, and evidence</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col" class="dd-data-table__th">Name</th>
+                          <th scope="col" class="dd-data-table__th">Value</th>
+                          <th scope="col" class="dd-data-table__th">Evidence</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {{TOKEN_ROWS}}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="framework" tabindex="-1" aria-labelledby="framework-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="framework-label">ldnddev Framework mapping</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <div class="dd-data-table">
+                  <div class="dd-data-table__scroll" data-label="Framework map, scrollable">
+                    <table class="dd-data-table__table token-table">
+                      <caption class="dd-data-table__caption visually-hidden">Observed UI mapped to Framework components</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col" class="dd-data-table__th">Observed</th>
+                          <th scope="col" class="dd-data-table__th">Framework</th>
+                          <th scope="col" class="dd-data-table__th">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {{FRAMEWORK_ROWS}}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="questions" tabindex="-1" aria-labelledby="questions-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="questions-label">Open questions</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <ul>
+                  {{OPEN_QUESTIONS}}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="downloads" tabindex="-1" aria-labelledby="downloads-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="downloads-label">Downloads</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p>{{DOWNLOADS_NOTE}}</p>
+              </div>
+              {{DOWNLOAD_LINKS}}
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="dd-footer dd-u-1-1">
+    <div class="dd-g">
+      <div class="dd-footer__copyright dd-u-1-1">
+        <div class="l-box">{{FOOTER_TEXT}}</div>
+      </div>
+    </div>
+  </footer>
+</body>
+
+</html>

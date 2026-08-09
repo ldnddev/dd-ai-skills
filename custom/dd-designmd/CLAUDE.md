@@ -10,8 +10,12 @@ Reverse-engineer a **semantic design system** from live URLs into `{domain}-desi
 dd-designmd/
 ├── skills/dd-designmd/SKILL.md
 ├── skills/dd-designmd/references/
-└── scripts/run_designmd.py   # orchestrator
+├── scripts/run_designmd.py      # orchestrator
+├── scripts/generate_dashboard.py
+└── templates/                   # dashboard.html + brand.json + assets/
 ```
+
+`--web` writes `web/<domain>-designmd-YYYY-MM-DD/index.html` + deliverables + `assets/`.
 
 ## Invariants
 

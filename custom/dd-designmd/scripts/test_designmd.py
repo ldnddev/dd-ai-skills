@@ -2,6 +2,7 @@
 """Unit tests for dd-designmd helpers (no network)."""
 
 import unittest
+from pathlib import Path
 
 from domain_util import domain_from_url, normalize_url
 from emit_tokens import build_token_doc, tokens_to_css
@@ -51,6 +52,47 @@ class TestTokens(unittest.TestCase):
         css = tokens_to_css(doc)
         self.assertIn(":root", css)
         self.assertIn("--", css)
+
+
+class TestDashboard(unittest.TestCase):
+    def test_build_dashboard_writes_index(self):
+        import tempfile
+        from generate_dashboard import build_dashboard
+
+        signals = {
+            "colors": [{"value": "#336699", "count": 5}, {"value": "#ffffff", "count": 3}],
+            "font_families": [{"value": "Inter, sans-serif", "count": 2}],
+            "font_sizes": [{"value": "16px", "count": 2}],
+            "spacing_values": [{"value": "8px", "count": 2}],
+            "radii": [{"value": "4px", "count": 1}],
+        }
+        token_doc = build_token_doc(signals, "https://example.com", "example.com")
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            index = build_dashboard(
+                out,
+                domain="example.com",
+                primary_url="https://example.com",
+                mode="single+nav",
+                evidence_mode="static",
+                pages_scanned=1,
+                token_doc=token_doc,
+                signals=signals,
+                file_basenames={
+                    "design_md": "example.com-design.md",
+                    "tokens_json": "example.com-tokens.json",
+                    "tokens_css": "example.com-tokens.css",
+                    "evidence_json": "example.com-designmd-evidence.json",
+                },
+            )
+            self.assertTrue(index.is_file())
+            text = index.read_text(encoding="utf-8")
+            self.assertIn("example.com", text)
+            self.assertIn("Downloads", text)
+            self.assertIn("example.com-design.md", text)
+            self.assertIn("example.com-tokens.json", text)
+            self.assertIn("swatch", text)
+            self.assertTrue((out / "assets" / "css" / "style.min.css").is_file())
 
 
 if __name__ == "__main__":

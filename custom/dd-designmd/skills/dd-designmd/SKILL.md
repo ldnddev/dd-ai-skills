@@ -11,14 +11,19 @@ description: >
 
 Act as an **Expert Design System Lead**. Collect **evidence** from the site, synthesize a **semantic design system**, and write deliverables in the current working directory.
 
-## Deliverables (CWD)
+## Deliverables
 
 | File | Purpose |
 |------|---------|
+| `index.html` | Light Framework dashboard (with `--web` or `--dashboard`) |
 | `{domain}-design.md` | Full DS brief (required sections) |
 | `{domain}-tokens.json` | Machine-readable tokens with evidence |
 | `{domain}-tokens.css` | CSS custom properties companion |
 | `{domain}-designmd-evidence.json` | Raw pipeline evidence (optional for client; useful for agents) |
+| `assets/` | Framework CSS/JS + branding (copied with dashboard) |
+
+**Default location:** current working directory.  
+**Client bundle:** `--web` → `web/{domain}-designmd-YYYY-MM-DD/` (index + files + assets).
 
 Domain = URL host, lowercase, **`www.` stripped** (e.g. `https://www.ldnddev.com` → `ldnddev.com`).
 
@@ -80,16 +85,23 @@ If `{domain}-design.md` or token files exist → **ask in this chat** before rep
 
 ```bash
 # From skill/plugin root or with absolute path to scripts/
-python3 <SKILL_DIR>/scripts/run_designmd.py https://www.example.com
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_designmd.py https://www.example.com
+
+# Client bundle: web/<domain>-designmd-YYYY-MM-DD/ + index.html dashboard
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_designmd.py https://www.example.com --web
 
 # Multi URL
-python3 <SKILL_DIR>/scripts/run_designmd.py https://a.com https://a.com/pricing
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_designmd.py https://a.com https://a.com/pricing --web
+
+# Dashboard into a custom directory (without web/ naming)
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_designmd.py https://www.example.com \
+  --output-dir ./out --dashboard
 
 # After user confirms overwrite
-python3 <SKILL_DIR>/scripts/run_designmd.py https://www.example.com --force
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_designmd.py https://www.example.com --web --force
 
 # Optional deep flag (Playwright reserved; still evidence-safe if unavailable)
-python3 <SKILL_DIR>/scripts/run_designmd.py https://www.example.com --deep
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_designmd.py https://www.example.com --deep
 ```
 
 `<SKILL_DIR>` = directory containing this `SKILL.md` (plugin: `…/skills/dd-designmd`). Scripts live at `../../scripts` relative to SKILL in the plugin layout (`custom/dd-designmd/scripts`).
@@ -115,7 +127,8 @@ After scripts write the skeleton:
 
 ### 5. Report
 
-- Absolute paths of written files  
+- Absolute paths of written files (include `index.html` when dashboard was built)  
+- Prefer opening the dashboard for client handoff when `--web` was used  
 - Short summary (palette/type highlights)  
 - Open questions  
 

@@ -1,0 +1,10 @@
+{
+  "agency_name": "ldnddev, LLC",
+  "agency_kicker": "Design System Extract",
+  "agency_logo": "assets/imgs/logo-full-black-text.svg",
+  "agency_logo_dark": "assets/imgs/logo-full-white-text.svg",
+  "report_title": "Semantic Design System",
+  "report_subtitle": "Evidence-bound tokens, components, and Framework mapping from a live URL.",
+  "downloads_note": "Download the design brief and machine-readable tokens. Keep this folder together so relative links work.",
+  "footer_text": "Prepared by © ldnddev, LLC — dd-designmd"
+}
