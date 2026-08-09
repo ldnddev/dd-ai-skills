@@ -6,9 +6,16 @@
   },
   "metadata": {
     "description": "Custom Claude Code plugins for design + development workflows.",
-    "version": "1.4.0"
+    "version": "1.4.1"
   },
   "plugins": [
+    {
+      "name": "dd-crawl",
+      "source": "./custom/dd-crawl-audit",
+      "description": "Whole-site URL inventory and broken-link check — robots-aware crawl, chrome-once tables, Framework dashboard with all-urls.csv / broken.csv / data.json.",
+      "category": "qa",
+      "tags": ["crawl", "broken-links", "404", "link-check", "sitemap", "site-map"]
+    },
     {
       "name": "dd-designmd",
       "source": "./custom/dd-designmd",

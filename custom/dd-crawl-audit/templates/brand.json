@@ -1,0 +1,10 @@
+{
+  "agency_name": "ldnddev, LLC",
+  "agency_kicker": "Site Crawl",
+  "agency_logo": "assets/imgs/logo-full-black-text.svg",
+  "agency_logo_dark": "assets/imgs/logo-full-white-text.svg",
+  "report_title": "Site Crawl Report",
+  "report_subtitle": "URL inventory, broken links, redirects, and site chrome — one crawl.",
+  "downloads_note": "Download machine-readable inventories for trackers and spreadsheets. Keep this folder together so relative links work.",
+  "footer_text": "Prepared by © ldnddev, LLC — dd-crawl"
+}

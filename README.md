@@ -6,6 +6,7 @@ Custom Claude Code plugin marketplace by [ldnddev](https://ldnddev.com). Single 
 
 | Plugin | Skill name | Purpose | Deps |
 |---|---|---|---|
+| [dd-crawl](custom/dd-crawl-audit/) | `dd-crawl` | Whole-site crawl: URL map, broken links, redirects, chrome table, dashboard | — |
 | [dd-designmd](custom/dd-designmd/) | `dd-designmd` | Semantic design system from URL → `{domain}-design.md` + tokens | — |
 | [dd-a11y](custom/dd-a11y-audit/) | `dd-a11y` | WCAG 2.2 accessibility audit (Playwright + axe-core), single + multi-page | npm |
 | [dd-blogs](custom/dd-blogs/) | `dd-blogs` | ldnddev brand-tone blog copywriting + deliverables | — |

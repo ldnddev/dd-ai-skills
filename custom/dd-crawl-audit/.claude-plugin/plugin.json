@@ -1,0 +1,12 @@
+{
+  "name": "dd-crawl",
+  "version": "1.0.0",
+  "description": "Whole-site URL inventory and broken-link check — robots-aware crawl, chrome-once tables, Framework dashboard with CSV/JSON downloads.",
+  "license": "MIT",
+  "author": {
+    "name": "Jared Lyvers",
+    "email": "jared@ldnddev.com"
+  },
+  "keywords": ["crawl", "broken-links", "404", "sitemap", "link-check", "site-map"],
+  "skills": ["./skills/dd-crawl"]
+}

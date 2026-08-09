@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{REPORT_TITLE}} — {{BASE_URL}}</title>
+  <meta name="description" content="{{REPORT_SUBTITLE}}">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon/favicon-96x96.png" />
+  <link rel="shortcut icon" href="assets/favicon/favicon.ico" />
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="assets/favicon/site.webmanifest" />
+  <link rel="stylesheet" href="assets/css/style.min.css">
+  <script src="assets/js/main.min.js" defer></script>
+  <style>
+    .skip-link { position: absolute; left: .5rem; top: -3rem; z-index: 1000; padding: .4rem .75rem; background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
+    .skip-link:focus { top: .5rem; }
+    [id] { scroll-margin-top: 1rem; }
+    .app-summary { margin: 0; }
+    .app-summary__row { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-bottom: 1px solid rgba(128,128,128,.3); }
+    .app-summary__row:last-child { border-bottom: 0; }
+    .app-summary dt { color: color-mix(in srgb, CanvasText 70%, Canvas); }
+    .app-summary dd { margin: 0; font-weight: 600; text-align: end; overflow-wrap: anywhere; }
+    .rail { position: sticky; top: 1rem; }
+    @media (max-width: 920px) { .rail { position: static; } }
+    .muted { color: color-mix(in srgb, CanvasText 70%, Canvas); }
+    .stat-cards { display: flex; flex-wrap: wrap; gap: .75rem; margin: 0; padding: 0; list-style: none; }
+    .stat-cards li { flex: 1 1 7rem; border: 1px solid rgba(128,128,128,.35); border-radius: .5rem; padding: .75rem 1rem; background: Canvas; }
+    .stat-cards .n { font-size: 1.5rem; font-weight: 700; }
+    .stat-cards .l { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: color-mix(in srgb, CanvasText 70%, Canvas); }
+    .stat-cards .bad .n { color: #c0392b; }
+    .stat-cards .warn .n { color: #b8860b; }
+    tr.row-bad { background: color-mix(in srgb, #c0392b 12%, Canvas); }
+    tr.row-redir { background: color-mix(in srgb, #b8860b 10%, Canvas); }
+    .url-cell { word-break: break-all; max-width: 28rem; }
+    .filter-row { margin: .5rem 0 1rem; }
+    .filter-row input { width: min(100%, 20rem); padding: .45rem .65rem; border-radius: .4rem; border: 1px solid rgba(128,128,128,.45); background: Canvas; color: CanvasText; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+  </style>
+</head>
+<body class="dd-g">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="filter-status" class="visually-hidden" role="status" aria-live="polite"></div>
+
+  <header class="dd-header dd-u-1-1">
+    <div class="dd-header__top">
+      <div class="dd-g">
+        <div class="dd-header__logo dd-u-1-1 l-box">
+          <picture>
+            <source srcset="{{AGENCY_LOGO_DARK}}" media="(prefers-color-scheme: dark)">
+            <img src="{{AGENCY_LOGO}}" alt="{{AGENCY_NAME}} logo" class="dd-img">
+          </picture>
+          <h1>{{REPORT_TITLE}}</h1>
+          <p>{{AGENCY_KICKER}} · {{AGENCY_NAME}} · {{REPORT_SUBTITLE}}</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1" class="dd-u-1-1">
+    <div class="dd-g">
+      <aside class="rail dd-u-1-1 dd-u-lg-8-24 l-box" aria-label="Crawl summary">
+        <section class="dd-section" aria-labelledby="summary-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="summary-label">Crawl summary</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <dl class="app-summary">
+                  <div class="app-summary__row"><dt>Start URL</dt><dd>{{BASE_URL}}</dd></div>
+                  <div class="app-summary__row"><dt>Generated</dt><dd>{{GENERATED}}</dd></div>
+                  <div class="app-summary__row"><dt>Pages crawled</dt><dd>{{PAGES_CRAWLED}}</dd></div>
+                  <div class="app-summary__row"><dt>Elapsed</dt><dd>{{ELAPSED}}</dd></div>
+                  <div class="app-summary__row"><dt>Robots.txt</dt><dd>{{ROBOTS_NOTE}}</dd></div>
+                  <div class="app-summary__row"><dt>Max pages hit</dt><dd>{{MAX_PAGES_HIT}}</dd></div>
+                  <div class="app-summary__row"><dt>Excluded</dt><dd>{{EXCLUDED}}</dd></div>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </section>
+        <nav class="dd-section" aria-labelledby="contents-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="contents-label">Contents</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <ul class="-nostyle">
+                  <li><a href="#stats">Headline stats</a></li>
+                  <li><a href="#broken">Broken URLs</a></li>
+                  <li><a href="#redirects">Redirects</a></li>
+                  <li><a href="#all">All URLs</a></li>
+                  <li><a href="#chrome">Site chrome</a></li>
+                  <li><a href="#downloads">Downloads</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </aside>
+
+      <div class="dd-u-1-1 dd-u-lg-16-24">
+        <section class="dd-section" id="stats" tabindex="-1" aria-labelledby="stats-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="stats-label">Headline stats</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <ul class="stat-cards">
+                  <li><div class="n">{{TOTAL}}</div><div class="l">URLs found</div></li>
+                  <li><div class="n">{{INTERNAL}}</div><div class="l">Internal</div></li>
+                  <li><div class="n">{{EXTERNAL}}</div><div class="l">External</div></li>
+                  <li class="warn"><div class="n">{{REDIRECTS}}</div><div class="l">Redirects</div></li>
+                  <li class="bad"><div class="n">{{BROKEN}}</div><div class="l">Broken</div></li>
+                  <li><div class="n">{{CHROME}}</div><div class="l">Chrome links</div></li>
+                </ul>
+                {{SPA_NOTE}}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="broken" tabindex="-1" aria-labelledby="broken-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="broken-label">Broken URLs</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p class="muted">HTTP ≥400, request errors, and robots-disallow (when robots enforced).</p>
+                <div class="dd-data-table">
+                  <div class="dd-data-table__scroll" data-label="Broken URLs">
+                    <table class="dd-data-table__table" id="broken-table">
+                      <caption class="visually-hidden">Broken URLs</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col" class="dd-data-table__th">URL</th>
+                          <th scope="col" class="dd-data-table__th">Type</th>
+                          <th scope="col" class="dd-data-table__th">Status</th>
+                          <th scope="col" class="dd-data-table__th">Note</th>
+                          <th scope="col" class="dd-data-table__th">Found on</th>
+                        </tr>
+                      </thead>
+                      <tbody>{{BROKEN_ROWS}}</tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="redirects" tabindex="-1" aria-labelledby="redirects-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="redirects-label">Redirects</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p class="muted">3xx responses and URLs that resolved to a different final location.</p>
+                <div class="dd-data-table">
+                  <div class="dd-data-table__scroll" data-label="Redirects">
+                    <table class="dd-data-table__table" id="redirects-table">
+                      <caption class="visually-hidden">Redirect URLs</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col" class="dd-data-table__th">URL</th>
+                          <th scope="col" class="dd-data-table__th">Type</th>
+                          <th scope="col" class="dd-data-table__th">Status</th>
+                          <th scope="col" class="dd-data-table__th">Note</th>
+                          <th scope="col" class="dd-data-table__th">Found on</th>
+                        </tr>
+                      </thead>
+                      <tbody>{{REDIRECT_ROWS}}</tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="all" tabindex="-1" aria-labelledby="all-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="all-label">All URLs</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <div class="filter-row">
+                  <label for="q" class="visually-hidden">Filter URLs</label>
+                  <input id="q" type="search" placeholder="Filter URLs…" autocomplete="off">
+                </div>
+                <div class="dd-data-table">
+                  <div class="dd-data-table__scroll" data-label="All URLs">
+                    <table class="dd-data-table__table" id="all-table">
+                      <caption class="visually-hidden">All discovered URLs</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col" class="dd-data-table__th">URL</th>
+                          <th scope="col" class="dd-data-table__th">Type</th>
+                          <th scope="col" class="dd-data-table__th">Status</th>
+                          <th scope="col" class="dd-data-table__th">Note</th>
+                          <th scope="col" class="dd-data-table__th">Found on</th>
+                        </tr>
+                      </thead>
+                      <tbody>{{ALL_ROWS}}</tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="chrome" tabindex="-1" aria-labelledby="chrome-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="chrome-label">Site chrome</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p class="muted">Links from header / footer / nav (scanned once). Internal page targets are still crawled but listed here to avoid per-page duplication.</p>
+                <div class="dd-data-table">
+                  <div class="dd-data-table__scroll" data-label="Chrome URLs">
+                    <table class="dd-data-table__table" id="chrome-table">
+                      <caption class="visually-hidden">Site chrome links</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col" class="dd-data-table__th">URL</th>
+                          <th scope="col" class="dd-data-table__th">Type</th>
+                          <th scope="col" class="dd-data-table__th">Status</th>
+                          <th scope="col" class="dd-data-table__th">Note</th>
+                          <th scope="col" class="dd-data-table__th">First seen on</th>
+                        </tr>
+                      </thead>
+                      <tbody>{{CHROME_ROWS}}</tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="downloads" tabindex="-1" aria-labelledby="downloads-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="downloads-label">Downloads</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p>{{DOWNLOADS_NOTE}}</p>
+              </div>
+              {{DOWNLOAD_LINKS}}
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="dd-footer dd-u-1-1">
+    <div class="dd-g">
+      <div class="dd-footer__copyright dd-u-1-1">
+        <div class="l-box">{{FOOTER_TEXT}}</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var input = document.getElementById('q');
+      var table = document.getElementById('all-table');
+      var status = document.getElementById('filter-status');
+      if (!input || !table) return;
+      var tbody = table.querySelector('tbody');
+      input.addEventListener('input', function () {
+        var q = input.value.toLowerCase().trim();
+        var shown = 0;
+        Array.prototype.forEach.call(tbody.rows, function (tr) {
+          var match = !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+          tr.style.display = match ? '' : 'none';
+          if (match) shown++;
+        });
+        if (status) status.textContent = q ? (shown + ' matching rows') : '';
+      });
+    })();
+  </script>
+</body>
+</html>
