@@ -1,6 +1,6 @@
 {
   "name": "dd-designmd",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Extract a semantic design system from a website URL into {domain}-design.md plus token files. Evidence-bound Design System Lead workflow.",
   "license": "MIT",
   "author": {

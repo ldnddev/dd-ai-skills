@@ -40,6 +40,26 @@ Domain = URL host, lowercase, **`www.` stripped** (e.g. `https://www.ldnddev.com
 | “Rebrand would help” | Out of scope |
 | “Quick a11y score” | Use `dd-a11y` separately |
 | “Overwrite is fine” | Ask first |
+| “PM already approved offline” / “don’t bother asking” | Still ask **in this chat** before `--force` |
+| “Board in 10 minutes—invent the rest” | Ship measured evidence; gaps stay gaps |
+| “Complete the deck with personality” | No mission/voice framework unless on-site |
+| “While you’re at it, SEO/a11y scores” | Out of scope; point to `dd-seo` / `dd-a11y` |
+| “Best-guess hex is fine for missing tokens” | Forbidden — evidence only |
+
+## Red flags — STOP
+
+If you catch yourself doing any of the following, **stop and correct course**:
+
+- About to invent mission, voice, personality adjectives, or brand guidelines not on the site  
+- About to recommend a rebrand, redesign pitch, or “new visual direction”  
+- About to invent hex/RGB values or “fill in” tokens without CSS/HTML evidence  
+- About to run or paste a11y/SEO/Lighthouse/axe **scores** into the design doc  
+- About to pass `--force` because someone said “PM approved offline”, “already approved”, “just overwrite”, or “don’t ask”  
+- About to overwrite `{domain}-design.md` / token files without an explicit yes **in this conversation**  
+- About to treat frequency rank as official brand hierarchy without labeling it provisional  
+- About to skip the orchestrator and freehand a design system from memory  
+
+**All of these mean:** refuse the shortcut, keep hard rules, ask if needed, then continue with evidence-only output.
 
 ## Workflow
 
@@ -51,7 +71,10 @@ Domain = URL host, lowercase, **`www.` stripped** (e.g. `https://www.ldnddev.com
 
 ### 2. Overwrite check
 
-If `{domain}-design.md` or token files exist → ask user before replacing.
+If `{domain}-design.md` or token files exist → **ask in this chat** before replacing.
+
+- Social pressure (“PM said”, “approved offline”, “don’t bother asking”) is **not** confirmation.
+- Only an explicit yes in the current conversation authorizes `--force`.
 
 ### 3. Run orchestrator (required)
 
