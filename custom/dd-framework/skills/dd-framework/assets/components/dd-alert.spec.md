@@ -18,7 +18,7 @@ Inline message banner for status feedback — informational, success confirmatio
 | name | type | default | description |
 |---|---|---|---|
 | `variant` | enum | — | `-info` `-success` `-warning` `-error`. Default (no modifier) is neutral. |
-| `aos` | string | `fade-in` | AOS animation. |
+| `sal` | string | `fade` | SAL animation. |
 | `dynamic` | boolean | `false` | `true` when alert is injected after page load. Controls whether `role="alert"` / `role="status"` is emitted. See Accessibility. |
 | `focus_id` | string | — | If set, emits this `id` + `tabindex="-1"` so server-rendered form-error alerts can receive focus on submit. |
 
@@ -36,7 +36,7 @@ Inline message banner for status feedback — informational, success confirmatio
 ## Canonical structure
 ```html
 <!-- role attribute computed by variant + dynamic per table above -->
-<div class="dd-alert {variant}" {role_attr} {focus_attrs} data-aos="{aos}">
+<div class="dd-alert {variant}" {role_attr} {focus_attrs} data-sal="{sal}">
   <div class="dd-alert__content dd-g">
     <div class="dd-u-1-1">
       <div class="l-box">
@@ -79,7 +79,7 @@ See `dd-alert.html` for variant examples (default, -info, -success, -warning, -e
 | `$c_support_focus` / `--dark` | focus outline on links inside |
 
 ## JS hooks
-- `data-aos="fade-in"` — AOS scroll-in.
+- `data-sal="fade"` — SAL scroll-in. Honor `prefers-reduced-motion`.
 - No custom JS for static alerts.
 - Dynamic injection: ensure the alert container exists at page load; toggle visibility / replace content rather than create/destroy DOM.
 
@@ -104,7 +104,8 @@ See `dd-alert.html` for variant examples (default, -info, -success, -warning, -e
 {% set severity_label = {'-error':'Error','-warning':'Warning','-success':'Success','-info':'Info'}[variant] ?? '' %}
 <div class="dd-alert{% if variant %} {{ variant }}{% endif %}"
      {% if role %}role="{{ role }}"{% endif %}
-     {% if focus_id %}id="{{ focus_id }}" tabindex="-1"{% endif %}>
+     {% if focus_id %}id="{{ focus_id }}" tabindex="-1"{% endif %}
+     data-sal="{{ sal|default('fade') }}">
   <div class="dd-alert__content dd-g">
     <div class="dd-u-1-1">
       <div class="l-box">
@@ -131,7 +132,8 @@ $focus_id = $attributes['focus_id'] ?? '';
 ?>
 <div class="dd-alert<?php echo $variant ? ' ' . esc_attr( $variant ) : ''; ?>"
      <?php echo $role ? 'role="' . esc_attr( $role ) . '"' : ''; ?>
-     <?php echo $focus_id ? 'id="' . esc_attr( $focus_id ) . '" tabindex="-1"' : ''; ?>>
+     <?php echo $focus_id ? 'id="' . esc_attr( $focus_id ) . '" tabindex="-1"' : ''; ?>
+     data-sal="<?php echo esc_attr( $attributes['sal'] ?? 'fade' ); ?>">
   <div class="dd-alert__content dd-g">
     <div class="dd-u-1-1">
       <div class="l-box">

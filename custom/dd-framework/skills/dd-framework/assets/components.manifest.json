@@ -1,6 +1,6 @@
 {
   "$schema": "https://ldnddev.com/schemas/dd-framework-components-1.json",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "Index of dd-framework components. Source of truth for helper CLI (list, get, validate). Each entry references an HTML example and a spec.md contract.",
   "tokens": {
     "color_primary": "#88d9f7",

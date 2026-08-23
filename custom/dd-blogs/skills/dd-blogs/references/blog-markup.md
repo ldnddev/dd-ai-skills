@@ -44,7 +44,7 @@ Immediately after `<body class="page">`, emit this fixed scaffolding block (lega
       }
     }
   </style>
-  <div class="dd-hero__content dd-g" data-aos="fade-in" data-aos-duration="1000" data-aos-delay="0">
+  <div class="dd-hero__content dd-g" data-sal="fade">
     <div class="dd-hero__copy dd-u-1-1 dd-u-lg-12-24">
       <div class="dd-hero__title">
         <h1 id="[blog_slug]">[hero_title]</h1>
@@ -85,12 +85,14 @@ For chunk index `i` in the chunks array returned by `split-sections`:
 
 ```html
 <div class="dd-section__item dd-u-1-1 l-box">
-  <div class="dd-rich_text" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="0">
+  <div class="dd-rich_text" data-sal="slide-up">
     [chunk_content]
   </div>
 </div>
 [spacer_or_empty]
 ```
+
+For chunk index `i > 0`, add `data-sal-delay="{i * 100}"` (50–1000 ms, 50 ms steps). Omit the attribute on the first chunk.
 
 Where `[chunk_content]` rules:
 - **First chunk (i = 0):** prepend the byline `<p><em>By Jared Lyvers, ldnddev — [blog_draft_date]</em></p>` before the chunk HTML.
@@ -123,7 +125,7 @@ Default values:
       .dd-cta .dd-cta__image { background-image: url('/assets/imgs/blog-cta-default.webp'); }
       @media (min-width: 64em) { .dd-cta .dd-cta__image { background-image: url('/assets/imgs/blog-cta-default.webp'); } }
     </style>
-    <div class="dd-cta__content dd-g" data-aos="fade-up" data-aos-duration="1000" data-aos-delay="0">
+    <div class="dd-cta__content dd-g" data-sal="slide-up">
       <div class="dd-cta__copy dd-u-1-1 dd-u-md-12-24">
         <div class="dd-cta__title"><h2>[cta_title]</h2></div>
         [cta_body]

@@ -4,7 +4,7 @@ description: Source of truth for the ldnddev Framework component system. Provide
 license: MIT
 metadata:
     author: Jared Lyvers (ldnddev.com)
-    version: 2.0.0
+    version: 3.0.0
 ---
 
 # dd-framework — Component Contracts for the ldnddev Framework
@@ -129,12 +129,25 @@ Full token map in `references/Agent-UI-Colors.md` and `references/Agent-UI-Theme
 **Accessibility baseline (per component):**
 - Contrast: ≥ 4.5:1 for normal text, ≥ 3:1 for large text (1.4.3); ≥ 3:1 for non-text (1.4.11)
 - Focus visible: 2px solid outline minimum (2.4.7); never `outline: none` without a replacement
-- Reduced motion: animations (AOS, sliders, marquees, counters) honor `prefers-reduced-motion: reduce`
+- Reduced motion: animations (SAL, sliders, marquees, counters) honor `prefers-reduced-motion: reduce`
 - Keyboard: every interactive element reachable and operable via keyboard alone (2.1.1); no keyboard traps (2.1.2)
 - Names: every interactive element has an accessible name (4.1.2)
 - Target size: interactive controls ≥ 24×24 CSS px (2.5.8 AA)
 
 Per-component WCAG criteria are listed in each spec's Accessibility section.
+
+## Scroll animations (SAL)
+
+Markup uses `data-sal`, optional `data-sal-duration`, and optional `data-sal-delay`. Never emit `data-aos`.
+
+| Previous animation | SAL value |
+|---|---|
+| `fade-in` | `fade` |
+| `fade-up` | `slide-up` |
+
+Allowed `data-sal` names: `fade`, `slide-up`, `slide-down`, `slide-left`, `slide-right`, `zoom-in`, `zoom-out`, `flip-up`, `flip-down`, `flip-left`, `flip-right`.
+
+Omit duration/delay to use library defaults (0.4s / 0s from `sal.scss`). When set, `data-sal-duration` is 200–2000 ms in 50 ms steps; `data-sal-delay` is 50–1000 ms in 50 ms steps. Repeatable items (cards, milestones, timeline, alternating rows) stagger delay by `100 × index` ms (cap 1000); omit the attribute on index 0. Init (`assets/source/js/main.js`): `once: true`, 120 px trigger offset via `rootMargin: '0px 0px -120px 0px'`, `disabled` when `prefers-reduced-motion: reduce`.
 
 ## Validation in CI / dev loop
 
@@ -183,9 +196,12 @@ dd-framework/
     │   └── requirements.txt              ← beautifulsoup4, pytest
     └── assets/
         ├── components.manifest.json      ← index of all 24 components
-        └── components/
-            ├── dd-{name}.html            ← static HTML reference
-            └── dd-{name}.spec.md         ← contract: params, a11y, tokens, translation
+        ├── components/
+        │   ├── dd-{name}.html            ← static HTML reference
+        │   └── dd-{name}.spec.md         ← contract: params, a11y, tokens, translation
+        └── source/
+            ├── js/                       ← vendors/sal.js, components, main.js (sal init)
+            └── scss/                     ← vendors/sal.scss compiled into style.css
 ```
 
 ## Build commands (consumer-side, for ldnddev's own sites)

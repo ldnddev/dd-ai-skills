@@ -27,9 +27,9 @@ Call-to-action section with background image, headline, subtitle, body, and up t
 | `secondary_cta` | object | — | Same shape; rendered with `-ghost`. |
 | `variant` | enum | — | See Variants. |
 | `heading_level` | int | `2` | 2–6. |
-| `aos` | string | `fade-up` | AOS animation. |
-| `aos_duration` | int | `1000` | ms. |
-| `aos_delay` | int | `0` | ms. |
+| `sal` | string | `slide-up` | SAL animation. |
+| `sal_duration` | int | — | ms, 200–2000 in 50 ms steps. Omit for library default (400 ms). |
+| `sal_delay` | int | — | ms, 50–1000 in 50 ms steps. Omit for 0. |
 
 ## Variants
 | modifier | placement of copy |
@@ -50,7 +50,7 @@ Call-to-action section with background image, headline, subtitle, body, and up t
     .dd-cta .dd-cta__image { background-image: url('{bg_mobile_url}'); }
     @media (min-width: 64em) { .dd-cta .dd-cta__image { background-image: url('{bg_desktop_url}'); } }
   </style>
-  <div class="dd-cta__content dd-g" data-aos="{aos}" data-aos-duration="{aos_duration}" data-aos-delay="{aos_delay}">
+  <div class="dd-cta__content dd-g" data-sal="{sal}"{% if sal_duration %} data-sal-duration="{sal_duration}"{% endif %}{% if sal_delay %} data-sal-delay="{sal_delay}"{% endif %}>
     <div class="dd-cta__copy dd-u-1-1 dd-u-md-12-24">
       <div class="dd-cta__title"><h{heading_level|default 2}>{title}</h{heading_level|default 2}></div>
       {% if subtitle %}<div class="dd-cta__subtitle"><strong>{subtitle}</strong></div>{% endif %}
@@ -95,7 +95,7 @@ See `dd-cta.html`.
 | `l-box` | inner padding (optional override) |
 
 ## JS hooks
-- `data-aos`, `data-aos-duration`, `data-aos-delay` — AOS scroll animation. Respect `prefers-reduced-motion`.
+- `data-sal`, optional `data-sal-duration`, optional `data-sal-delay` — SAL scroll animation. Respect `prefers-reduced-motion`.
 
 ## Example params
 ```json
@@ -123,7 +123,7 @@ See `dd-cta.html`.
       <img src="{{ image_src }}" class="dd-img" alt="{{ image_alt }}" />
     </picture>
   </div>
-  <div class="dd-cta__content dd-g" data-aos="{{ aos|default('fade-up') }}">
+  <div class="dd-cta__content dd-g" data-sal="{{ sal|default('slide-up') }}"{% if sal_duration %} data-sal-duration="{{ sal_duration }}"{% endif %}{% if sal_delay %} data-sal-delay="{{ sal_delay }}"{% endif %}>
     <div class="dd-cta__copy dd-u-1-1 dd-u-md-12-24">
       <div class="dd-cta__title"><h{{ heading_level|default(2) }}>{{ title }}</h{{ heading_level|default(2) }}></div>
       {% if subtitle %}<div class="dd-cta__subtitle"><strong>{{ subtitle }}</strong></div>{% endif %}

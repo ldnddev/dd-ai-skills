@@ -28,7 +28,7 @@ Full-width landing hero — single `<h1>` page introduction with responsive back
 | `bg_desktop_url` | string (URL) | `image_src` | CSS `background-image` ≥ 64em. |
 | `primary_cta` | object | — | `{ text, href, target }`. Target ∈ `_self _blank _parent _top`. |
 | `secondary_cta` | object | — | Same shape as `primary_cta`. Rendered with `-ghost` button modifier. |
-| `aos` | string | `fade-in` | AOS animation. Honors `prefers-reduced-motion`. |
+| `sal` | string | `fade` | SAL animation. Honors `prefers-reduced-motion`. |
 
 ## Variants
 None at root. Button children use `-primary` / `-ghost` modifiers.
@@ -46,7 +46,7 @@ None at root. Button children use `-primary` / `-ghost` modifiers.
       .dd-hero__image { background-image: url('{bg_desktop_url}'); }
     }
   </style>
-  <div class="dd-hero__content dd-g" data-aos="{aos}">
+  <div class="dd-hero__content dd-g" data-sal="{sal}">
     <div class="dd-hero__copy dd-u-1-1 dd-u-lg-12-24">
       <div class="dd-hero__title"><h1>{title}</h1></div>
       {% if subtitle %}<div class="dd-hero__subtitle"><strong>{subtitle}</strong></div>{% endif %}
@@ -85,7 +85,7 @@ See `dd-hero.html` for static reference output.
 - CTA contrast against hero background: at minimum 3:1 for button outline (1.4.11); ensure background image overlay (if any) preserves text contrast ≥ 4.5:1 over the title region.
 - Focus visible: 2px solid outline on CTAs, not removed by hover styles.
 - `target="_blank"` CTAs MUST include `rel="noopener noreferrer"` and an indicator (visible icon + SR-only "opens in new tab") so the change of context is announced before activation (G201 technique, related to 3.2.2 On Input).
-- AOS `fade-in` respects `prefers-reduced-motion: reduce` — verify via library config.
+- SAL `fade` respects `prefers-reduced-motion: reduce` — verify via library config (`disabled` + `sal.scss` zero-duration).
 
 ## Design tokens
 | token | usage |
@@ -98,7 +98,7 @@ See `dd-hero.html` for static reference output.
 | Spacing: `l-box` not used at root (hero is edge-to-edge) |
 
 ## JS hooks
-- `data-aos="{aos}"` — AOS library trigger on scroll.
+- `data-sal="{sal}"` — SAL library trigger on scroll.
 - No required JS for component itself. CTAs are plain anchors.
 
 ## Example params
@@ -129,7 +129,7 @@ See `dd-hero.html` for static reference output.
       <img src="{{ image_src }}" class="dd-img" alt="{{ image_alt }}" />
     </picture>
   </div>
-  <div class="dd-hero__content dd-g" data-aos="{{ aos|default('fade-in') }}">
+  <div class="dd-hero__content dd-g" data-sal="{{ sal|default('fade') }}">
     <div class="dd-hero__copy dd-u-1-1 dd-u-lg-12-24">
       <div class="dd-hero__title"><h1>{{ title }}</h1></div>
       {% if subtitle %}<div class="dd-hero__subtitle"><strong>{{ subtitle }}</strong></div>{% endif %}
@@ -162,7 +162,7 @@ $aria_label = esc_attr( $attributes['aria_label'] );
   <div class="dd-hero__image">
     <img src="<?php echo $image_src; ?>" class="dd-img" alt="<?php echo $image_alt; ?>" />
   </div>
-  <div class="dd-hero__content dd-g">
+  <div class="dd-hero__content dd-g" data-sal="<?php echo esc_attr( $attributes['sal'] ?? 'fade' ); ?>">
     <div class="dd-hero__copy dd-u-1-1 dd-u-lg-12-24">
       <div class="dd-hero__title"><h1><?php echo $title; ?></h1></div>
       <?php if ( ! empty( $attributes['subtitle'] ) ) : ?>

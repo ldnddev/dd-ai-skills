@@ -30,7 +30,7 @@ Card grid for grouped content (articles, products, team, services). Each card ca
 | name | type | default | description |
 |---|---|---|---|
 | `variant` | enum | — | `-horizontal` for image-left rows. |
-| `aos` | string | `fade-up` | AOS animation per card. |
+| `sal` | string | `slide-up` | SAL animation per card. Stagger `data-sal-delay` by 100 ms × item index; omit on index 0. |
 | `heading_level` | int | `3` | Override card heading level (2–6). |
 
 ## Variants
@@ -43,7 +43,7 @@ Card grid for grouped content (articles, products, team, services). Each card ca
 <div class="dd-card {variant}">
   <div class="dd-card__items dd-g">
     <!-- repeat per item; default heading_level = 3 -->
-    <div class="dd-card__item l-box dd-u-1-1 {column_units}" data-aos="{aos}">
+    <div class="dd-card__item l-box dd-u-1-1 {column_units}" data-sal="{sal}"{% if loop.index0 %} data-sal-delay="{loop.index0 * 100}"{% endif %}>
       <div class="dd-card__body dd-g">
         <div class="dd-card__image">
           <img src="{image_src}" alt="{image_alt}" class="dd-image"
@@ -89,7 +89,7 @@ See `dd-card.html` for static reference output.
 - 2.5.8: card CTA buttons must meet 24×24 CSS px minimum target size (or exclude per the exception list).
 - If the entire card is clickable (link wraps body): only one focusable interactive descendant allowed. Either wrap whole card in `<a>` and remove inner link buttons, or keep buttons and don't wrap.
 - `-horizontal` variant: reading order DOM (image then copy) matches visual order. No CSS reordering that breaks tab sequence.
-- AOS `fade-up` honors `prefers-reduced-motion`.
+- SAL `slide-up` honors `prefers-reduced-motion`.
 
 ## Design tokens
 | token | usage |
@@ -104,7 +104,7 @@ See `dd-card.html` for static reference output.
 | `l-box` | inner padding for `__item` and `__copy` |
 
 ## JS hooks
-- `data-aos` — AOS scroll animation.
+- `data-sal` — SAL scroll animation. Repeatable cards stagger `data-sal-delay` by 100 ms × index.
 - No custom JS required.
 
 ## Example params
@@ -144,7 +144,7 @@ See `dd-card.html` for static reference output.
 <div class="dd-card{% if variant %} {{ variant }}{% endif %}">
   <div class="dd-card__items dd-g">
     {% for item in items %}
-      <div class="dd-card__item l-box dd-u-1-1 {{ item.column_units|default('dd-u-md-12-24') }}" data-aos="{{ aos|default('fade-up') }}">
+      <div class="dd-card__item l-box dd-u-1-1 {{ item.column_units|default('dd-u-md-12-24') }}" data-sal="{{ sal|default('slide-up') }}"{% if not loop.first %} data-sal-delay="{{ loop.index0 * 100 }}"{% endif %}>
         <div class="dd-card__body dd-g">
           <div class="dd-card__image">
             <img src="{{ item.image_src }}" alt="{{ item.image_alt }}" class="dd-image"
@@ -174,8 +174,8 @@ See `dd-card.html` for static reference output.
 <?php $items = $attributes['items'] ?? []; ?>
 <div class="dd-card<?php echo ! empty( $attributes['variant'] ) ? ' ' . esc_attr( $attributes['variant'] ) : ''; ?>">
   <div class="dd-card__items dd-g">
-    <?php foreach ( $items as $item ) : ?>
-      <div class="dd-card__item l-box dd-u-1-1 <?php echo esc_attr( $item['column_units'] ?? 'dd-u-md-12-24' ); ?>" data-aos="fade-up">
+    <?php foreach ( $items as $i => $item ) : ?>
+      <div class="dd-card__item l-box dd-u-1-1 <?php echo esc_attr( $item['column_units'] ?? 'dd-u-md-12-24' ); ?>" data-sal="slide-up"<?php echo $i ? ' data-sal-delay="' . (int) ( $i * 100 ) . '"' : ''; ?>>
         <div class="dd-card__body dd-g">
           <div class="dd-card__image">
             <img src="<?php echo esc_url( $item['image_src'] ); ?>" alt="<?php echo esc_attr( $item['image_alt'] ); ?>" class="dd-image" loading="lazy">

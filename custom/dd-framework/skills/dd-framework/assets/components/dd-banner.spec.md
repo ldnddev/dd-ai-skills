@@ -19,14 +19,14 @@ Full-width image banner — single responsive image with no overlay copy. For de
 | `srcset` | string | — | Responsive `srcset` values. |
 | `sizes` | string | `(max-width: 1024px) 100vw 1024px` | Image `sizes` attr. |
 | `bg_url` | string (URL) | `image_src` | Inline-style `background-image`. Match `image_src` to avoid double-load. |
-| `aos` | string | `fade-in` | AOS animation. |
+| `sal` | string | `fade` | SAL animation. |
 
 ## Variants
 None.
 
 ## Canonical structure
 ```html
-<div class="dd-banner" data-aos="{aos}"{% if bg_url %} style="background-image: url({bg_url});"{% endif %}>
+<div class="dd-banner" data-sal="{sal}"{% if bg_url %} style="background-image: url({bg_url});"{% endif %}>
   <div class="dd-banner__image">
     <img sizes="{sizes}" srcset="{srcset}" src="{image_src}" class="dd-img" alt="{image_alt}" />
   </div>
@@ -45,13 +45,13 @@ See `dd-banner.html`.
 - Decorative banners: `alt=""`. The `background-image` carries no separate semantic — screen readers don't announce it.
 - Both `background-image` inline style AND `<img>` should resolve to the same asset to avoid duplicate downloads. Prefer just the `<img>` and remove inline `background-image` if no styling depends on it.
 - No interactive descendants. If you need clickable banner, wrap the whole component in `<a aria-label="{descriptive label}">` AND set the inner `<img alt="">` (the anchor's `aria-label` IS the accessible name; non-empty image alt would cause double-announcement).
-- AOS fade-in respects reduced motion.
+- SAL `fade` respects reduced motion.
 
 ## Design tokens
 None applied to banner surface itself (image fills frame). Focus outline on wrapping `<a>` (if clickable) uses `$c_support_focus` / `--dark`.
 
 ## JS hooks
-- `data-aos` — AOS scroll animation.
+- `data-sal` — SAL scroll animation.
 
 ## Example params
 ```json
@@ -68,7 +68,7 @@ None applied to banner surface itself (image fills frame). Focus outline on wrap
 
 **Drupal Twig:**
 ```twig
-<div class="dd-banner" data-aos="{{ aos|default('fade-in') }}"{% if bg_url %} style="background-image: url({{ bg_url }});"{% endif %}>
+<div class="dd-banner" data-sal="{{ sal|default('fade') }}"{% if bg_url %} style="background-image: url({{ bg_url }});"{% endif %}>
   <div class="dd-banner__image">
     <img {% if sizes %}sizes="{{ sizes }}"{% endif %} {% if srcset %}srcset="{{ srcset }}"{% endif %} src="{{ image_src }}" class="dd-img" alt="{{ image_alt }}" />
   </div>
@@ -77,7 +77,7 @@ None applied to banner surface itself (image fills frame). Focus outline on wrap
 
 **WordPress (block render.php):**
 ```php
-<div class="dd-banner" data-aos="fade-in">
+<div class="dd-banner" data-sal="fade">
   <div class="dd-banner__image">
     <img src="<?php echo esc_url( $attributes['image_src'] ); ?>"
          alt="<?php echo esc_attr( $attributes['image_alt'] ); ?>"

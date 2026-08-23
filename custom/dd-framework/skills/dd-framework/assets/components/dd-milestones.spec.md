@@ -26,7 +26,7 @@ Statistics / achievements grid with prominent percentages or numbers, plus title
 ## Optional parameters
 | name | type | default | description |
 |---|---|---|---|
-| `aos` | string | `fade-up` | AOS animation. |
+| `sal` | string | `slide-up` | SAL animation. Stagger `data-sal-delay` by 100 ms × item index; omit on index 0. |
 | `column_units` | string | `dd-u-12-24 dd-u-sm-12-24 dd-u-md-12-24 dd-u-lg-8-24` | Unit class chain per cell. |
 
 ## Variants
@@ -38,7 +38,7 @@ None at root.
   <div class="dd-milestones__content">
     <div class="dd-milestones__items dd-g">
       <!-- repeat per item; default heading_level = 3 -->
-      <div class="dd-milestones__item {column_units} l-box" data-aos="{aos}">
+      <div class="dd-milestones__item {column_units} l-box" data-sal="{sal}"{% if loop.index0 %} data-sal-delay="{loop.index0 * 100}"{% endif %}>
         <div class="dd-milestones__body l-box">
           <div class="dd-milestones__percentage" data-number="{number}">
             <span class="number" aria-hidden="true">0</span>{unit|default '%'}
@@ -85,7 +85,7 @@ None at root.
 
 ## JS hooks
 - `data-number="N"` — counter library reads target; animates from 0 to N on element entering viewport.
-- `data-aos="fade-up"` — AOS scroll-in.
+- `data-sal="slide-up"` — SAL scroll-in. Items stagger `data-sal-delay` by 100 ms × index.
 
 ### Reference counter JS contract
 ```js
@@ -125,7 +125,7 @@ document.querySelectorAll('.dd-milestones__percentage').forEach(el => io.observe
   <div class="dd-milestones__content">
     <div class="dd-milestones__items dd-g">
       {% for item in items %}
-        <div class="dd-milestones__item {{ column_units|default('dd-u-12-24 dd-u-lg-8-24') }} l-box" data-aos="{{ aos|default('fade-up') }}">
+        <div class="dd-milestones__item {{ column_units|default('dd-u-12-24 dd-u-lg-8-24') }} l-box" data-sal="{{ sal|default('slide-up') }}"{% if not loop.first %} data-sal-delay="{{ loop.index0 * 100 }}"{% endif %}>
           <div class="dd-milestones__body l-box">
             <div class="dd-milestones__percentage" data-number="{{ item.number }}">
               <span class="number" aria-hidden="true">0</span>{{ item.unit|default('%') }}

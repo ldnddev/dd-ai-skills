@@ -21,7 +21,7 @@ Testimonial quotation with attribution (person photo, name, title) and structure
 | `image_src` | string (URL) | — | Person photo. |
 | `image_alt` | string | `name` | Alt text. Defaults to person name if photo. |
 | `icon_class` | string | `fa-regular fa-message-quote` | Font Awesome icon class for decorative quote glyph. |
-| `aos` | string | `fade-in` | AOS animation. |
+| `sal` | string | `fade` | SAL animation. |
 | `emit_jsonld` | boolean | `true` | Whether to render the JSON-LD script. Disable when site centralizes structured data. |
 | `cite_url` | string (URL) | — | Source URL for the quotation. Renders as `cite` attribute on `<blockquote>`. |
 
@@ -31,7 +31,7 @@ None.
 ## Canonical structure
 ```html
 <blockquote class="dd-blockquote" {% if cite_url %}cite="{cite_url}"{% endif %}>
-  <div class="dd-blockquote__content dd-g" data-aos="{aos}">
+  <div class="dd-blockquote__content dd-g" data-sal="{sal}">
     <div class="dd-blockquote__icon" aria-hidden="true"><i class="{icon_class}"></i></div>
     <div class="dd-blockquote__person dd-g l-box">
       {% if image_src %}
@@ -60,7 +60,7 @@ None.
 </script>
 {% endif %}
 ```
-See `dd-blockquote.html`. **Note:** the static reference has a broken `data-aos` attribute (missing closing quote) — the canonical structure above corrects it.
+See `dd-blockquote.html`.
 
 ## Accessibility
 **WCAG criteria touched:** 1.1.1, 1.3.1, 1.4.3, 2.4.4.
@@ -81,7 +81,7 @@ See `dd-blockquote.html`. **Note:** the static reference has a broken `data-aos`
 | `$c_support_border` / `--dark` | left rule (if rendered) |
 
 ## JS hooks
-- `data-aos="fade-in"` — AOS scroll-in.
+- `data-sal="fade"` — SAL scroll-in. Honor `prefers-reduced-motion`.
 - Font Awesome library required for icon (loaded once globally).
 
 ## Example params
@@ -101,7 +101,7 @@ See `dd-blockquote.html`. **Note:** the static reference has a broken `data-aos`
 **Drupal Twig (`dd-blockquote.html.twig`):**
 ```twig
 <blockquote class="dd-blockquote">
-  <div class="dd-blockquote__content dd-g" data-aos="{{ aos|default('fade-in') }}">
+  <div class="dd-blockquote__content dd-g" data-sal="{{ sal|default('fade') }}">
     <div class="dd-blockquote__icon" aria-hidden="true"><i class="{{ icon_class|default('fa-regular fa-message-quote') }}"></i></div>
     <div class="dd-blockquote__person dd-g l-box">
       {% if image_src %}<div class="dd-blockquote__image"><img src="{{ image_src }}" alt="{{ image_alt|default(name) }}" /></div>{% endif %}

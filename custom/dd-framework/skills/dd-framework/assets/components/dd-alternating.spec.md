@@ -26,7 +26,7 @@ Image-and-copy rows where image position alternates (left/right) row-to-row — 
 | name | type | default | description |
 |---|---|---|---|
 | `aria_label` | string | — | Section landmark label if used in addition to `dd-section`. |
-| `aos` | string | `fade-up` | AOS animation per row. |
+| `sal` | string | `slide-up` | SAL animation per row. Stagger `data-sal-delay` by 100 ms × row index on image and copy; omit on index 0. |
 
 ## Variants
 None at root. Row alternation is automatic via CSS.
@@ -39,10 +39,10 @@ None at root. Row alternation is automatic via CSS.
     <!-- repeat per item; default heading_level = 2 -->
     <div class="dd-alternating__item dd-u-1-1">
       <div class="dd-alternating__content dd-g">
-        <div class="dd-alternating__image dd-u-1-1 dd-u-lg-12-24" data-aos="{aos}">
+        <div class="dd-alternating__image dd-u-1-1 dd-u-lg-12-24" data-sal="{sal}"{% if loop.index0 %} data-sal-delay="{loop.index0 * 100}"{% endif %}>
           <img src="{image_src}" class="dd-img" alt="{image_alt}" />
         </div>
-        <div class="dd-alternating__copy l-box dd-u-1-1 dd-u-lg-12-24" data-aos="{aos}">
+        <div class="dd-alternating__copy l-box dd-u-1-1 dd-u-lg-12-24" data-sal="{sal}"{% if loop.index0 %} data-sal-delay="{loop.index0 * 100}"{% endif %}>
           <div class="dd-alternating__title"><h{heading_level|default 2}>{title}</h{heading_level|default 2}></div>
           <div class="dd-alternating__body">
             {body}
@@ -71,7 +71,7 @@ See `dd-alternating.html`.
 - Heading hierarchy: pick `heading_level` based on parent section's heading. If section has `h2`, rows are `h3`.
 - Alt text per image, scoped to the row's narrative function. If image purely illustrates body copy, `alt=""` may be appropriate.
 - Inline links inside body inherit standard underline + focus styling.
-- AOS fade-up respects reduced motion.
+- SAL `slide-up` respects reduced motion.
 
 ## Design tokens
 | token | usage |
@@ -83,7 +83,7 @@ See `dd-alternating.html`.
 | `l-box` | inner padding on copy column |
 
 ## JS hooks
-- `data-aos="fade-up"` — AOS scroll animation.
+- `data-sal="slide-up"` — SAL scroll animation. Rows stagger `data-sal-delay` by 100 ms × index.
 
 ## Example params
 ```json
@@ -116,10 +116,10 @@ See `dd-alternating.html`.
     {% for item in items %}
       <div class="dd-alternating__item dd-u-1-1">
         <div class="dd-alternating__content dd-g">
-          <div class="dd-alternating__image dd-u-1-1 dd-u-lg-12-24" data-aos="{{ aos|default('fade-up') }}">
+          <div class="dd-alternating__image dd-u-1-1 dd-u-lg-12-24" data-sal="{{ sal|default('slide-up') }}"{% if not loop.first %} data-sal-delay="{{ loop.index0 * 100 }}"{% endif %}>
             <img src="{{ item.image_src }}" class="dd-img" alt="{{ item.image_alt }}" />
           </div>
-          <div class="dd-alternating__copy l-box dd-u-1-1 dd-u-lg-12-24" data-aos="{{ aos|default('fade-up') }}">
+          <div class="dd-alternating__copy l-box dd-u-1-1 dd-u-lg-12-24" data-sal="{{ sal|default('slide-up') }}"{% if not loop.first %} data-sal-delay="{{ loop.index0 * 100 }}"{% endif %}>
             <div class="dd-alternating__title"><h{{ item.heading_level|default(2) }}>{{ item.title }}</h{{ item.heading_level|default(2) }}></div>
             <div class="dd-alternating__body">
               {{ item.body|raw }}

@@ -28,7 +28,7 @@ Chronological event list with image, year/date, title, and copy per item. Vertic
 | name | type | default | description |
 |---|---|---|---|
 | `aria_label` | string | `Timeline` | Region landmark name. |
-| `aos` | string | `fade-up` | AOS animation per item. |
+| `sal` | string | `slide-up` | SAL animation per item. Stagger `data-sal-delay` by 100 ms × item index; omit on index 0. |
 
 ## Variants
 None at root.
@@ -39,7 +39,7 @@ None at root.
   <div class="dd-timeline__content">
     <ol class="dd-timeline__items dd-g">
       <!-- repeat per item; default heading_level = 3 -->
-      <li class="dd-timeline__item dd-u-1-1" data-aos="{aos}">
+      <li class="dd-timeline__item dd-u-1-1" data-sal="{sal}"{% if loop.index0 %} data-sal-delay="{loop.index0 * 100}"{% endif %}>
         <div class="dd-timeline__body dd-g">
           {% if image_src %}
           <div class="dd-timeline__image l-box dd-u-1-1">
@@ -70,7 +70,7 @@ None at root.
 - Event title heading level: match parent section's outline. Typically `h3`.
 - Decorative item images use `alt=""`. Meaningful images (e.g., product screenshots tied to release) use descriptive alt.
 - Reading order: DOM is year → title → copy → image (or image → year → title → copy as in reference). Pick one and apply consistently. SR will follow DOM order.
-- AOS fade-up respects reduced motion.
+- SAL `slide-up` respects reduced motion.
 
 ## Design tokens
 | token | usage |
@@ -83,7 +83,7 @@ None at root.
 | `l-box` | inner padding on image + copy columns |
 
 ## JS hooks
-- `data-aos="fade-up"` — AOS scroll animation per item.
+- `data-sal="slide-up"` — SAL scroll animation per item. Items stagger `data-sal-delay` by 100 ms × index.
 
 ## Example params
 ```json
@@ -119,7 +119,7 @@ None at root.
   <div class="dd-timeline__content">
     <ol class="dd-timeline__items dd-g">
       {% for item in items %}
-        <li class="dd-timeline__item dd-u-1-1" data-aos="{{ aos|default('fade-up') }}">
+        <li class="dd-timeline__item dd-u-1-1" data-sal="{{ sal|default('slide-up') }}"{% if not loop.first %} data-sal-delay="{{ loop.index0 * 100 }}"{% endif %}>
           <div class="dd-timeline__body dd-g">
             {% if item.image_src %}
               <div class="dd-timeline__image l-box dd-u-1-1">

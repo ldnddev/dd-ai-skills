@@ -1056,9 +1056,10 @@ def _render_severity_bars(summary: dict) -> str:
 
 def _render_page_cards(pages: list[dict]) -> str:
     cards = []
-    for page in pages:
+    for i, page in enumerate(pages):
         url = page.get("page_url") or ""
         esc_url = html.escape(url)
+        delay_attr = f' data-sal-delay="{min(i * 100, 1000)}"' if i else ""
         avg = page_score(page)
         m = (page.get("strategies") or {}).get("mobile") or {}
         d = (page.get("strategies") or {}).get("desktop") or {}
@@ -1080,7 +1081,7 @@ def _render_page_cards(pages: list[dict]) -> str:
             return format_ms(v) if v is not None else "—"
 
         cards.append(
-            f'<div class="dd-card__item l-box dd-u-1-1 dd-u-md-12-24" data-aos="fade-up">'
+            f'<div class="dd-card__item l-box dd-u-1-1 dd-u-md-12-24" data-sal="slide-up"{delay_attr}>'
             f'<div class="dd-card__body dd-g">'
             f'<div class="dd-card__copy l-box">'
             f'<div class="dd-card__title"><h3>{esc_url}</h3></div>'

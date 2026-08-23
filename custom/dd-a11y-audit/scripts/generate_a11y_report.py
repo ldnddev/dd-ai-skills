@@ -661,11 +661,12 @@ def _render_page_cards(pages):
     (M1); the pin map is illustrative → alt="" (1.1.1), reached via a
     self-describing link (2.4.4/2.5.3)."""
     cards = []
-    for page in pages:
+    for i, page in enumerate(pages):
         page_url = page.get("page_url") or page.get("metadata", {}).get("url", "")
         shot = _page_pin_map(page)
         score_val = page.get("metadata", {}).get("score", "n/a")
         esc_url = html.escape(page_url)
+        delay_attr = f' data-sal-delay="{min(i * 100, 1000)}"' if i else ""
         image = ""
         extra = ""
         if shot:
@@ -685,7 +686,7 @@ def _render_page_cards(pages):
                 "(no locatable issues or capture skipped).</p>"
             )
         cards.append(
-            f'<div class="dd-card__item l-box dd-u-1-1 dd-u-md-12-24" data-aos="fade-up">'
+            f'<div class="dd-card__item l-box dd-u-1-1 dd-u-md-12-24" data-sal="slide-up"{delay_attr}>'
             f'<div class="dd-card__body dd-g">'
             f'{image}'
             f'<div class="dd-card__copy l-box">'

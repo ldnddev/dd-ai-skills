@@ -38,7 +38,7 @@ absent elements don't error.
 
 ## 2. Component map (dashboard primitive → framework component)
 
-The dd-framework skill (`custom/dd-framework`, v1.2.0, 24 components) is the contract.
+The dd-framework skill (`custom/dd-framework`, v2.0.0, 24 components) is the contract.
 Fetch a spec/example with:
 `python3 custom/dd-framework/.../scripts/dd_framework_helper.py get dd-<name>`
 
