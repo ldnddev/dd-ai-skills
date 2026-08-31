@@ -1,6 +1,6 @@
 # dd-seo — SEO Audit Skill
 
-Deterministic, LLM-first SEO audits for websites, blog posts, and GitHub repositories. Bundles 30+ Python scripts for evidence collection (PageSpeed, robots, llms.txt, security headers, broken links, schema, redirects, social meta, internal links, GitHub repo audits, etc.) and a rubric-driven analysis pass for prioritized fixes.
+Deterministic, LLM-first SEO audits for websites, blog posts, and GitHub repositories. Bundles 30+ Python scripts for evidence collection (robots, llms.txt, security headers, page-level broken links, schema, redirects, social meta, shallow internal links, GitHub repo audits, etc.) and a rubric-driven analysis pass for prioritized fixes. Speed/CWV audits are **dd-site-speed**; whole-site URL maps are **dd-crawl**.
 
 ## Install — Claude Code plugin
 
@@ -33,7 +33,7 @@ required. See [root README](../../README.md#codex-install-legacy) for context.
 |---|---|
 | `seo audit <url>` | full website audit + scoring |
 | `seo page <url>` | single-page deep dive |
-| `seo technical <url>` | crawl/index/security/CWV/JS rendering |
+| `seo technical <url>` | crawl/index/security/JS rendering |
 | `seo content <url>` | content quality + E-E-A-T |
 | `seo schema <url>` | JSON-LD detect/validate/generate |
 | `seo sitemap <url>` | sitemap analysis + generation |
@@ -80,7 +80,7 @@ dd-seo-audit/
     └── resources/
         ├── skills/     (16 sub-skill workflow files)
         ├── agents/     (10 specialist agent definitions)
-        ├── references/ (rubric, quality gates, schema types, CWV thresholds, E-E-A-T)
+        ├── references/ (rubric, quality gates, schema types, E-E-A-T)
         ├── templates/  (industry templates: saas, local, ecommerce, publisher, agency, generic)
         └── schema/     (JSON-LD templates)
 ```
@@ -99,10 +99,9 @@ dd-seo-audit/
 
 | Category | Weight |
 |---|---|
-| Technical SEO | 25% |
+| Technical SEO | 30% |
 | Content Quality | 20% |
 | On-Page SEO | 15% |
 | Schema | 15% |
-| Performance (CWV) | 10% |
-| Image Optimization | 10% |
+| Image Optimization | 15% |
 | AI Search Readiness (GEO) | 5% |

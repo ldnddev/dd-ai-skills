@@ -1,10 +1,11 @@
 ---
 name: seo-technical
 description: >
-  Technical SEO audit across 8 categories: crawlability, indexability, security,
-  URL structure, mobile, Core Web Vitals, structured data, and JavaScript
-  rendering. Use when user says "technical SEO", "crawl issues", "robots.txt",
-  "Core Web Vitals", "site speed", or "security headers".
+  Technical SEO audit across crawlability, indexability, security,
+  URL structure, mobile, structured data, and JavaScript rendering.
+  Use when user says "technical SEO",
+  "crawl issues", "robots.txt", or "security headers". For Core Web Vitals or
+  site speed, use dd-site-speed.
 ---
 
 # Technical SEO Audit
@@ -91,20 +92,12 @@ Allow: /
 - No horizontal scroll
 - Mobile-first indexing: Google indexes mobile version. **Mobile-first indexing is 100% complete as of July 5, 2024.** Google now crawls and indexes ALL websites exclusively with the mobile Googlebot user-agent.
 
-### 6. Core Web Vitals
-- **LCP** (Largest Contentful Paint): target <2.5s
-- **INP** (Interaction to Next Paint): target <200ms
-  - INP replaced FID on March 12, 2024. FID was fully removed from all Chrome tools (CrUX API, PageSpeed Insights, Lighthouse) on September 9, 2024. Do NOT reference FID anywhere.
-- **CLS** (Cumulative Layout Shift): target <0.1
-- Evaluation uses 75th percentile of real user data
-- Use PageSpeed Insights API or CrUX data if MCP available
-
-### 7. Structured Data
+### 6. Structured Data
 - Detection: JSON-LD (preferred), Microdata, RDFa
 - Validation against Google's supported types
 - See seo-schema skill for full analysis
 
-### 8. JavaScript Rendering
+### 7. JavaScript Rendering
 - Check if content visible in initial HTML vs requires JS
 - Identify client-side rendered (CSR) vs server-side rendered (SSR)
 - Flag SPA frameworks (React, Vue, Angular) that may cause indexing issues
@@ -121,7 +114,7 @@ Google updated its JavaScript SEO documentation in December 2025 with critical c
 
 **Best practice:** Serve critical SEO elements (canonical, meta robots, structured data, title, meta description) in the initial server-rendered HTML rather than relying on JavaScript injection.
 
-### 9. IndexNow Protocol
+### 8. IndexNow Protocol
 - Check if site supports IndexNow for Bing, Yandex, Naver
 - Supported by search engines other than Google
 - Recommend implementation for faster indexing on non-Google engines
@@ -138,7 +131,6 @@ Google updated its JavaScript SEO documentation in December 2025 with critical c
 | Security | ✅/⚠️/❌ | XX/100 |
 | URL Structure | ✅/⚠️/❌ | XX/100 |
 | Mobile | ✅/⚠️/❌ | XX/100 |
-| Core Web Vitals | ✅/⚠️/❌ | XX/100 |
 | Structured Data | ✅/⚠️/❌ | XX/100 |
 | JS Rendering | ✅/⚠️/❌ | XX/100 |
 
@@ -200,7 +192,6 @@ When invoked as an agent, execute these steps:
 1. Run `scripts/robots_checker.py "$URL" --json` for crawlability and AI crawler rules.
 2. Run `scripts/security_headers.py "$URL" --json` for security posture.
 3. Run `scripts/redirect_checker.py "$URL" --json` to verify redirect chains.
-4. Run `scripts/pagespeed.py "$URL" --strategy mobile --json --api-key "$PAGESPEED_API_KEY"` for Core Web Vitals mapping (ask for a PageSpeed API key first if none is set — unauthenticated PSI often fails).
-5. Run `scripts/hreflang_checker.py "$URL" --json` for international setup.
-6. Run `scripts/indexnow_checker.py "$URL" --key YOUR_KEY --json` if applicable.
-7. Synthesize all outputs into the Technical Score and Category Breakdown.
+4. Run `scripts/hreflang_checker.py "$URL" --json` for international setup.
+5. Run `scripts/indexnow_checker.py "$URL" --key YOUR_KEY --json` if applicable.
+6. Synthesize all outputs into the Technical Score and Category Breakdown. If the user asked for CWV or page speed, use **dd-site-speed**.

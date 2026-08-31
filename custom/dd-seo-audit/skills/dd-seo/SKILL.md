@@ -3,8 +3,8 @@ name: dd-seo
 description: >
   Deterministic LLM-first SEO audits for websites, blog posts, and GitHub
   repositories. Use this when the user asks to "perform SEO analysis", "run SEO
-  audit", "analyze SEO", "check technical SEO", "review schema", "Core Web
-  Vitals", "E-E-A-T", "hreflang", "GEO", "AEO", or GitHub repository SEO
+  audit", "analyze SEO", "check technical SEO", "review schema",
+  "E-E-A-T", "hreflang", "GEO", "AEO", or GitHub repository SEO
   optimization. For full/page/repo audits, run bundled scripts for evidence and
   return prioritized, confidence-labeled fixes.
 ---
@@ -12,6 +12,15 @@ description: >
 # SEO Skill (Agentic / Claude / Codex)
 
 LLM-first SEO analysis skill with 16 specialized sub-skills, 10 specialist agents, and 33 scripts for website, blog, and GitHub repository optimization.
+
+## Related
+
+This skill owns **SEO** (on-page, technical, content, schema, GEO/AEO).
+
+- Speed / CWV / Lighthouse / "make it faster" → **dd-site-speed** (this skill does not measure CWV)
+- Whole-site URL/404 map → **dd-crawl** (`broken_links.py` here is page-level; `internal_links.py` is a shallow sample)
+- Homepage competitive compare → **dd-site-compare** (`seo competitors` here *writes* vs/alternatives pages)
+- Combined crawl+SEO+speed package → **dd-audit**
 
 ## Deterministic Trigger Mapping
 
@@ -59,33 +68,14 @@ When the user requests SEO analysis, follow this routing:
 
 Parse the user's request to determine which sub-skill(s) to activate:
 
-- **Full audit**: Read `resources/skills/seo-audit.md` — crawl multiple pages, delegate to agents, score and report
+- **Full audit**: Read `resources/skills/seo-audit.md` — page-level scripts + specialists, score and report. For a full URL/404 map, run **dd-crawl**.
 - **Single page**: Read `resources/skills/seo-page.md` — deep dive on one URL
 - **Specific area**: Read the matching `resources/skills/seo-*.md` file
 - **Strategic plan**: Read `resources/skills/seo-plan.md` and the matching `resources/templates/*.md` for the detected industry
 - **GitHub repository SEO**: Read `resources/skills/seo-github.md` and use GitHub scripts with `--provider auto` for API/`gh` fallback.
 - **Generic `perform seo analysis on <url>` request**: treat as single-page full audit, read `resources/skills/seo-page.md`, and generate `FULL-AUDIT-REPORT.md` + `ACTION-PLAN.md`.
 
-### Step 1.5 — PageSpeed API key (before any CWV / report run)
-
-**Do this before** running `pagespeed.py`, `generate_report.py`, or any full/page audit that collects Core Web Vitals. Unauthenticated PageSpeed Insights calls are heavily rate-limited and **typically fail** (HTTP 429 / quota errors).
-
-1. Check whether `PAGESPEED_API_KEY` or `PSI_API_KEY` is already set in the environment.
-2. If a key is **already available**, use it (pass `--api-key` or rely on the env default) and continue — no need to re-ask.
-3. If **no key** is set, **ask the user before starting evidence collection**:
-   - Do they want to provide a Google PageSpeed Insights API key for this run?
-   - Explain briefly: without a key, PSI usually fails or is rate-limited, so CWV/performance scores will be missing or unreliable.
-   - How to get one (if they ask): Google Cloud Console → enable **PageSpeed Insights API** → create an API key.
-4. If they provide a key:
-   - Prefer exporting it for the session: `export PAGESPEED_API_KEY='…'`
-   - Or pass it explicitly on every pagespeed/report invocation:
-     ```bash
-     python3 <SKILL_DIR>/scripts/pagespeed.py <url> --strategy mobile --api-key "$PAGESPEED_API_KEY"
-     python3 <SKILL_DIR>/scripts/generate_report.py <url> --api-key "$PAGESPEED_API_KEY"
-     ```
-5. If they decline or skip: continue the audit without a key, treat PSI failures as an **Environment Limitation**, keep CWV confidence as `Hypothesis`, and do not block the rest of the report.
-
-GitHub-only workflows that never call PageSpeed may skip this step.
+If the user asked for speed, CWV, Lighthouse, or "make the site faster", use **dd-site-speed** instead of this skill.
 
 ### Step 2 — Collect Evidence
 
@@ -136,11 +126,6 @@ python3 <SKILL_DIR>/scripts/robots_checker.py <url>
 
 # Check llms.txt for AI search readiness
 python3 <SKILL_DIR>/scripts/llms_txt_checker.py <url>
-
-# Get Core Web Vitals from PageSpeed Insights (API key strongly recommended — see Step 1.5)
-python3 <SKILL_DIR>/scripts/pagespeed.py <url> --strategy mobile --api-key "$PAGESPEED_API_KEY"
-# generate_report.py also accepts --api-key (or PAGESPEED_API_KEY / PSI_API_KEY env)
-python3 <SKILL_DIR>/scripts/generate_report.py <url> --api-key "$PAGESPEED_API_KEY"
 
 # Check security headers (HSTS, CSP, X-Frame-Options, etc.)
 python3 <SKILL_DIR>/scripts/security_headers.py <url>
@@ -201,10 +186,9 @@ python3 <SKILL_DIR>/scripts/analyze_visual.py <url> --json
 **HTML Report Generator** — runs all analyzers and writes a branded client bundle (templated dashboard + two DOCX files + CSV) into `web/<domain>-seo-audit-<YYYY-MM-DD>/`:
 ```bash
 # Generate the bundle (default path: web/<domain>-seo-audit-<YYYY-MM-DD>/)
-# Prefer --api-key or PAGESPEED_API_KEY so PageSpeed/CWV does not fail (Step 1.5)
-python3 <SKILL_DIR>/scripts/generate_report.py <url> --api-key "$PAGESPEED_API_KEY"
+python3 <SKILL_DIR>/scripts/generate_report.py <url>
 # Override the output directory if needed:
-python3 <SKILL_DIR>/scripts/generate_report.py <url> --output-dir reports/acme-2026Q2/ --api-key "$PAGESPEED_API_KEY"
+python3 <SKILL_DIR>/scripts/generate_report.py <url> --output-dir reports/acme-2026Q2/
 # Produces inside the output directory:
 #   index.html                 ← templated dashboard (templates/dashboard.html + brand.json)
 #   FULL-AUDIT-REPORT.docx     ← findings + scoring narrative
@@ -237,9 +221,8 @@ For comprehensive audits, read the relevant agent file from `resources/agents/` 
 
 | Agent | File | Focus Area |
 |-------|------|------------|
-| Technical SEO | [seo-technical.md](resources/agents/seo-technical.md) | Crawlability, indexability, security, URLs, mobile, CWV, JS rendering |
+| Technical SEO | [seo-technical.md](resources/agents/seo-technical.md) | Crawlability, indexability, security, URLs, mobile, JS rendering |
 | Content Quality | [seo-content.md](resources/agents/seo-content.md) | E-E-A-T assessment, content metrics, AI content detection |
-| Performance | [seo-performance.md](resources/agents/seo-performance.md) | Core Web Vitals (LCP, INP, CLS), optimization recommendations |
 | Schema Markup | [seo-schema.md](resources/agents/seo-schema.md) | Detection, validation, generation of JSON-LD structured data |
 | Sitemap | [seo-sitemap.md](resources/agents/seo-sitemap.md) | XML sitemap validation, generation, quality gates |
 | Visual Analysis | [seo-visual.md](resources/agents/seo-visual.md) | Screenshots, above-the-fold, responsiveness, layout |
@@ -251,7 +234,6 @@ Reference the quality standards in `resources/references/`:
 
 - **Content minimums**: Read [quality-gates.md](resources/references/quality-gates.md) for word counts, unique content %, title/meta requirements
 - **Schema validation**: Read [schema-types.md](resources/references/schema-types.md) for active/deprecated/restricted types
-- **Core Web Vitals**: Read [cwv-thresholds.md](resources/references/cwv-thresholds.md) for current metric thresholds
 - **E-E-A-T framework**: Read [eeat-framework.md](resources/references/eeat-framework.md) for scoring criteria
 - **Google reference**: Read [google-seo-reference.md](resources/references/google-seo-reference.md) for quick reference
 - **LLM report rubric**: Read [llm-audit-rubric.md](resources/references/llm-audit-rubric.md) for mandatory evidence format, confidence labels, and output contract
@@ -277,14 +259,15 @@ Use numeric scores as guidance, not as a replacement for evidence quality and ju
 
 | Category | Weight |
 |----------|--------|
-| Technical SEO | 25% |
+| Technical SEO | 30% |
 | Content Quality | 20% |
 | On-Page SEO | 15% |
 | Schema / Structured Data | 15% |
-| Performance (CWV) | 10% |
-| Image Optimization | 10% |
+| Image Optimization | 15% |
 | AI Search Readiness (GEO) | 5% |
 
+> Core Web Vitals are **not** scored here. Measure them with **dd-site-speed**.
+>
 > If using `scripts/generate_report.py`, the automated dashboard uses script-level category weights defined in that script. Keep the narrative audit LLM-first and evidence-first.
 
 ### Step 8 — Mandatory Deliverables
@@ -375,8 +358,8 @@ Structure reports as:
 
 ## Critical Rules
 
-1. **Ask for a PageSpeed API key before CWV runs** — Before `pagespeed.py` or `generate_report.py` on full/page audits, follow Step 1.5. Unauthenticated PSI typically fails (429/quota). Do not claim CWV values without successful script output.
-2. **INP not FID** — FID was removed September 9, 2024. The sole interactivity metric is INP (Interaction to Next Paint). Never reference FID.
+1. **Do not measure Core Web Vitals in this skill** — no `pagespeed.py`, no PSI API key, no invented LCP/INP/CLS. Speed/CWV/Lighthouse audits are **dd-site-speed**.
+2. **INP not FID** — If you mention interactivity (for example when pointing at dd-site-speed), the metric is INP. FID was removed September 9, 2024. Never reference FID.
 3. **FAQ schema is restricted** — FAQPage schema is limited to government and healthcare authority sites only (August 2023). Do NOT recommend for commercial sites.
 4. **HowTo schema is deprecated** — Rich results fully removed September 2023. Never recommend.
 5. **JSON-LD only** — Always use `<script type="application/ld+json">`. Never recommend Microdata or RDFa.
@@ -388,7 +371,7 @@ Structure reports as:
 11. **Always produce file artifacts for audit flows** — `FULL-AUDIT-REPORT.md`, `ACTION-PLAN.md`, **and** the full client bundle (`index.html` + `FULL-AUDIT-REPORT.docx` + `ACTION-PLAN.docx` + `tasks.csv` + `assets/`) via `generate_report.py` are required outputs for every full/page/generic audit. Bundle generation is default behavior, not opt-in. Only skip if `generate_report.py` itself fails — note as `Environment Limitation`.
 12. **Bound evidence retries** — Avoid long search/retry loops. If core checks fail due DNS/network, finalize promptly with confidence labels and file outputs.
 13. **Avoid redundant web fallbacks** — If direct fetch/scripts fail and one fallback also fails, stop retrying and finish the report with explicit limitations.
-14. **Signal freshness tracking** — Every reference file should contain a `<!-- Updated: YYYY-MM-DD -->` comment. Flag any reference file older than 90 days for review. When Google announces algorithm changes, verify affected reference files within 7 days. Key dates to track: core updates (quarterly), schema deprecations (schema-types.md), CWV threshold changes (cwv-thresholds.md).
+14. **Signal freshness tracking** — Every reference file should contain a `<!-- Updated: YYYY-MM-DD -->` comment. Flag any reference file older than 90 days for review. When Google announces algorithm changes, verify affected reference files within 7 days. Key dates to track: core updates (quarterly), schema deprecations (schema-types.md).
 
 ---
 

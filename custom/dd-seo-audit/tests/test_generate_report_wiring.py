@@ -8,7 +8,7 @@ def test_collect_data_accepts_gsc_params():
     assert "gsc_path" in sig.parameters
     assert "brand" in sig.parameters
     assert "min_impressions" in sig.parameters
-    assert "pagespeed_api_key" in sig.parameters
+    assert "pagespeed_api_key" not in sig.parameters
 
 
 def test_main_defines_gsc_flag():
@@ -17,10 +17,10 @@ def test_main_defines_gsc_flag():
     assert "gsc_path" in src
 
 
-def test_main_defines_pagespeed_api_key_flag():
+def test_main_has_no_pagespeed_api_key_flag():
     src = inspect.getsource(r.main)
-    assert "--api-key" in src
-    assert "PAGESPEED_API_KEY" in src
+    assert "--api-key" not in src
+    assert "PAGESPEED_API_KEY" not in src
 
 
 def test_gsc_category_label_and_owner_mapped():

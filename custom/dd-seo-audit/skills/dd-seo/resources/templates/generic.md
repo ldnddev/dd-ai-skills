@@ -78,7 +78,7 @@ This template applies to businesses that don't fit neatly into SaaS, local servi
 - [ ] robots.txt configured
 - [ ] XML sitemap submitted
 - [ ] Google Search Console verified
-- [ ] Core Web Vitals passing (LCP <2.5s, INP <200ms, CLS <0.1)
+- [ ] Page experience measured with **dd-site-speed** (not this SEO plan)
 
 ### Should-Haves
 - [ ] Structured data on key pages

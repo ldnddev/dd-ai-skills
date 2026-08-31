@@ -40,7 +40,7 @@ Formerly known as "Webmaster Guidelines." Key requirements:
 - Use heading tags (H1-H6) to structure content logically
 - Optimize images with alt text and appropriate file sizes
 - Ensure mobile-friendly responsive design
-- Improve page load speed (Core Web Vitals)
+- Page experience (measure Core Web Vitals with **dd-site-speed**)
 - Submit an XML sitemap to Google Search Console
 - Use structured data (JSON-LD) to help Google understand content
 
@@ -63,25 +63,7 @@ Google evaluates content quality through the E-E-A-T framework:
 
 ## Core Web Vitals
 
-Measured at the 75th percentile of real user data (field data).
-
-| Metric | Good | Needs Improvement | Poor |
-|--------|------|-------------------|------|
-| **LCP** (Largest Contentful Paint) | ≤ 2.5s | 2.5s – 4.0s | > 4.0s |
-| **INP** (Interaction to Next Paint) | ≤ 200ms | 200ms – 500ms | > 500ms |
-| **CLS** (Cumulative Layout Shift) | ≤ 0.1 | 0.1 – 0.25 | > 0.25 |
-
-**Key facts:**
-- INP replaced FID (First Input Delay) on March 12, 2024. FID was fully removed from all Chrome tools (CrUX API, PageSpeed Insights, Lighthouse) on September 9, 2024. Do NOT reference FID.
-- Core Web Vitals are a confirmed ranking signal (since June 2021)
-- Field data (CrUX) is preferred over lab data (Lighthouse) for assessment
-- Passing all three metrics at "Good" is the target
-
-**Measurement tools:**
-- Google PageSpeed Insights (field + lab data)
-- Chrome User Experience Report (CrUX) — field data
-- Lighthouse (lab data only)
-- Google Search Console Core Web Vitals report
+Google uses LCP, INP, and CLS as ranking/page-experience signals. **Do not measure them in dd-seo.** Run **dd-site-speed** (thresholds live there). Interactivity metric is INP, never FID.
 
 ---
 

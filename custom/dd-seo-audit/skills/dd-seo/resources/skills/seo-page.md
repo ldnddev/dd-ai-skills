@@ -2,7 +2,7 @@
 name: seo-page
 description: >
   Deep single-page SEO analysis covering on-page elements, content quality,
-  technical meta tags, schema, images, and performance. Use when user says
+  technical meta tags, schema, and images. Use when user says
   "analyze this page", "check page SEO", or provides a single URL for review.
 ---
 
@@ -45,13 +45,8 @@ Apply `resources/references/llm-audit-rubric.md` for evidence standards, confide
 - Alt text: present, descriptive, includes keywords where natural
 - File size: flag >200KB (warning), >500KB (critical)
 - Format: recommend WebP/AVIF over JPEG/PNG
-- Dimensions: width/height set for CLS prevention
+- Dimensions: width/height set
 - Lazy loading: loading="lazy" on below-fold images
-
-### Core Web Vitals (reference only — not measurable from HTML alone)
-- Flag potential LCP issues (huge hero images, render-blocking resources)
-- Flag potential INP issues (heavy JS, no async/defer)
-- Flag potential CLS issues (missing image dimensions, injected content)
 
 ## Output
 
@@ -90,9 +85,8 @@ Ready-to-use JSON-LD code for detected opportunities
 When invoked as an agent to analyze a specific URL, execute these steps:
 1. Run `scripts/parse_html.py "$URL" --json` to get title, meta, links, headings, alt text, and schema.
 2. Run `scripts/readability.py "$URL" --json` for text metrics and grade level.
-3. Run `scripts/pagespeed.py "$URL" --strategy mobile --json --api-key "$PAGESPEED_API_KEY"` for Core Web Vitals (ask for a PageSpeed API key first if none is set — unauthenticated PSI often fails).
-4. If applicable, run `scripts/article_seo.py "$URL" --json` for a deeper dive on content scoring.
-5. Summarize all findings into the Page Score Card and Issues Found according to the evidence rules.
-6. **Mandatory** — run `python3 <SKILL_DIR>/scripts/generate_report.py "$URL"` to emit the client bundle (`index.html` + `FULL-AUDIT-REPORT.docx` + `ACTION-PLAN.docx` + `tasks.csv` + `assets/`). Required for every page audit. Only skip on environment failure (note as `Environment Limitation`).
+3. If applicable, run `scripts/article_seo.py "$URL" --json` for a deeper dive on content scoring.
+4. Summarize all findings into the Page Score Card and Issues Found according to the evidence rules.
+5. **Mandatory** — run `python3 <SKILL_DIR>/scripts/generate_report.py "$URL"` to emit the client bundle (`index.html` + `FULL-AUDIT-REPORT.docx` + `ACTION-PLAN.docx` + `tasks.csv` + `assets/`). Required for every page audit. Only skip on environment failure (note as `Environment Limitation`).
 - If the user supplies a Google Search Console export (`.zip`/`.csv`), pass it via
   `generate_report.py --gsc <path>` to enrich findings with real query/click data.

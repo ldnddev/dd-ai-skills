@@ -233,7 +233,6 @@ def build_environment_fixes(data: dict) -> list:
     llm = data["sections"].get("llms_txt", {})
     bl = data["sections"].get("broken_links", {})
     rd = data["sections"].get("readability", {})
-    psi = data["sections"].get("pagespeed", {})
 
     title = (op.get("title") or "").strip()
     meta = (op.get("meta_description") or "").strip()
@@ -299,14 +298,6 @@ def build_environment_fixes(data: dict) -> list:
             _platform_hint(platform, "metadata"),
         )
 
-    if psi.get("error"):
-        add(
-            "info",
-            "Performance measurement incomplete",
-            "PageSpeed API returned an error, so CWV recommendations are less reliable.",
-            "Rerun `pagespeed.py` with `--api-key` and then prioritize LCP/INP/CLS fixes from that output.",
-        )
-
     if rd.get("flesch_reading_ease", 100) < 40 or rd.get("avg_sentence_length", 0) > 25:
         add(
             "warning",
@@ -345,7 +336,7 @@ def render_environment_fixes(fixes: list) -> str:
 
 
 def collect_data(url: str, gsc_path: str = None, brand: str = None,
-                 min_impressions: int = 50, pagespeed_api_key: str = None) -> dict:
+                 min_impressions: int = 50) -> dict:
     """Run all analysis scripts and collect results."""
     print(f"🔍 Analyzing {url}...")
     data = {
@@ -367,10 +358,6 @@ def collect_data(url: str, gsc_path: str = None, brand: str = None,
             page_html = ""
     data["environment"] = detect_environment(page_html, url)
 
-    pagespeed_args = [url, "--strategy", "mobile"]
-    if pagespeed_api_key:
-        pagespeed_args += ["--api-key", pagespeed_api_key]
-
     analyses = [
         ("robots", "robots_checker.py", [url]),
         ("security", "security_headers.py", [url]),
@@ -379,7 +366,6 @@ def collect_data(url: str, gsc_path: str = None, brand: str = None,
         ("llms_txt", "llms_txt_checker.py", [url]),
         ("broken_links", "broken_links.py", [url, "--workers", "5", "--timeout", "8"]),
         ("internal_links", "internal_links.py", [url, "--depth", "1", "--max-pages", "15"]),
-        ("pagespeed", "pagespeed.py", pagespeed_args),
         # New analysis scripts (supplementary — failures don't block report)
         ("entity", "entity_checker.py", [url]),
         ("link_profile", "link_profile.py", [url, "--max-pages", "20"]),
@@ -428,7 +414,6 @@ def calculate_overall_score(data: dict) -> dict:
         "internal_links": 8,
         "redirects": 3,
         "llms_txt": 5,
-        "pagespeed": 13,
         "onpage": 10,
         "readability": 8,
         "entity": 5,
@@ -493,10 +478,6 @@ def calculate_overall_score(data: dict) -> dict:
         scores["llms_txt"] = llm.get("quality", {}).get("score", 0)
     else:
         scores["llms_txt"] = 0
-
-    # PageSpeed score
-    psi = data["sections"].get("pagespeed", {})
-    scores["pagespeed"] = psi.get("performance_score", 0)
 
     # On-page score
     op = data["sections"].get("onpage", {})
@@ -607,7 +588,6 @@ def render_recommendations(section_data: dict) -> str:
         items = recs
     else:
         items = []
-    # Also check opportunities from pagespeed
     opps = section_data.get("opportunities", [])
     if isinstance(opps, list):
         items.extend(opps)
@@ -667,7 +647,7 @@ def render_all_recommendations(data: dict) -> str:
         "security": "🔒 Security", "social": "📱 Social Meta", "robots": "🤖 Robots",
         "broken_links": "🔗 Links", "internal_links": "🕸️ Internal Links",
         "redirects": "↪️ Redirects", "llms_txt": "🧠 AI Search",
-        "pagespeed": "⚡ Performance", "onpage": "📝 On-Page", "readability": "📖 Readability",
+        "onpage": "📝 On-Page", "readability": "📖 Readability",
         "article": "📄 Article SEO", "entity": "🏛️ Entity SEO",
         "link_profile": "🔗 Link Profile", "hreflang": "🌍 Hreflang",
         "duplicate_content": "📋 Content Uniqueness",
@@ -796,7 +776,7 @@ def _render_category_cards(scores: dict) -> str:
     icons = {
         "security": "🔒", "social": "📱", "robots": "🤖",
         "broken_links": "🔗", "internal_links": "🕸️", "redirects": "↪️",
-        "llms_txt": "🧠", "pagespeed": "⚡", "onpage": "📝",
+        "llms_txt": "🧠", "onpage": "📝",
         "readability": "📖", "article": "📄", "entity": "🏛️",
         "link_profile": "🔗", "hreflang": "🌍", "duplicate_content": "📋",
     }
@@ -977,7 +957,6 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
     il = data["sections"].get("internal_links", {})
     red = data["sections"].get("redirects", {})
     llm = data["sections"].get("llms_txt", {})
-    psi = data["sections"].get("pagespeed", {})
     op = data["sections"].get("onpage", {})
     rd = data["sections"].get("readability", {})
     art = data["sections"].get("article", {})
@@ -1174,21 +1153,13 @@ def _render_detailed_sections(data: dict, scores: dict) -> str:
         llm_body += f'<h4 style="margin:12px 0 6px;">Suggestions</h4><ul>{suggestions}</ul>'
     blocks.append(_details_block("llms_txt", "AI search readiness (llms.txt)", cats.get("llms_txt"), llm_body))
 
-    fd = psi.get("field_data") or psi.get("lab_data") or {}
-    psi_body = (
-        f'<p><strong>Performance score:</strong> {psi.get("performance_score","?")} · '
-        f'<strong>LCP:</strong> {fd.get("LCP","?")} · '
-        f'<strong>INP/TBT:</strong> {fd.get("INP", fd.get("TBT","?"))} · '
-        f'<strong>CLS:</strong> {fd.get("CLS","?")}</p>'
-    )
-    if psi.get("error") or psi.get("performance_score", 0) == 0:
-        psi_body += (
-            '<p><strong>Note:</strong> '
-            'PageSpeed API returned an error or was rate-limited. '
-            'Re-run pagespeed.py with --api-key for confirmed values.</p>'
-        )
-    psi_body += render_recommendations(psi)
-    blocks.append(_details_block("pagespeed", "Performance & Core Web Vitals", cats.get("pagespeed"), psi_body))
+    blocks.append(_details_block(
+        "cwv",
+        "Core Web Vitals",
+        None,
+        "<p>Not part of this SEO audit. Run <strong>dd-site-speed</strong> for LCP, INP, and CLS "
+        "(lab + field) and a speed action plan.</p>",
+    ))
 
     op_h1 = ""
     if isinstance(op.get("h1"), list) and op.get("h1"):
@@ -1360,7 +1331,6 @@ CATEGORY_LABELS = {
     "internal_links": "Internal Links",
     "redirects": "Redirects",
     "llms_txt": "AI Search (llms.txt)",
-    "pagespeed": "Performance (CWV)",
     "onpage": "On-Page SEO",
     "readability": "Readability",
     "article": "Article Extractor",
@@ -1380,7 +1350,6 @@ CATEGORY_OWNERS = {
     "internal_links": "Technical SEO",
     "redirects": "Technical SEO",
     "llms_txt": "Technical SEO",
-    "pagespeed": "Performance / Frontend",
     "onpage": "Content / SEO",
     "readability": "Content / SEO",
     "article": "Content / SEO",
@@ -1740,11 +1709,6 @@ def main():
                         help="Comma-separated brand tokens for the branded/non-branded split")
     parser.add_argument("--min-impressions", type=int, default=50,
                         help="Impression threshold for GSC striking-distance/low-CTR (default 50)")
-    parser.add_argument(
-        "--api-key",
-        default=os.environ.get("PAGESPEED_API_KEY") or os.environ.get("PSI_API_KEY"),
-        help="Google PageSpeed API key (recommended; also PAGESPEED_API_KEY / PSI_API_KEY env)",
-    )
     args = parser.parse_args()
 
     data = collect_data(
@@ -1752,7 +1716,6 @@ def main():
         gsc_path=args.gsc_path,
         brand=args.brand,
         min_impressions=args.min_impressions,
-        pagespeed_api_key=args.api_key,
     )
     scores = calculate_overall_score(data)
     rows = build_seo_tasks(data)

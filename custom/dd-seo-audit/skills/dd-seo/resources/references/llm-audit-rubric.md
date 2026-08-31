@@ -101,7 +101,7 @@ Evaluate these areas when in scope:
 - crawlability and indexability
 - on-page metadata and heading structure
 - internal linking and information architecture
-- Core Web Vitals and performance signals
+- page experience (measure Core Web Vitals with **dd-site-speed**, do not invent PSI values)
 - structured data quality and eligibility
 - image optimization and accessibility
 - content quality and E-E-A-T signals

@@ -1,10 +1,10 @@
 ---
 name: seo-audit
 description: >
-  Full website SEO audit with parallel subagent delegation. Crawls up to 500
-  pages, detects business type, delegates to 6 specialists, generates health
-  score. Use when user says "audit", "full SEO check", "analyze my site",
-  or "website health check".
+  Full website SEO audit with parallel subagent delegation. Page-level scripts
+  plus specialists, health score. Use when user says "seo audit", "full SEO
+  check", or "analyze my site's SEO". Whole-site URL/404 maps are dd-crawl;
+  speed/CWV audits are dd-site-speed.
 ---
 
 # Full Website SEO Audit
@@ -16,11 +16,10 @@ Apply `resources/references/llm-audit-rubric.md` for evidence standards, confide
 1. **Read page with LLM** — use `read_url_content` to read the page and begin analysis using SEO best practices.
 2. **Detect business type** — analyze homepage signals per seo orchestrator
 3. **Run scripts for evidence** — Always attempt to run relevant scripts for structured data collection. Scripts provide precise, machine-readable evidence that strengthens the analysis:
-   - `seo-technical` — robots.txt, sitemaps, canonicals, Core Web Vitals, security headers
+   - `seo-technical` — robots.txt, sitemaps, canonicals, security headers
    - `seo-content` — E-E-A-T, readability, thin content, AI citation readiness
    - `seo-schema` — detection, validation, generation recommendations
    - `seo-sitemap` — structure analysis, quality gates, missing pages
-   - `seo-performance` — LCP, INP, CLS measurements
    - `seo-visual` — screenshots, mobile testing, above-fold analysis
    - If the user supplies a Google Search Console export (`.zip`/`.csv`), pass it via
      `generate_report.py --gsc <path>` to enrich findings with real query/click data.
@@ -29,16 +28,14 @@ Apply `resources/references/llm-audit-rubric.md` for evidence standards, confide
 6. **Report** — generate prioritized action plan
 7. **Generate client bundle (mandatory)** — run `python3 <SKILL_DIR>/scripts/generate_report.py <url>`. Produces `web/<domain>-seo-audit-<YYYY-MM-DD>/` containing `index.html`, `FULL-AUDIT-REPORT.docx`, `ACTION-PLAN.docx`, `tasks.csv`, `assets/`. Required default for every audit — only skip on environment failure (note as `Environment Limitation`).
 
-## Crawl Configuration
+## Page sample (not a site crawl)
 
-```
-Max pages: 500
-Respect robots.txt: Yes
-Follow redirects: Yes (max 3 hops)
-Timeout per page: 30 seconds
-Concurrent requests: 5
-Delay between requests: 1 second
-```
+This audit is the requested URL plus page-level scripts:
+
+- `broken_links.py` — links on this page
+- `internal_links.py` — default `--depth 1 --max-pages 20` (anchor text / shallow orphans)
+
+For a whole-site URL inventory, 404s, and redirects, run **dd-crawl**.
 
 ## Output Files
 
@@ -60,12 +57,11 @@ All outputs below are **required by default** — `generate_report.py` is mandat
 
 | Category | Weight |
 |----------|--------|
-| Technical SEO | 25% |
+| Technical SEO | 30% |
 | Content Quality | 20% |
 | On-Page SEO | 15% |
 | Schema / Structured Data | 15% |
-| Performance (CWV) | 10% |
-| Images | 10% |
+| Images | 15% |
 | AI Search Readiness | 5% |
 
 ## Report Structure
@@ -80,7 +76,6 @@ All outputs below are **required by default** — `generate_report.py` is mandat
 - Crawlability issues
 - Indexability problems
 - Security concerns
-- Core Web Vitals status
 
 ### Content Quality
 - E-E-A-T assessment
@@ -98,11 +93,6 @@ All outputs below are **required by default** — `generate_report.py` is mandat
 - Current implementation
 - Validation errors
 - Missing opportunities
-
-### Performance
-- LCP, INP, CLS scores
-- Resource optimization needs
-- Third-party script impact
 
 ### Images
 - Missing alt text

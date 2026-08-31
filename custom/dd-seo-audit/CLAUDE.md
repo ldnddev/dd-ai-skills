@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is **not an application** — it's a packaged agentic **Skill** (`SKILL.md` is the entry manifest) loaded by Claude Code, Codex, or other agent IDEs to perform deterministic SEO audits. There is no build system, no test suite, no service to run. The "code" is two things:
 
 1. **Markdown content** under `resources/` that the host LLM reads on demand to adopt sub-skill / agent personas.
-2. **Standalone Python scripts** under `scripts/` invoked by the agent for evidence collection (HTML parse, PageSpeed, robots.txt, schema validation, GitHub API, etc.).
+2. **Standalone Python scripts** under `scripts/` invoked by the agent for evidence collection (HTML parse, robots.txt, schema validation, GitHub API, etc.). Core Web Vitals are **dd-site-speed**, not this skill.
 
 When working in this repo, you are usually editing the skill's instructions or the supporting scripts — not running an audit.
 
@@ -49,10 +49,10 @@ SKILL.md                       ← top-level orchestrator, routing table, critic
   ├── resources/skills/*.md    ← 16 sub-skills (one per `seo <verb>` command); each
   │                              describes its own evidence/script pipeline + outputs
   ├── resources/agents/*.md    ← 10 specialist personas the orchestrator delegates to
-  │                              (technical, content, performance, schema, sitemap,
+  │                              (technical, content, schema, sitemap,
   │                              visual, verifier, github-*)
   ├── resources/references/*.md← rubrics & thresholds the LLM applies during analysis
-  │                              (llm-audit-rubric, eeat-framework, cwv-thresholds,
+  │                              (llm-audit-rubric, eeat-framework,
   │                              quality-gates, schema-types, github-ranking-factors)
   ├── resources/templates/*.md ← per-industry strategic plan templates + report shells
   └── resources/schema/templates.json ← prebuilt JSON-LD blocks

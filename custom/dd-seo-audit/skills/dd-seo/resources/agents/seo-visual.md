@@ -138,6 +138,5 @@ Provide:
 
 ## Cross-Skill Delegation
 
-- For detailed image format optimization: coordinate with `seo-performance` agent
-- For CLS caused by visual elements: coordinate with `seo-performance` agent
+- For Core Web Vitals / layout shift measurement → **dd-site-speed**
 - For mobile-specific structured data: coordinate with `seo-schema` agent
