@@ -15,6 +15,7 @@ Custom Claude Code plugin marketplace by [ldnddev](https://ldnddev.com). Single 
 | [dd-vreg](custom/dd-vreg-audit/) | `dd-vreg` | Two-site screenshot diff reporter (Playwright + pixelmatch) | npm |
 | [dd-site-compare](custom/dd-site-compare-audit/) | `dd-site-compare` | Compare 2+ websites into a self-contained HTML + JSON dashboard | — |
 | [dd-site-speed](custom/dd-site-speed-audit/) | `dd-site-speed` | Page speed / Core Web Vitals audit (PSI mobile+desktop) + dashboard + task list | — |
+| [dd-audit](custom/dd-audit/) | `dd-audit` | Orchestrator: nested crawl + SEO + speed dashboards under one cover page (requires those plugins + dd-site-compare) | — |
 | [dd-pantheon](custom/dd-pantheon/) | `dd-pantheon` | Update + deploy WordPress/Drupal sites on Pantheon (terminus, multidev) | — |
 | [dd-aws](custom/dd-aws/) | `dd-aws` | Update + deploy WordPress/Drupal sites on AWS (EC2/RDS/CloudFront) | — |
 
@@ -57,6 +58,7 @@ bash custom/dd-site-compare-audit/install.sh # → ~/.codex/skills/dd-site-compa
 bash custom/dd-site-speed-audit/install.sh   # → ~/.codex/skills/dd-site-speed/
 bash custom/dd-pantheon/install.sh           # → ~/.codex/skills/dd-pantheon/
 bash custom/dd-aws/install.sh                # → ~/.codex/skills/dd-aws/
+bash custom/dd-audit/install.sh              # → ~/.codex/skills/dd-audit/
 ```
 
 Override install root with `CODEX_HOME=/path` env var.

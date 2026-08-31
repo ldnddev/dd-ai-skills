@@ -115,10 +115,11 @@ After scripts:
 
 1. Read template + token naming reference.  
 2. Promote raw values → **semantic** names (`color.bg.canvas`, `color.text.primary`, `space.section-lg`).  
-3. Inventory components & patterns with variants/states.  
-4. Write do/don’t grounded in observation.  
-5. Produce **Framework mapping** (observed UI → nearest `dd-*` components / gaps).  
-6. Mark unknowns as `Evidence: missing` — never fill with imagination.
+3. Write Overview, Logo & brand mark, Layout & Spacing, Elevation & Shapes, Color usage rules, Interactive states, Content & copy patterns, and Focus & keyboard from evidence only.  
+4. Inventory components & patterns with variants/states.  
+5. Write do/don’t grounded in observation, including site-specific generation constraints.  
+6. Produce **Framework mapping** (observed UI → nearest `dd-*` components / gaps) and **Agent instructions**.  
+7. Mark unknowns as `Evidence: missing` — never fill with imagination.
 
 ---
 
@@ -127,23 +128,29 @@ After scripts:
 Template lives in `skills/dd-designmd/references/design-doc-template.md`.
 
 1. **Meta** — primary URL, domain, date, pages scanned, evidence mode (static / deep), confidence  
-2. **Product / brand snapshot** — only what the site states or clearly shows (no invented mission)  
-3. **Foundations**  
+2. **Overview** — product summary, brand style, brand tone (observed copy only), core visual principles. No invented mission/voice.  
+3. **Logo & brand mark** — detected assets; usage rules only if on-site  
+4. **Foundations**  
    - Color (raw palette + semantic map)  
    - Typography  
-   - Spacing & layout  
-   - Radius, border, elevation  
    - Motion (if observed)  
    - Breakpoints  
-4. **Semantic tokens** — table: name | value | role | evidence  
-5. **Components** — anatomy, variants, states, notes  
-6. **Patterns / page templates**  
-7. **Iconography & media**  
-8. **Do / Don’t**  
-9. **Implementation notes** — inferred stack (CSS vars, utility classes, WP/theme, etc.) with confidence  
-10. **ldnddev Framework mapping** — observed → Framework component / “no match” / gap  
-11. **Open questions & missing evidence**  
-12. **Appendix** — raw signal summary (optional, keep short)
+5. **Layout & Spacing** — grid systems, padding rules, container constraints  
+6. **Elevation & Shapes** — surface layering, shadows, radii  
+7. **Semantic tokens** — table: name | value | role | evidence  
+8. **Color usage rules** — when to use each semantic color; forbidden combinations  
+9. **Components** — anatomy, variants, notes (states live in Interactive states)  
+10. **Interactive states** — shared hover / focus / active / disabled / loading / visited  
+11. **Patterns / page templates**  
+12. **Iconography & media**  
+13. **Content & copy patterns** — heading case, CTA verbs, UI microcopy from samples  
+14. **Focus & keyboard** — observed focus/outline facts only (no a11y scores)  
+15. **Do / Don’t** — process rules plus site-specific generation constraints that stop common AI UI mistakes  
+16. **Implementation notes** — inferred stack (CSS vars, utility classes, WP/theme, etc.) with confidence  
+17. **ldnddev Framework mapping** — observed → Framework component / “no match” / gap  
+18. **Agent instructions** — how a coding agent must interpret this file when writing UI  
+19. **Open questions & missing evidence**  
+20. **Appendix** — raw signal summary (optional, keep short)
 
 Tone: professional Design System Lead; usable by non-designers and engineers.
 
@@ -180,7 +187,7 @@ Only include tokens with evidence. Placeholder tokens forbidden.
 
 ## Framework mapping rules
 
-Always include section 10:
+Always include the **ldnddev Framework mapping** section:
 
 | Observed pattern | Framework map |
 |------------------|---------------|

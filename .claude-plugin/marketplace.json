@@ -85,6 +85,13 @@
       "description": "Page speed and Core Web Vitals audit — Google PageSpeed Insights (mobile + desktop), What/Why/How issue insights, stack-aware recommendations, branded dashboard + MD/DOCX/CSV task list.",
       "category": "performance",
       "tags": ["pagespeed", "performance", "cwv", "lighthouse", "lcp", "inp", "cls", "audit"]
+    },
+    {
+      "name": "dd-audit",
+      "source": "./custom/dd-audit",
+      "description": "Orchestrator for a primary-URL site audit — requires dd-crawl, dd-seo, dd-site-speed, and dd-site-compare installed; v1 runs crawl + SEO + speed into one nested cover dashboard.",
+      "category": "qa",
+      "tags": ["audit", "orchestrator", "crawl", "seo", "pagespeed", "dashboard"]
     }
   ]
 }
