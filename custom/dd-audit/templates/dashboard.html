@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{REPORT_TITLE}} — {{DOMAIN}}</title>
+  <meta name="description" content="{{REPORT_SUBTITLE}}">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon/favicon-96x96.png" />
+  <link rel="shortcut icon" href="assets/favicon/favicon.ico" />
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="assets/favicon/site.webmanifest" />
+  <link rel="stylesheet" href="assets/css/style.min.css">
+  <script src="assets/js/main.min.js" defer></script>
+  <style>
+    .skip-link { position: absolute; left: .5rem; top: -3rem; z-index: 1000; padding: .4rem .75rem; background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
+    .skip-link:focus { top: .5rem; }
+    [id] { scroll-margin-top: 1rem; }
+    .app-summary { margin: 0; }
+    .app-summary__row { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-bottom: 1px solid rgba(128,128,128,.3); }
+    .app-summary__row:last-child { border-bottom: 0; }
+    .app-summary dt { color: color-mix(in srgb, CanvasText 70%, Canvas); }
+    .app-summary dd { margin: 0; font-weight: 600; text-align: end; overflow-wrap: anywhere; }
+    .rail { position: sticky; top: 1rem; }
+    @media (max-width: 920px) { .rail { position: static; } }
+    .muted { color: color-mix(in srgb, CanvasText 70%, Canvas); }
+    .error { color: #c0392b; }
+    .badge { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: .15rem .45rem; border-radius: 999px; border: 1px solid rgba(128,128,128,.4); vertical-align: middle; }
+    .badge.ok { color: #1e7a3a; border-color: #1e7a3a; }
+    .badge.bad { color: #c0392b; border-color: #c0392b; }
+    .mod-card { border: 1px solid rgba(128,128,128,.35); border-radius: .5rem; padding: 1rem; background: Canvas; margin: 0 0 1rem; }
+    .mod-card h3 { margin-top: 0; }
+    .mod-grid { display: grid; gap: 1rem; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+  </style>
+</head>
+<body class="dd-g">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="dd-header dd-u-1-1">
+    <div class="dd-header__top">
+      <div class="dd-g">
+        <div class="dd-header__logo dd-u-1-1 l-box">
+          <picture>
+            <source srcset="{{AGENCY_LOGO_DARK}}" media="(prefers-color-scheme: dark)">
+            <img src="{{AGENCY_LOGO}}" alt="{{AGENCY_NAME}} logo" class="dd-img">
+          </picture>
+          <h1>{{REPORT_TITLE}}</h1>
+          <p>{{AGENCY_KICKER}} · {{AGENCY_NAME}} · {{REPORT_SUBTITLE}}</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1" class="dd-u-1-1">
+    <div class="dd-g">
+      <aside class="rail dd-u-1-1 dd-u-lg-8-24 l-box" aria-label="Audit summary">
+        <section class="dd-section" aria-labelledby="summary-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="summary-label">Run summary</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <dl class="app-summary">
+                  <div class="app-summary__row"><dt>Domain</dt><dd>{{DOMAIN}}</dd></div>
+                  <div class="app-summary__row"><dt>Primary URL</dt><dd>{{SOURCE_URL}}</dd></div>
+                  <div class="app-summary__row"><dt>Generated</dt><dd>{{GENERATED}}</dd></div>
+                  <div class="app-summary__row"><dt>Modules OK</dt><dd>{{OK_COUNT}}</dd></div>
+                  <div class="app-summary__row"><dt>Modules failed</dt><dd>{{FAILED_COUNT}}</dd></div>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </section>
+        <nav class="dd-section" aria-labelledby="contents-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="contents-label">Child dashboards</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <ul class="-nostyle">
+                  <li><a href="crawl/index.html">Crawl</a></li>
+                  <li><a href="seo/index.html">SEO</a></li>
+                  <li><a href="speed/index.html">Page speed</a></li>
+                </ul>
+                <p class="muted">{{COMPARE_NOTE}}</p>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </aside>
+
+      <div class="dd-u-1-1 dd-u-lg-16-24">
+        <section class="dd-section" id="modules" tabindex="-1" aria-labelledby="modules-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="modules-label">Module overview</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p class="muted">Headlines are read from each child bundle. Open a dashboard for the full report — this page does not replace it.</p>
+                <div class="mod-grid">
+                  {{MODULE_CARDS}}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dd-section" id="downloads" tabindex="-1" aria-labelledby="downloads-label">
+          <div class="dd-section__content">
+            <h2 class="dd-section__title l-box" id="downloads-label">This folder</h2>
+            <div class="dd-section__items dd-g">
+              <div class="dd-section__item dd-u-1-1 l-box">
+                <p class="muted">{{DOWNLOADS_NOTE}}</p>
+                <ul>
+                  <li><a href="data.json" download>Overview data.json</a></li>
+                  <li><a href="plan.json" download>Run plan.json</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="dd-footer dd-u-1-1">
+    <div class="dd-footer__content l-box">
+      <p>{{FOOTER_TEXT}}</p>
+    </div>
+  </footer>
+</body>
+</html>

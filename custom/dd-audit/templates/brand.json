@@ -1,0 +1,10 @@
+{
+  "agency_name": "ldnddev, LLC",
+  "agency_kicker": "Site Audit",
+  "agency_logo": "assets/imgs/logo-full-black-text.svg",
+  "agency_logo_dark": "assets/imgs/logo-full-white-text.svg",
+  "report_title": "Site Audit Overview",
+  "report_subtitle": "Cover dashboard for crawl, SEO, and page-speed reports. Child dashboards are unchanged.",
+  "downloads_note": "Keep this folder together so relative links to crawl/, seo/, and speed/ work.",
+  "footer_text": "Prepared by © ldnddev, LLC — dd-audit"
+}

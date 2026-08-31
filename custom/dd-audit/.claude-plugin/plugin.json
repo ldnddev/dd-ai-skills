@@ -1,0 +1,12 @@
+{
+  "name": "dd-audit",
+  "version": "1.0.0",
+  "description": "Orchestrator for a primary-URL site audit: requires dd-crawl, dd-seo, dd-site-speed, and dd-site-compare installed; v1 runs crawl + SEO + speed into one nested dashboard folder.",
+  "license": "MIT",
+  "author": {
+    "name": "Jared Lyvers",
+    "email": "jared@ldnddev.com"
+  },
+  "keywords": ["audit", "orchestrator", "crawl", "seo", "pagespeed", "dashboard"],
+  "skills": ["./skills/dd-audit"]
+}
