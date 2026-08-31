@@ -10,10 +10,10 @@ description: >
   When --web is used, automatically writes the HTML (as index.html) + JSON into
   web/<primary-domain>-compare-audit-YYYY-MM-DD/ at the project root.
   Use when the user pastes 1+ URLs (or a file), asks to "compare websites", "competitive analysis",
-  "compare this to competitors", "site audit dashboard", "homepage comparison report", or invokes
+  "compare this to competitors", "homepage comparison report", or invokes
   /dd-site-compare or $dd-site-compare. One URL triggers peer discovery before the dashboard.
 version: 1.4.0
-when-to-use: "Use for website comparisons, competitive audits, multi-site technical reports, or when a self-contained HTML + JSON dashboard of homepage metrics is needed. Trigger phrases: compare sites, site comparison, website audit, competitive analysis, compare this to competitors, dashboard for these URLs."
+when-to-use: "Use for website comparisons, competitive audits, multi-site homepage metric dashboards. Trigger phrases: compare sites, site comparison, competitive analysis, compare this to competitors, homepage comparison report, dashboard for these URLs."
 argument-hint: "[urls...] [--web] [--urls-file file.txt] [--skip-resources] [--max-resources N] [--workers 4] [--json-output out.json] [-o out.html]"
 ---
 
@@ -141,3 +141,12 @@ Legacy note: older notebook `script.py` / `keywords.py` were the source of the o
 9. Update this SKILL.md "Required Fields" list + the v1.x note if the contract grew.
 
 This discipline keeps the field contract and the zero-dep contract intact.
+
+## Related
+
+This skill owns **multi-site homepage competitive comparison** (positioning, conversion, cheap tech/size columns). Title/canonical/alts here are comparison columns, not an SEO audit.
+
+- **dd-seo** — SEO audit; `seo competitors` *writes* vs/alternatives pages
+- **dd-site-speed** — PageSpeed / CWV depth (not these size/TTFB columns)
+- **dd-crawl** — whole-site URL/404 map
+- Combined crawl+SEO+speed package → **dd-audit**

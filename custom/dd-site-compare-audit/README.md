@@ -22,7 +22,6 @@ No Python deps to install — the skill uses the standard library only.
 | `compare websites <url> <url>` | full comparison dashboard (first URL = primary) |
 | `compare this to competitors <url>` | discovery intake, then dashboard |
 | `competitive analysis` | multi-site dashboard |
-| `site audit dashboard` | homepage metrics dashboard |
 | `homepage comparison report` | dashboard + JSON |
 | `/dd-site-compare` or `$dd-site-compare` | explicit invocation |
 
