@@ -47,9 +47,9 @@
     {
       "name": "dd-seo",
       "source": "./custom/dd-seo-audit",
-      "description": "Deterministic LLM-first SEO audits for sites, blog posts, and GitHub repos — schema, CWV (PageSpeed API key prompt), AEO/GEO, prioritized fixes.",
+      "description": "Deterministic LLM-first SEO audits for sites, blog posts, and GitHub repos — schema, AEO/GEO, prioritized fixes. Speed/CWV audits are dd-site-speed.",
       "category": "seo",
-      "tags": ["seo", "audit", "schema", "cwv", "aeo", "geo", "github"]
+      "tags": ["seo", "audit", "schema", "aeo", "geo", "github"]
     },
     {
       "name": "dd-vreg",
@@ -61,9 +61,9 @@
     {
       "name": "dd-site-compare",
       "source": "./custom/dd-site-compare-audit",
-      "description": "Compare 2+ websites into a self-contained HTML + JSON dashboard — 31 homepage signals, parallel fetching, zero runtime deps.",
+      "description": "Compare 2+ websites into a self-contained HTML + JSON dashboard — homepage competitive signals, primary-site marking, parallel fetching.",
       "category": "qa",
-      "tags": ["compare", "competitive-analysis", "dashboard", "audit", "websites"]
+      "tags": ["compare", "competitive-analysis", "dashboard", "websites"]
     },
     {
       "name": "dd-pantheon",

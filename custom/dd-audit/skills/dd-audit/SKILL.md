@@ -83,7 +83,7 @@ For each module with `run_in_v1` (crawl, seo, speed), **in that order**:
 
 Do not run `dd-site-compare` in v1.
 
-PageSpeed API key: follow **dd-seo** Step 1.5 once, then reuse the same env/`--api-key` for **dd-site-speed**. Do not ask twice.
+PageSpeed API key: follow **dd-site-speed** (not dd-seo). Ask once before the speed child run.
 
 ### 5. Assemble cover dashboard
 

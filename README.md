@@ -6,15 +6,15 @@ Custom Claude Code plugin marketplace by [ldnddev](https://ldnddev.com). Single 
 
 | Plugin | Skill name | Purpose | Deps |
 |---|---|---|---|
-| [dd-crawl](custom/dd-crawl-audit/) | `dd-crawl` | Whole-site crawl: URL map, broken links, redirects, chrome table, dashboard | — |
+| [dd-crawl](custom/dd-crawl-audit/) | `dd-crawl` | Whole-site URL map and HTTP fate (404s, redirects, chrome) | — |
 | [dd-designmd](custom/dd-designmd/) | `dd-designmd` | Semantic design system from URL → `{domain}-design.md` + tokens | — |
 | [dd-a11y](custom/dd-a11y-audit/) | `dd-a11y` | WCAG 2.2 accessibility audit (Playwright + axe-core), single + multi-page | npm |
 | [dd-blogs](custom/dd-blogs/) | `dd-blogs` | ldnddev brand-tone blog copywriting + deliverables | — |
 | [dd-framework](custom/dd-framework/) | `dd-framework` | ldnddev Framework component authoring (`dd-hero`, `dd-card`, etc.) | — |
-| [dd-seo](custom/dd-seo-audit/) | `dd-seo` | LLM-first SEO audits (sites, blog posts, GitHub repos) — 30+ scripts | python |
+| [dd-seo](custom/dd-seo-audit/) | `dd-seo` | SEO audits: on-page, technical, content, schema, GEO/AEO (not a speed or crawl product) | python |
 | [dd-vreg](custom/dd-vreg-audit/) | `dd-vreg` | Two-site screenshot diff reporter (Playwright + pixelmatch) | npm |
-| [dd-site-compare](custom/dd-site-compare-audit/) | `dd-site-compare` | Compare 2+ websites into a self-contained HTML + JSON dashboard | — |
-| [dd-site-speed](custom/dd-site-speed-audit/) | `dd-site-speed` | Page speed / Core Web Vitals audit (PSI mobile+desktop) + dashboard + task list | — |
+| [dd-site-compare](custom/dd-site-compare-audit/) | `dd-site-compare` | Multi-site homepage competitive comparison (positioning, conversion, cheap tech/size columns) | — |
+| [dd-site-speed](custom/dd-site-speed-audit/) | `dd-site-speed` | Page speed / Core Web Vitals depth (PSI lab + field) + dashboard + task list | — |
 | [dd-audit](custom/dd-audit/) | `dd-audit` | Orchestrator: nested crawl + SEO + speed dashboards under one cover page (requires those plugins + dd-site-compare) | — |
 | [dd-pantheon](custom/dd-pantheon/) | `dd-pantheon` | Update + deploy WordPress/Drupal sites on Pantheon (terminus, multidev) | — |
 | [dd-aws](custom/dd-aws/) | `dd-aws` | Update + deploy WordPress/Drupal sites on AWS (EC2/RDS/CloudFront) | — |
