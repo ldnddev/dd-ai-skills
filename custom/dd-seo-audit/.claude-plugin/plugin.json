@@ -1,12 +1,12 @@
 {
   "name": "dd-seo",
-  "version": "1.2.3",
-  "description": "Deterministic LLM-first SEO audit skill for websites, blog posts, and GitHub repos — full/page/technical/schema/CWV/AEO/GEO with prioritized fixes. Asks for PageSpeed API key before CWV runs; fixed pagespeed result parsing.",
+  "version": "1.3.0",
+  "description": "Deterministic LLM-first SEO audits for websites, blog posts, and GitHub repos — schema, AEO/GEO, prioritized fixes. Speed/CWV audits are dd-site-speed.",
   "license": "MIT",
   "author": {
     "name": "Jared Lyvers",
     "email": "jared@ldnddev.com"
   },
-  "keywords": ["seo", "audit", "schema", "cwv", "aeo", "geo", "github"],
+  "keywords": ["seo", "audit", "schema", "aeo", "geo", "github"],
   "skills": ["./skills/dd-seo"]
 }

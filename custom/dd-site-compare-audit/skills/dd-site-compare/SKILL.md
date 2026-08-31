@@ -12,7 +12,7 @@ description: >
   Use when the user pastes 1+ URLs (or a file), asks to "compare websites", "competitive analysis",
   "compare this to competitors", "homepage comparison report", or invokes
   /dd-site-compare or $dd-site-compare. One URL triggers peer discovery before the dashboard.
-version: 1.4.0
+version: 1.4.1
 when-to-use: "Use for website comparisons, competitive audits, multi-site homepage metric dashboards. Trigger phrases: compare sites, site comparison, competitive analysis, compare this to competitors, homepage comparison report, dashboard for these URLs."
 argument-hint: "[urls...] [--web] [--urls-file file.txt] [--skip-resources] [--max-resources N] [--workers 4] [--json-output out.json] [-o out.html]"
 ---
@@ -24,6 +24,8 @@ argument-hint: "[urls...] [--web] [--urls-file file.txt] [--skip-resources] [--m
 **v1.3 adds 11 homepage competitive signals** (positioning, conversion, nav page-types) from the same parse — no extra network. Names, types, and computation: `references/fields.md`.
 
 **v1.4** marks the first CLI URL as the **primary** site (`primary_url` on the dashboard payload) and adds discovery intake when the user gives one site or unnamed competitors.
+
+**v1.4.1** documents skill ownership (Related) and drops generic “website audit” triggers.
 
 ## Workflow
 

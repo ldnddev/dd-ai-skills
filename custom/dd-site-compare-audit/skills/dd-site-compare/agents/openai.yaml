@@ -1,4 +1,4 @@
 interface:
   display_name: "DD Site Compare"
-  short_description: "Website comparison HTML dashboards (v1.4: 42 fields, primary-site marking, peer discovery, parallel, sort/filter/export)"
+  short_description: "Website comparison HTML dashboards (v1.4.1: 42 fields, primary-site marking, peer discovery, parallel, sort/filter/export)"
   default_prompt: "Use $dd-site-compare --web with the primary site first. If only one URL is given, propose optional peers before comparing, then generate an HTML dashboard in web/<domain>-compare-audit-YYYY-MM-DD/."
