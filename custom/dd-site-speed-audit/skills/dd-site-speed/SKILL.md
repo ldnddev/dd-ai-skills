@@ -107,4 +107,12 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/generate_report.py --input data.json --out
 
 - Pure Python 3 stdlib (urllib) — no `pip install` required for the default path.
 - Optional env: `PAGESPEED_API_KEY` or `PSI_API_KEY` for higher Google API quotas.
-- This skill owns **performance depth**. Full SEO remains `dd-seo`; multi-site homepage compare remains `dd-site-compare`.
+
+## Related
+
+This skill owns **performance depth** (PSI lab + field CWV, speed bundle).
+
+- **dd-seo** — SEO audit; does not measure CWV
+- **dd-site-compare** — homepage compare; size/TTFB columns are not Lighthouse
+- **dd-crawl** — URL/404 map, not performance
+- Combined crawl+SEO+speed package → **dd-audit**

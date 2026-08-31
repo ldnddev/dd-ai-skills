@@ -54,6 +54,4 @@ Writes `web/<domain>-speed-audit-YYYY-MM-DD/` containing:
 
 ## Boundaries
 
-- **dd-site-speed** — deep performance + CWV + speed dashboard
-- **dd-seo** — full SEO (may include a light CWV check)
-- **dd-site-compare** — multi-site homepage metrics, not Lighthouse scoring
+Canonical routing lives in `skills/dd-site-speed/SKILL.md` → Related. This skill owns PSI/CWV depth. SEO may snapshot CWV; compare may show TTFB/size; crawl maps URLs.
