@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract raw design signals (colors, fonts, spacing, radii, shadows, breakpoints) from CSS."""
+"""Extract raw design signals (colors, type, layout, elevation, breakpoints) from CSS."""
 
 from __future__ import annotations
 
@@ -20,12 +20,39 @@ LETTER_SPACING = re.compile(r"letter-spacing\s*:\s*([^;}{]+)", re.I)
 BORDER_RADIUS = re.compile(r"border-radius\s*:\s*([^;}{]+)", re.I)
 BOX_SHADOW = re.compile(r"box-shadow\s*:\s*([^;}{]+)", re.I)
 MEDIA = re.compile(r"@media[^{]+\{?", re.I)
+MAX_WIDTH = re.compile(r"max-width\s*:\s*([^;}{]+)", re.I)
+DISPLAY = re.compile(r"display\s*:\s*([^;}{]+)", re.I)
+GRID_TEMPLATE = re.compile(r"grid-template-columns\s*:\s*([^;}{]+)", re.I)
+Z_INDEX = re.compile(r"z-index\s*:\s*([^;}{]+)", re.I)
+GRADIENT = re.compile(r"(?:repeating-)?(?:linear|radial|conic)-gradient\(", re.I)
+PADDING_PROP = re.compile(
+    r"padding(?:-(?:top|right|bottom|left))?\s*:\s*([^;}{]+)", re.I
+)
+GAP_PROP = re.compile(r"(?:row-|column-)?gap\s*:\s*([^;}{]+)", re.I)
+FOCUS_BLOCK = re.compile(
+    r"[^{}]*:focus(?:-visible|-within)?[^{]*\{([^}]*)\}",
+    re.I,
+)
+OUTLINE_PROP = re.compile(
+    r"outline(?:-color|-width|-offset|-style)?\s*:\s*([^;}{]+)",
+    re.I,
+)
+INTERACTION_BLOCK = re.compile(
+    r"([^{};\n]{0,120}:(?:hover|active|disabled|visited))\s*\{([^}]*)\}",
+    re.I,
+)
+DISABLED_ATTR = re.compile(
+    r"([^{};\n]{0,120}\[(?:aria-)?disabled[^\]]*\])\s*\{([^}]*)\}",
+    re.I,
+)
+INTERACTION_STATES = ("hover", "active", "disabled", "visited")
 # spacing-ish declarations
 SPACE_PROPS = re.compile(
     r"(?:margin|padding|gap|row-gap|column-gap|top|right|bottom|left|"
     r"width|height|min-width|max-width|min-height|max-height)\s*:\s*([^;}{]+)",
     re.I,
 )
+LAYOUT_DISPLAYS = frozenset({"flex", "inline-flex", "grid", "inline-grid"})
 LENGTH = re.compile(
     r"(-?\d+\.?\d*)(px|rem|em|%|vh|vw|ch)",
     re.I,
@@ -62,6 +89,18 @@ def extract_signals(css_payload: dict, max_each: int = 40) -> dict:
     shadows: Counter[str] = Counter()
     spaces: Counter[str] = Counter()
     breakpoints: Counter[str] = Counter()
+    max_widths: Counter[str] = Counter()
+    displays: Counter[str] = Counter()
+    grid_templates: Counter[str] = Counter()
+    z_indexes: Counter[str] = Counter()
+    gradients: Counter[str] = Counter()
+    paddings: Counter[str] = Counter()
+    gaps: Counter[str] = Counter()
+    focus_rules: Counter[str] = Counter()
+    outlines: Counter[str] = Counter()
+    interactions: dict[str, Counter[str]] = {
+        name: Counter() for name in INTERACTION_STATES
+    }
     css_vars: dict[str, str] = {}
     evidence_samples: dict[str, list[str]] = {
         "color": [],
@@ -71,6 +110,10 @@ def extract_signals(css_payload: dict, max_each: int = 40) -> dict:
         "shadow": [],
         "breakpoint": [],
         "css_var": [],
+        "layout": [],
+        "elevation": [],
+        "focus": [],
+        "interaction": [],
     }
 
     def note(kind: str, sample: str, limit: int = 8):
@@ -113,6 +156,81 @@ def extract_signals(css_payload: dict, max_each: int = 40) -> dict:
             if val and val != "none":
                 shadows[val] += 1
                 note("shadow", f"box-shadow: {val[:80]} @ {src}")
+                note("elevation", f"box-shadow: {val[:80]} @ {src}")
+
+        for m in MAX_WIDTH.finditer(css):
+            val = re.sub(r"\s+", " ", m.group(1)).strip()
+            if val and val.lower() not in {"none", "auto", "100%", "0", "0px"}:
+                max_widths[val] += 1
+                note("layout", f"max-width: {val} @ {src}")
+
+        for m in DISPLAY.finditer(css):
+            val = m.group(1).strip().split()[0].lower() if m.group(1).strip() else ""
+            if val in LAYOUT_DISPLAYS:
+                displays[val] += 1
+                note("layout", f"display: {val} @ {src}")
+
+        for m in GRID_TEMPLATE.finditer(css):
+            val = re.sub(r"\s+", " ", m.group(1)).strip()
+            if val and val.lower() not in {"none", "auto"}:
+                grid_templates[val] += 1
+                note("layout", f"grid-template-columns: {val[:80]} @ {src}")
+
+        for m in Z_INDEX.finditer(css):
+            val = m.group(1).strip()
+            if val and val.lower() not in {"auto"}:
+                z_indexes[val] += 1
+                note("elevation", f"z-index: {val} @ {src}")
+
+        for m in GRADIENT.finditer(css):
+            snippet = re.sub(r"\s+", " ", css[m.start() : m.start() + 96]).strip()
+            gradients[snippet] += 1
+            note("color", f"{snippet} @ {src}")
+
+        for m in PADDING_PROP.finditer(css):
+            for lm in LENGTH.finditer(m.group(1)):
+                token = f"{lm.group(1)}{lm.group(2).lower()}"
+                paddings[token] += 1
+
+        for m in GAP_PROP.finditer(css):
+            for lm in LENGTH.finditer(m.group(1)):
+                token = f"{lm.group(1)}{lm.group(2).lower()}"
+                gaps[token] += 1
+                note("layout", f"gap: {token} @ {src}")
+
+        for m in FOCUS_BLOCK.finditer(css):
+            body = re.sub(r"\s+", " ", m.group(1)).strip()
+            if body:
+                focus_rules[body[:120]] += 1
+                note("focus", f":focus {{ {body[:80]} }} @ {src}")
+
+        for m in OUTLINE_PROP.finditer(css):
+            val = re.sub(r"\s+", " ", m.group(1)).strip()
+            if val and val.lower() not in {"none", "0", "0px"}:
+                outlines[val] += 1
+                note("focus", f"outline: {val} @ {src}")
+
+        for m in INTERACTION_BLOCK.finditer(css):
+            selector = re.sub(r"\s+", " ", m.group(1)).strip()
+            body = re.sub(r"\s+", " ", m.group(2)).strip()
+            state = ""
+            low = selector.lower()
+            for name in INTERACTION_STATES:
+                if f":{name}" in low:
+                    state = name
+                    break
+            if state and body:
+                sample = f"{selector[:60]} {{ {body[:80]} }}"
+                interactions[state][sample] += 1
+                note("interaction", f"{sample} @ {src}")
+
+        for m in DISABLED_ATTR.finditer(css):
+            selector = re.sub(r"\s+", " ", m.group(1)).strip()
+            body = re.sub(r"\s+", " ", m.group(2)).strip()
+            if body:
+                sample = f"{selector[:60]} {{ {body[:80]} }}"
+                interactions["disabled"][sample] += 1
+                note("interaction", f"{sample} @ {src}")
 
         for m in SPACE_PROPS.finditer(css):
             for lm in LENGTH.finditer(m.group(1)):
@@ -144,6 +262,18 @@ def extract_signals(css_payload: dict, max_each: int = 40) -> dict:
         "radii": top(radii, 15),
         "shadows": top(shadows, 12),
         "spacing_values": top(spaces, 30),
+        "max_widths": top(max_widths, 12),
+        "displays": top(displays, 8),
+        "grid_templates": top(grid_templates, 10),
+        "z_indexes": top(z_indexes, 10),
+        "gradients": top(gradients, 8),
+        "paddings": top(paddings, 16),
+        "gaps": top(gaps, 12),
+        "focus_rules": top(focus_rules, 10),
+        "outlines": top(outlines, 8),
+        "interactions": {
+            name: top(interactions[name], 8) for name in INTERACTION_STATES
+        },
         "breakpoints": top(breakpoints, 20),
         "css_variables": [
             {"name": f"--{k}", "value": v} for k, v in list(css_vars.items())[:80]

@@ -8,7 +8,7 @@ Prefer role-based names over raw scales when evidence supports a role.
 |----------|----------|
 | Color | `color.bg.canvas`, `color.bg.surface`, `color.text.primary`, `color.text.muted`, `color.brand.primary`, `color.border.subtle` |
 | Font | `font.family.base`, `font.family.display`, `font.size.body`, `font.weight.bold` |
-| Space | `space.xs` … `space.3xl` or measured ranks `space.01` until scale is clear |
+| Space | `space.xs` … `space.3xl` or measured ranks `space.01` until scale is clear; `space.container` for a repeated `max-width` |
 | Radius | `radius.sm`, `radius.md`, `radius.pill` |
 | Shadow | `shadow.sm`, `shadow.md` |
 | Breakpoint | `breakpoint.md`, `breakpoint.lg` |

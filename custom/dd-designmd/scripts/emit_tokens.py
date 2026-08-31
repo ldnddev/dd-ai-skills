@@ -133,6 +133,17 @@ def _pick_breakpoints(bps: list[dict]) -> dict:
     return tokens
 
 
+def _pick_containers(max_widths: list[dict]) -> dict:
+    tokens = {}
+    for i, item in enumerate(max_widths[:6], start=1):
+        key = "space.container" if i == 1 else f"space.container.{i:02d}"
+        tokens[key] = {
+            "value": item["value"],
+            "evidence": "max-width declaration frequency",
+        }
+    return tokens
+
+
 def build_token_doc(signals: dict, source_url: str, domain: str) -> dict:
     tokens: dict = {}
     tokens.update(_pick_colors(signals.get("colors") or []))
@@ -145,6 +156,7 @@ def build_token_doc(signals: dict, source_url: str, domain: str) -> dict:
     tokens.update(_pick_radii(signals.get("radii") or []))
     tokens.update(_pick_shadows(signals.get("shadows") or []))
     tokens.update(_pick_breakpoints(signals.get("breakpoints") or []))
+    tokens.update(_pick_containers(signals.get("max_widths") or []))
 
     # Surface existing CSS variables as-is (strong evidence)
     for var in signals.get("css_variables") or []:

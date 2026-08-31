@@ -22,7 +22,7 @@ dd-designmd/
 - Domain naming: lowercase, strip `www.`
 - Refuse overwrite without `--force`
 - Tokens must carry evidence strings
-- Always include Framework mapping section
+- Always include Framework mapping and Agent instructions sections
 - Never invent brand or rebrand advice
 
 ## Test fixture

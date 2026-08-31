@@ -30,7 +30,7 @@ Domain = URL host, lowercase, **`www.` stripped** (e.g. `https://www.ldnddev.com
 ## Hard rules
 
 1. **Evidence-bound** — every token/component claim needs CSS/HTML (or deep-mode) evidence.
-2. **No invented brand** — no mission, voice, or guidelines not on-site.
+2. **No invented brand** — no mission, voice chart, or guidelines not on-site. Overview may describe **observed** copy register and visual principles only.
 3. **No rebrand recommendations.**
 4. **No a11y/SEO scoring** — do not run or embed `dd-a11y` / `dd-seo` audits here.
 5. **No silent overwrite** — if output files exist, **ask** before `--force`.
@@ -120,10 +120,10 @@ After scripts write the skeleton:
 
 1. Read `references/design-doc-template.md`, `token-naming.md`, `component-inventory.md`, `framework-mapping.md`.
 2. Read generated `{domain}-design.md`, tokens, and evidence JSON.
-3. **Improve** the MD: component anatomy, patterns, Framework mapping honesty, do/don’t grounded in observation.
+3. **Improve** the MD: Overview (evidence-only), Logo & brand mark, Layout & Spacing, Elevation & Shapes, Color usage rules, Interactive states, Content & copy patterns, Focus & keyboard, component anatomy, patterns, Framework mapping honesty, site-specific Do/Don’t that block common AI UI mistakes, Agent instructions.
 4. **Do not** delete measured token tables or invent new color values.
 5. You may rename provisional ranks to clearer semantic names **only** when HTML/CSS evidence supports the role; keep evidence strings accurate.
-6. Always keep **ldnddev Framework mapping** section complete.
+6. Always keep **ldnddev Framework mapping** and **Agent instructions** complete.
 
 ### 5. Report
 
@@ -148,7 +148,7 @@ After scripts write the skeleton:
 
 ## Required MD sections
 
-Must match template: Meta, Product/brand snapshot, Foundations, Semantic tokens, Components, Patterns, Iconography, Do/Don’t, Implementation notes, **Framework mapping**, Open questions, Appendix evidence.
+Must match `references/design-doc-template.md`: Meta, **Overview**, **Logo & brand mark**, Foundations, **Layout & Spacing**, **Elevation & Shapes**, Semantic tokens, **Color usage rules**, Components, **Interactive states**, Patterns, Iconography, **Content & copy patterns**, **Focus & keyboard**, **Do/Don’t** (process + site-specific generation constraints), Implementation notes, **Framework mapping**, **Agent instructions**, Open questions, Appendix evidence.
 
 ## Related skills
 
