@@ -89,7 +89,12 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_crawl.py https://example.com --no-web 
 
 ## Related
 
-- Single-page broken links in **dd-seo** remain separate; use this skill for **full-site** inventory + status.
+This skill owns **whole-site URL inventory and HTTP status**.
+
+- **dd-seo** — page-level broken links and SEO; not a site crawl
+- **dd-site-compare** — multi-site homepage competitive compare
+- **dd-site-speed** — PageSpeed / Core Web Vitals depth
+- Combined crawl+SEO+speed package → **dd-audit**
 
 ## Notes
 
