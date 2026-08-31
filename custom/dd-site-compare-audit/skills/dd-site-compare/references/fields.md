@@ -1,6 +1,6 @@
 # Dashboard Fields
 
-**Contract:** The comparison script and the generated dashboard **must include every field below for every analyzed URL/row**. This list is the source of truth (updated for v1.1).
+**Contract:** The comparison script and the generated dashboard **must include every field below for every analyzed URL/row**. This list is the source of truth (updated for v1.3).
 
 Use the detailed table for implementation, display logic, and audit notes. "Lower better" / "Higher better" guidance helps the dashboard's "best value" highlighting.
 
@@ -18,6 +18,17 @@ Use the detailed table for implementation, display logic, and audit notes. "Lowe
 - trackers
 - title
 - meta_description
+- h1_text
+- hero_subhead
+- nav_labels
+- primary_cta
+- cta_texts
+- cta_count
+- form_field_count
+- offer_type
+- pricing_visible
+- trust_signals
+- page_types
 - h1_count
 - h2_count
 - h3_count
@@ -54,6 +65,17 @@ Use the detailed table for implementation, display logic, and audit notes. "Lowe
 | trackers               | string[]      | Detected known trackers/pixels (GA, GTM, FB, Hotjar, TikTok, LinkedIn, generic 1x1, ...). | Lower usually better for privacy.          |
 | title                  | string\|null  | `<title>` text (normalized whitespace).                                                   | —                                          |
 | meta_description       | string\|null  | `name=description` or `property=og:description` (first non-empty).                        | —                                          |
+| h1_text                | string\|null  | First `<h1>` text (whitespace-normalized, clipped ~240). v1.3.                            | Positioning headline.                      |
+| hero_subhead           | string\|null  | First substantial `<p>` or `<h2>` after the first H1 (else first body `<p>`). v1.3.     | Supporting promise.                        |
+| nav_labels             | string[]      | Unique link labels from `<nav>`, `<header>`, or main-nav chrome (cap 24). v1.3.           | Market framing.                            |
+| primary_cta            | string\|null  | First conversion CTA in nav/header, else first conversion CTA, else first button-like. v1.3. | Lead action.                            |
+| cta_texts              | string[]      | Unique CTA labels (pattern match or button-like; skips login/cookie/learn-more). v1.3.    | How they sell.                             |
+| cta_count              | int           | Length of `cta_texts`. v1.3.                                                              | —                                          |
+| form_field_count       | int           | Visible `<input>`/`<select>`/`<textarea>` inside `<form>` (skips hidden/submit). v1.3.    | Lower = less friction.                     |
+| offer_type             | str           | `trial` / `demo` / `signup` / `contact_sales` / `unknown` from primary CTA then copy. v1.3. | —                                        |
+| pricing_visible        | bool          | True if visible `$`/`£`/`€` amounts, /mo copy, or a Pricing nav link. v1.3.               | True = more transparent.                   |
+| trust_signals          | string[]      | Detected proof widgets/badges (G2, Capterra, Trustpilot, Gartner, Clutch, SOC 2, ISO 27001, PCI DSS, "as seen in"). v1.3. | Higher = more proof.        |
+| page_types             | string[]      | Nav/header presence of pricing, features, integrations, alternatives, blog, docs, changelog. v1.3. | Gaps vs peers.                   |
 | h1_count               | int           | Number of `<h1>` elements.                                                                | Higher often richer content.               |
 | h2_count               | int           | Number of `<h2>` (new v1.1).                                                              | Higher often richer structure.             |
 | h3_count               | int           | Number of `<h3>` (new v1.1).                                                              | —                                          |
@@ -74,6 +96,6 @@ Use the detailed table for implementation, display logic, and audit notes. "Lowe
 | powered_by             | str \| null   | `X-Powered-By`, `X-Generator`, or similar informative header (new v1.1).                  | —                                          |
 | error                  | str \| "None" | Error message for the row (or "None"/empty on success). Never drop the row.               | Present = investigate.                     |
 
-**Implementation note:** All new v1.1 fields are populated from the homepage fetch + HTML parse + response headers already performed for the original 19 fields. No extra network round-trips for the core contract.
+**Implementation note:** v1.1 and v1.3 fields are populated from the homepage fetch + HTML parse + response headers already performed for the original 19 fields. No extra network round-trips for the core contract.
 
 When extending, keep this file and the `FIELD_ORDER` list in the script in sync.

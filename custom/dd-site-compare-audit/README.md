@@ -1,6 +1,6 @@
 # dd-site-compare — Website Comparison Dashboard Skill
 
-Compare 2+ websites into a **self-contained HTML + JSON dashboard**. One pure-stdlib Python CLI fetches each homepage (plus linked resources), extracts **31 quantitative + qualitative signals**, and injects them into an ldnddev Framework dashboard (bundled `assets/`, no CDNs) with client-side sort, filter, export, and system (`prefers-color-scheme`) dark mode. Parallel by default (4 workers). No runtime Python dependencies — just system Python 3.
+Compare 2+ websites (or 1 URL after optional peer discovery) into a **self-contained HTML + JSON dashboard**. The first URL is the **primary** site. One pure-stdlib Python CLI fetches each homepage (plus linked resources), extracts **42 quantitative + qualitative signals**, and injects them into an ldnddev Framework dashboard (bundled `assets/`, no CDNs) with client-side sort, filter, export, and system (`prefers-color-scheme`) dark mode. Parallel by default (4 workers). No runtime Python dependencies — just system Python 3.
 
 ## Install — Claude Code plugin
 
@@ -19,7 +19,8 @@ No Python deps to install — the skill uses the standard library only.
 
 | Say | Result |
 |---|---|
-| `compare websites <url> <url>` | full comparison dashboard |
+| `compare websites <url> <url>` | full comparison dashboard (first URL = primary) |
+| `compare this to competitors <url>` | discovery intake, then dashboard |
 | `competitive analysis` | multi-site dashboard |
 | `site audit dashboard` | homepage metrics dashboard |
 | `homepage comparison report` | dashboard + JSON |
@@ -33,12 +34,12 @@ With `--web` (recommended), writes the conventional bundle:
 web/<primary-domain>-compare-audit-YYYY-MM-DD/
 ├── index.html   # dashboard — open in any browser (keep the sibling assets/ folder)
 ├── assets/      # ldnddev Framework build (css/js) — copied in, no CDNs
-└── data.json    # raw 31-field results
+└── data.json    # raw 42-field results
 ```
 
 ## What it measures
 
-URL / final URL / redirected, HTTP status, response time, page size, total load size, resource counts, largest item, trackers, title, meta description, heading (h1/h2/h3) counts, word count, image counts + images missing alt, internal/external link counts, detected technologies, dependency-free keyword phrases, favicon, canonical, JSON-LD count, mobile viewport, server / powered-by headers, and errors. Full contract: [`skills/dd-site-compare/references/fields.md`](skills/dd-site-compare/references/fields.md).
+URL / final URL / redirected, HTTP status, response time, page size, total load size, resource counts, largest item, trackers, title, meta description, homepage headline / subhead / nav labels / CTAs, form field count, offer type, pricing visibility, trust signals, nav page-type presence, heading (h1/h2/h3) counts, word count, image counts + images missing alt, internal/external link counts, detected technologies, dependency-free keyword phrases, favicon, canonical, JSON-LD count, mobile viewport, server / powered-by headers, and errors. Full contract: [`skills/dd-site-compare/references/fields.md`](skills/dd-site-compare/references/fields.md).
 
 ## Quick start (standalone)
 

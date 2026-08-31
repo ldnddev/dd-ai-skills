@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Generate a self-contained HTML dashboard comparing multiple websites.
 
-v1.1: 31 strictly-required fields (added final_url/redirected/word_count/h2/h3/
-images_missing_alt/external_link_count/has_favicon/has_canonical/json_ld_count/
-server/powered_by), parallel analysis (ThreadPoolExecutor, default 4 workers),
-per-site timing + progress, expanded tracker/tech patterns, improved keyword
-scoring (headings), header capture for server/powered_by, and richer a11y/SEO
-signals from the same homepage parse + resource walk. Still pure stdlib.
+v1.3: 42 strictly-required fields. v1.1 added final_url/redirected/word_count/
+h2/h3/images_missing_alt/external_link_count/has_favicon/has_canonical/
+json_ld_count/server/powered_by. v1.3 adds homepage competitive signals
+(h1_text, hero_subhead, nav_labels, primary_cta, cta_texts, cta_count,
+form_field_count, offer_type, pricing_visible, trust_signals, page_types)
+from the same homepage parse — no extra network. Parallel analysis
+(ThreadPoolExecutor, default 4 workers). Still pure stdlib.
 """
 
 from __future__ import annotations
@@ -64,6 +65,17 @@ FIELD_ORDER = [
     "trackers",
     "title",
     "meta_description",
+    "h1_text",
+    "hero_subhead",
+    "nav_labels",
+    "primary_cta",
+    "cta_texts",
+    "cta_count",
+    "form_field_count",
+    "offer_type",
+    "pricing_visible",
+    "trust_signals",
+    "page_types",
     "h1_count",
     "h2_count",
     "h3_count",
@@ -301,6 +313,97 @@ STOPWORDS = {
     "yourselves",
 }
 
+# v1.3: homepage competitive signals (same parse, no extra fetches)
+CTA_PATTERN = re.compile(
+    r"\b("
+    r"free\s+trial|try\s+(it\s+)?free|start\s+(your\s+)?(free\s+)?(trial|now)|"
+    r"get\s+started|book\s+(a\s+)?demo|request\s+(a\s+)?demo|schedule\s+(a\s+)?demo|"
+    r"see\s+(a\s+)?demo|watch\s+(a\s+)?demo|get\s+(a\s+)?demo|"
+    r"contact\s+sales|talk\s+to\s+(sales|us|an?\s+expert)|"
+    r"request\s+(a\s+)?quote|get\s+a\s+quote|"
+    r"sign\s*up|create\s+(an?\s+)?account|register|"
+    r"buy\s+now|subscribe|request\s+access|join\s+(now|free|us)|"
+    r"start\s+building|try\s+(it|now)"
+    r")\b",
+    re.I,
+)
+CTA_SKIP_PATTERN = re.compile(
+    r"(?:"
+    r"^(?:log\s*in|log\s*out|sign\s*in|sign\s*out|my\s+account|account|cart|"
+    r"basket|search|menu|close|skip\s+to\b.*|accept(?:\s+all)?(?:\s+cookies)?|"
+    r"reject(?:\s+all)?|cookie(?:\s+settings)?|privacy\s+settings|"
+    r"learn\s+more|read\s+more|see\s+more|view\s+all|show\s+more)$"
+    r"|\bsubmenu"
+    r"|\b(?:open|close|toggle)\s+(?:menu|nav|navigation|search)\b"
+    r")",
+    re.I,
+)
+BUTTON_CLASS_PATTERN = re.compile(
+    r"\bbtn\b|\bbutton\b|\bcta\b|btn-|button-|dd-button",
+    re.I,
+)
+HERO_SKIP_PATTERN = re.compile(
+    r"we use cookies|cookie policy|privacy policy|accept cookies|this site uses cookies",
+    re.I,
+)
+VISIBLE_PRICE_PATTERN = re.compile(
+    r"(?:[$£€]\s?\d|\b(?:usd|eur|gbp)\s?\d|"
+    r"\d[\d,]*(?:\.\d+)?\s?(?:/\s*mo\b|per\s+month|/month|per\s+user))",
+    re.I,
+)
+INPUT_FIELD_TYPES = {
+    "",
+    "text",
+    "email",
+    "tel",
+    "password",
+    "number",
+    "search",
+    "url",
+    "date",
+    "datetime-local",
+    "month",
+    "week",
+    "time",
+    "checkbox",
+    "radio",
+    "file",
+    "color",
+    "range",
+}
+SKIP_INPUT_TYPES = {"hidden", "submit", "button", "reset", "image"}
+CHROME_CLASS_PATTERN = re.compile(
+    r"\b(navbar|nav-bar|main-nav|main-menu|primary-nav|site-nav|global-nav|"
+    r"nav-menu|site-header|masthead|site-footer)\b",
+    re.I,
+)
+VOID_TAGS = {
+    "area", "base", "br", "col", "embed", "hr", "img", "input",
+    "link", "meta", "param", "source", "track", "wbr",
+}
+
+# (page_type, href patterns, label patterns) — nav/header links only
+PAGE_TYPE_RULES: Sequence[Tuple[str, Sequence[str], Sequence[str]]] = (
+    ("pricing", (r"/pricing\b", r"/plans?\b", r"/packages?\b"), (r"\bpricing\b", r"\bplans\b", r"\bpackages\b")),
+    ("features", (r"/features?\b", r"/product(?:s)?\b", r"/platform\b", r"/capabilities\b"), (r"\bfeatures?\b", r"\bproduct\b", r"\bplatform\b")),
+    ("integrations", (r"/integrations?\b", r"/apps\b", r"/connectors?\b", r"/marketplace\b"), (r"\bintegrations?\b", r"\bmarketplace\b")),
+    ("alternatives", (r"/alternatives?\b", r"/compare\b", r"/vs\b", r"/competitors?\b"), (r"\balternatives?\b", r"\bcompare\b")),
+    ("blog", (r"/blog\b", r"/news\b", r"/articles?\b", r"/resources?\b", r"/learn\b"), (r"\bblog\b", r"\bnews\b", r"\bresources?\b")),
+    ("docs", (r"/docs?\b", r"/documentation\b", r"/help\b", r"/developers?\b", r"/api\b", r"/guides?\b"), (r"\bdocs?\b", r"\bdocumentation\b", r"\bhelp center\b", r"\bdevelopers?\b")),
+    ("changelog", (r"/changelog\b", r"/releases?\b", r"/whats-new\b", r"/roadmap\b", r"/updates?\b"), (r"\bchangelog\b", r"\breleases?\b", r"\bwhat.?s new\b", r"\broadmap\b")),
+)
+TRUST_PATTERNS: Dict[str, Sequence[str]] = {
+    "G2": [r"g2\.com", r"g2crowd", r"\bg2 leader\b", r"\bg2 crowd\b"],
+    "Capterra": [r"capterra"],
+    "Trustpilot": [r"trustpilot"],
+    "Gartner": [r"gartner\.com", r"magic quadrant"],
+    "Clutch": [r"clutch\.co"],
+    "SOC 2": [r"\bsoc\s*2\b", r"soc-2"],
+    "ISO 27001": [r"iso\s*27001", r"iso27001"],
+    "PCI DSS": [r"\bpci[-\s]?dss\b"],
+    "As seen in": [r"\bas seen in\b"],
+}
+
 
 @dataclass
 class FetchResult:
@@ -338,6 +441,17 @@ class SiteResult:
     trackers: List[str] = field(default_factory=list)
     title: Optional[str] = None
     meta_description: Optional[str] = None
+    h1_text: Optional[str] = None
+    hero_subhead: Optional[str] = None
+    nav_labels: List[str] = field(default_factory=list)
+    primary_cta: Optional[str] = None
+    cta_texts: List[str] = field(default_factory=list)
+    cta_count: int = 0
+    form_field_count: int = 0
+    offer_type: str = "unknown"
+    pricing_visible: bool = False
+    trust_signals: List[str] = field(default_factory=list)
+    page_types: List[str] = field(default_factory=list)
     h1_count: int = 0
     h2_count: int = 0
     h3_count: int = 0
@@ -376,6 +490,17 @@ class SiteResult:
             "trackers": self.trackers,
             "title": self.title,
             "meta_description": self.meta_description,
+            "h1_text": self.h1_text,
+            "hero_subhead": self.hero_subhead,
+            "nav_labels": self.nav_labels,
+            "primary_cta": self.primary_cta,
+            "cta_texts": self.cta_texts,
+            "cta_count": self.cta_count,
+            "form_field_count": self.form_field_count,
+            "offer_type": self.offer_type,
+            "pricing_visible": bool(self.pricing_visible),
+            "trust_signals": self.trust_signals,
+            "page_types": self.page_types,
             "h1_count": self.h1_count,
             "h2_count": self.h2_count,
             "h3_count": self.h3_count,
@@ -424,7 +549,23 @@ class ParsedHTML(HTMLParser):
         self.has_canonical = False  # v1.1
         self.json_ld_count = 0  # v1.1
         self._in_heading = False  # v1.1 temp flag for data capture
-        self._current_link_rels: List[str] = []  # temp during tag (unused but kept for future)
+        # v1.3 competitive-signal capture
+        self.h1_texts: List[str] = []
+        self.h2_texts: List[str] = []
+        self.flow: List[Tuple[str, str]] = []  # (h1|h2|p, text) outside nav/footer
+        self.links: List[Dict[str, object]] = []
+        self.buttons: List[str] = []
+        self.form_field_count = 0
+        self._open: List[Tuple[str, Optional[str]]] = []
+        self._skip_depth = 0
+        self._form_depth = 0
+        self._current_heading_tag: Optional[str] = None
+        self._current_heading_parts: List[str] = []
+        self._current_p_parts: List[str] = []
+        self._current_link: Optional[Dict[str, object]] = None
+        self._link_parts: List[str] = []
+        self._current_button = False
+        self._button_parts: List[str] = []
 
     @property
     def title(self) -> Optional[str]:
@@ -440,14 +581,65 @@ class ParsedHTML(HTMLParser):
         # v1.1: headings (h1/h2/h3) for better keyword extraction + word_count
         return " ".join(" ".join(self.heading_parts).split())
 
+    def _in_region(self, *kinds: str) -> bool:
+        return any(kind in kinds for _tag, kind in self._open if kind)
+
+    def _chrome_kind(self, tag: str, attrs_dict: Dict[str, str]) -> Optional[str]:
+        role = attrs_dict.get("role", "").lower()
+        if tag == "nav" or role == "navigation":
+            return "nav"
+        if tag == "header" or role == "banner":
+            return "header"
+        if tag == "footer" or role == "contentinfo":
+            return "footer"
+        blob = f"{attrs_dict.get('class', '')} {attrs_dict.get('id', '')}"
+        match = CHROME_CLASS_PATTERN.search(blob)
+        if not match:
+            return None
+        token = match.group(1).lower()
+        if "footer" in token:
+            return "footer"
+        if "header" in token or token == "masthead":
+            return "header"
+        return "nav"
+
+    def _push_open(self, tag: str, attrs_dict: Dict[str, str]) -> None:
+        if tag in VOID_TAGS:
+            return
+        self._open.append((tag, self._chrome_kind(tag, attrs_dict)))
+
+    def _pop_open(self, tag: str) -> None:
+        if tag in VOID_TAGS:
+            return
+        for index in range(len(self._open) - 1, -1, -1):
+            if self._open[index][0] == tag:
+                del self._open[index:]
+                return
+
+    def _is_button_like(self, attrs_dict: Dict[str, str]) -> bool:
+        if attrs_dict.get("role", "").lower() == "button":
+            return True
+        return bool(BUTTON_CLASS_PATTERN.search(attrs_dict.get("class", "")))
+
+    def handle_startendtag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+        self.handle_starttag(tag, attrs)
+        self.handle_endtag(tag)
+
     def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
         tag = tag.lower()
         attrs_dict = {name.lower(): value or "" for name, value in attrs}
+
+        if tag in ("script", "style"):
+            self._skip_depth += 1
+        self._push_open(tag, attrs_dict)
+        if tag == "form":
+            self._form_depth += 1
 
         if tag == "title":
             self.in_title = True
         elif tag == "p":
             self.paragraph_depth += 1
+            self._current_p_parts = []
         elif tag in ("h1", "h2", "h3"):
             # v1.1 counts + capture text for keywords/word_count
             if tag == "h1":
@@ -456,8 +648,9 @@ class ParsedHTML(HTMLParser):
                 self.h2_count += 1
             else:
                 self.h3_count += 1
-            # store a marker so data handler knows to capture into heading_parts
-            self._in_heading = True  # type: ignore[attr-defined]
+            self._in_heading = True
+            self._current_heading_tag = tag
+            self._current_heading_parts = []
         elif tag == "meta":
             name = attrs_dict.get("name", "").lower()
             prop = attrs_dict.get("property", "").lower()
@@ -472,7 +665,37 @@ class ParsedHTML(HTMLParser):
                 pass
         elif tag == "a":
             self.link_count += 1
-            # external count computed later with base host in analyze_site
+            if self._current_link is not None:
+                self._finish_link()
+            self._current_link = {
+                "href": attrs_dict.get("href", ""),
+                "in_nav": self._in_region("nav", "header"),
+                "in_footer": self._in_region("footer"),
+                "button_like": self._is_button_like(attrs_dict),
+                "aria": attrs_dict.get("aria-label", "").strip(),
+            }
+            self._link_parts = []
+        elif tag == "button":
+            if self._skip_depth:
+                pass
+            else:
+                self._current_button = True
+                self._button_parts = []
+                aria = attrs_dict.get("aria-label", "").strip()
+                if aria:
+                    self._button_parts.append(aria)
+        elif tag == "input":
+            input_type = attrs_dict.get("type", "").strip().lower()
+            if input_type in SKIP_INPUT_TYPES:
+                if input_type in {"submit", "button"} and self._form_depth:
+                    label = (attrs_dict.get("value") or attrs_dict.get("aria-label") or "").strip()
+                    if label:
+                        self.buttons.append(label)
+            elif self._form_depth and (input_type in INPUT_FIELD_TYPES or input_type not in SKIP_INPUT_TYPES):
+                self.form_field_count += 1
+        elif tag in ("select", "textarea"):
+            if self._form_depth and not self._skip_depth:
+                self.form_field_count += 1
         elif tag == "img":
             self.image_count += 1
             alt = (attrs_dict.get("alt") or "").strip()
@@ -487,6 +710,8 @@ class ParsedHTML(HTMLParser):
                     "alt": alt or None,
                 }
             )
+            if self._current_link is not None and alt and not self._link_parts:
+                self._link_parts.append(alt)
         elif tag == "script":
             src = attrs_dict.get("src")
             typ = attrs_dict.get("type", "").lower()
@@ -514,30 +739,264 @@ class ParsedHTML(HTMLParser):
             if srcset:
                 self.sources.extend(parse_srcset(srcset))
 
+    def _finish_link(self) -> None:
+        if self._current_link is None:
+            return
+        text = " ".join("".join(self._link_parts).split())
+        if not text:
+            text = str(self._current_link.get("aria") or "")
+        self._current_link["text"] = text
+        self.links.append(self._current_link)
+        self._current_link = None
+        self._link_parts = []
+
+    def _finish_heading(self) -> None:
+        text = " ".join("".join(self._current_heading_parts).split())
+        tag = self._current_heading_tag
+        if tag == "h1" and text:
+            self.h1_texts.append(text)
+        elif tag == "h2" and text:
+            self.h2_texts.append(text)
+        if tag in ("h1", "h2") and text and not self._in_region("nav", "footer") and not self._skip_depth:
+            self.flow.append((tag, text))
+        self._current_heading_tag = None
+        self._current_heading_parts = []
+        self._in_heading = False
+
+    def _finish_paragraph(self) -> None:
+        text = " ".join("".join(self._current_p_parts).split())
+        if text and not self._in_region("nav", "footer") and not self._skip_depth:
+            self.flow.append(("p", text))
+        self._current_p_parts = []
+
     def handle_endtag(self, tag: str) -> None:
         tag = tag.lower()
         if tag == "title":
             self.in_title = False
         elif tag == "p" and self.paragraph_depth:
             self.paragraph_depth -= 1
+            self._finish_paragraph()
         elif tag in ("h1", "h2", "h3"):
-            self._in_heading = False
+            self._finish_heading()
+        elif tag == "a":
+            self._finish_link()
+        elif tag == "button":
+            if self._current_button:
+                text = " ".join("".join(self._button_parts).split())
+                if text:
+                    self.buttons.append(text)
+            self._current_button = False
+            self._button_parts = []
+        elif tag == "form" and self._form_depth:
+            self._form_depth -= 1
         elif tag == "script" and self.capture_script:
             script_text = "".join(self.current_script_parts)
             if script_text.strip():
                 self.inline_scripts.append(script_text)
             self.capture_script = False
             self.current_script_parts = []
+        if tag in ("script", "style") and self._skip_depth:
+            self._skip_depth -= 1
+        self._pop_open(tag)
 
     def handle_data(self, data: str) -> None:
         if self.in_title:
             self.title_parts.append(data)
         if self.paragraph_depth:
             self.paragraph_parts.append(data)
+            self._current_p_parts.append(data)
         if getattr(self, "_in_heading", False):
             self.heading_parts.append(data)
+            self._current_heading_parts.append(data)
         if self.capture_script:
             self.current_script_parts.append(data)
+        if self._current_link is not None and not self._skip_depth:
+            self._link_parts.append(data)
+        if self._current_button and not self._skip_depth:
+            self._button_parts.append(data)
+
+
+def _clip(text: Optional[str], limit: int = 240) -> Optional[str]:
+    if not text:
+        return None
+    collapsed = " ".join(text.split())
+    if not collapsed:
+        return None
+    if len(collapsed) <= limit:
+        return collapsed
+    trimmed = collapsed[: limit - 1].rsplit(" ", 1)[0].rstrip(",;:-")
+    return (trimmed or collapsed[: limit - 1]) + "…"
+
+
+def _unique_keep(values: Iterable[str], limit: int) -> List[str]:
+    seen: Set[str] = set()
+    out: List[str] = []
+    for raw in values:
+        text = " ".join((raw or "").split())
+        if not text:
+            continue
+        key = text.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(text)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _is_hero_candidate(text: str, h1_text: Optional[str]) -> bool:
+    collapsed = " ".join(text.split())
+    if len(collapsed) < 20:
+        return False
+    if h1_text and collapsed.casefold() == h1_text.casefold():
+        return False
+    if HERO_SKIP_PATTERN.search(collapsed):
+        return False
+    return True
+
+
+def _classify_offer(text: str) -> Optional[str]:
+    lowered = text.lower()
+    if re.search(r"\b(free\s+trial|try\s+(it\s+)?free|start\s+.*\bfree\b|\btrial\b)\b", lowered):
+        return "trial"
+    if re.search(r"\bdemo\b", lowered):
+        return "demo"
+    if re.search(
+        r"\b(contact\s+sales|talk\s+to\s+sales|request\s+(a\s+)?quote|get\s+a\s+quote|"
+        r"talk\s+to\s+(an?\s+)?expert)\b",
+        lowered,
+    ):
+        return "contact_sales"
+    if re.search(
+        r"\b(sign\s*up|register|create\s+(an?\s+)?account|get\s+started|join\s+(now|free|us))\b",
+        lowered,
+    ):
+        return "signup"
+    return None
+
+
+def _is_cta_label(text: str, button_like: bool) -> bool:
+    collapsed = " ".join(text.split())
+    if len(collapsed) < 2 or len(collapsed) > 60:
+        return False
+    if CTA_SKIP_PATTERN.search(collapsed):
+        return False
+    if CTA_PATTERN.search(collapsed):
+        return True
+    return bool(button_like)
+
+
+def _page_types_from_links(links: Sequence[Dict[str, object]]) -> List[str]:
+    found: List[str] = []
+    seen: Set[str] = set()
+    nav_links = [link for link in links if link.get("in_nav")]
+    for name, href_pats, label_pats in PAGE_TYPE_RULES:
+        for link in nav_links:
+            href = str(link.get("href") or "")
+            label = str(link.get("text") or "")
+            href_hit = any(re.search(pat, href, flags=re.I) for pat in href_pats)
+            label_hit = any(re.search(pat, label, flags=re.I) for pat in label_pats)
+            if href_hit or label_hit:
+                if name not in seen:
+                    seen.add(name)
+                    found.append(name)
+                break
+    return found
+
+
+def derive_competitive_signals(parser: ParsedHTML, html_text: str) -> Dict[str, object]:
+    """Homepage positioning / conversion / page-type fields from one parse."""
+    h1_text = _clip(parser.h1_texts[0], 240) if parser.h1_texts else None
+
+    hero_subhead: Optional[str] = None
+    seen_h1 = False
+    for kind, text in parser.flow:
+        if kind == "h1":
+            seen_h1 = True
+            continue
+        if seen_h1 and kind in ("p", "h2") and _is_hero_candidate(text, h1_text):
+            hero_subhead = _clip(text, 280)
+            break
+    if hero_subhead is None:
+        for kind, text in parser.flow:
+            if kind == "p" and _is_hero_candidate(text, h1_text):
+                hero_subhead = _clip(text, 280)
+                break
+
+    nav_labels = _unique_keep(
+        (str(link.get("text") or "") for link in parser.links if link.get("in_nav")),
+        24,
+    )
+    nav_labels = [label for label in nav_labels if 1 <= len(label) <= 60]
+
+    cta_candidates: List[Tuple[str, bool, bool]] = []  # text, in_nav, conversion_hit
+    for link in parser.links:
+        text = str(link.get("text") or "")
+        button_like = bool(link.get("button_like"))
+        if _is_cta_label(text, button_like):
+            cta_candidates.append((text, bool(link.get("in_nav")), bool(CTA_PATTERN.search(text))))
+    for text in parser.buttons:
+        if _is_cta_label(text, True):
+            cta_candidates.append((text, False, bool(CTA_PATTERN.search(text))))
+
+    cta_texts = _unique_keep((text for text, _nav, _conv in cta_candidates), 12)
+
+    primary_cta: Optional[str] = None
+    for text, in_nav, conv in cta_candidates:
+        if in_nav and conv:
+            primary_cta = _clip(text, 80)
+            break
+    if primary_cta is None:
+        for text, _in_nav, conv in cta_candidates:
+            if conv:
+                primary_cta = _clip(text, 80)
+                break
+    if primary_cta is None and cta_texts:
+        primary_cta = _clip(cta_texts[0], 80)
+
+    offer_type = "unknown"
+    for source in (primary_cta, *cta_texts, h1_text, hero_subhead):
+        if not source:
+            continue
+        classified = _classify_offer(source)
+        if classified:
+            offer_type = classified
+            break
+
+    visible_bits = [
+        h1_text or "",
+        hero_subhead or "",
+        parser.heading_text,
+        parser.paragraph_text,
+        " ".join(str(link.get("text") or "") for link in parser.links),
+        " ".join(parser.buttons),
+    ]
+    page_types = _page_types_from_links(parser.links)
+    pricing_visible = bool(VISIBLE_PRICE_PATTERN.search(" ".join(visible_bits))) or ("pricing" in page_types)
+
+    trust_inputs = [
+        html_text,
+        " ".join(img.get("alt") or "" for img in parser.images),
+        " ".join(str(link.get("href") or "") for link in parser.links),
+        parser.paragraph_text,
+        parser.heading_text,
+    ]
+    trust_signals = sorted(detect_patterns(TRUST_PATTERNS, trust_inputs))
+
+    return {
+        "h1_text": h1_text,
+        "hero_subhead": hero_subhead,
+        "nav_labels": nav_labels,
+        "primary_cta": primary_cta,
+        "cta_texts": cta_texts,
+        "cta_count": len(cta_texts),
+        "form_field_count": parser.form_field_count,
+        "offer_type": offer_type,
+        "pricing_visible": pricing_visible,
+        "trust_signals": trust_signals,
+        "page_types": page_types,
+    }
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
@@ -800,6 +1259,10 @@ def analyze_site(
     result.has_favicon = parser.has_favicon
     result.has_canonical = parser.has_canonical
     result.json_ld_count = parser.json_ld_count
+
+    signals = derive_competitive_signals(parser, html_text)
+    for key, value in signals.items():
+        setattr(result, key, value)
 
     # v1.1: compute external links using final base host
     base_url = homepage.final_url or url
@@ -1122,8 +1585,10 @@ def is_redundant_keyword(phrase: str, selected: Sequence[str]) -> bool:
 
 
 def build_dashboard_payload(results: Sequence[SiteResult], generated_at: str) -> Dict[str, object]:
+    primary_url = results[0].url if results else ""
     return {
         "generated_at": generated_at,
+        "primary_url": primary_url,
         "field_order": FIELD_ORDER,
         "results": [result.to_output_row() for result in results],
     }

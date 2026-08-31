@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Tiny verification harness for dd-site-compare (v1.1+).
+"""Tiny verification harness for dd-site-compare (v1.3+).
 
-Runs the CLI against stable public URLs (homepage-only for speed/reliability),
-asserts the full contract from references/fields.md (plus new v1.1 fields),
-basic types per row, and that HTML output is generated.
+Runs an offline HTML fixture for v1.3 competitive signals, then the CLI
+against stable public URLs (homepage-only for speed/reliability), asserts
+the full contract from references/fields.md, basic types per row, and that
+HTML output is generated.
 
 Usage:
   python3 scripts/verify.py
@@ -27,6 +28,51 @@ DEFAULT_URLS = [
     "https://example.org",
     "https://www.iana.org",
 ]
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+
+FIXTURE_HTML = """<!doctype html>
+<html lang="en">
+<head>
+  <title>Acme CRM</title>
+  <meta name="description" content="CRM for small contractor teams">
+  <meta name="viewport" content="width=device-width">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="canonical" href="https://acme.example/">
+</head>
+<body>
+  <header class="site-header">
+    <nav>
+      <a href="/features">Features</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/integrations">Integrations</a>
+      <a href="/blog">Blog</a>
+      <a href="/docs">Docs</a>
+      <a href="/changelog">Changelog</a>
+      <a href="/alternatives">Alternatives</a>
+      <a href="/login">Log in</a>
+      <a href="/demo" class="btn">Book a demo</a>
+      <button class="btn" type="button">Open menu</button>
+      <button class="btn" type="button">Resources submenuResources</button>
+    </nav>
+  </header>
+  <main>
+    <h1>The CRM built for contractors</h1>
+    <p>Win more jobs with proposals, scheduling, and invoicing in one place.</p>
+    <a class="cta-primary" href="/signup">Start free trial</a>
+    <form action="/signup">
+      <input type="email" name="email">
+      <input type="text" name="name">
+      <input type="hidden" name="csrf" value="x">
+      <button type="submit">Get started</button>
+    </form>
+    <img alt="G2 Leader Summer 2025" src="/g2.png">
+    <a href="https://www.g2.com/products/acme">Read G2 reviews</a>
+    <p>Plans from $49/month. SOC 2 Type II certified.</p>
+  </main>
+</body>
+</html>
+"""
 
 
 def load_contract_fields() -> List[str]:
@@ -60,11 +106,65 @@ def load_contract_fields() -> List[str]:
         "link_count", "external_link_count", "technologies", "keywords",
         "mobile_responsive", "has_favicon", "has_canonical", "json_ld_count",
         "word_count", "server", "powered_by", "error",
+        "h1_text", "hero_subhead", "nav_labels", "primary_cta", "cta_texts",
+        "cta_count", "form_field_count", "offer_type", "pricing_visible",
+        "trust_signals", "page_types",
     ]
     for m in must:
         if m not in seen:
             out.append(m)
     return out
+
+
+def _check_positioning_fixture() -> str:
+    import compare_websites as cw
+
+    parser = cw.ParsedHTML()
+    parser.feed(FIXTURE_HTML)
+    signals = cw.derive_competitive_signals(parser, FIXTURE_HTML)
+    expected = {
+        "h1_text": "The CRM built for contractors",
+        "hero_subhead": "Win more jobs with proposals, scheduling, and invoicing in one place.",
+        "primary_cta": "Book a demo",
+        "offer_type": "demo",
+        "form_field_count": 2,
+        "pricing_visible": True,
+    }
+    for key, want in expected.items():
+        got = signals.get(key)
+        if got != want:
+            return f"fixture {key}: expected {want!r}, got {got!r}"
+
+    nav = signals["nav_labels"]
+    for label in ("Features", "Pricing", "Integrations", "Blog", "Docs", "Changelog", "Alternatives"):
+        if label not in nav:
+            return f"fixture nav_labels missing {label!r}: {nav!r}"
+
+    cta_texts = signals["cta_texts"]
+    for label in ("Book a demo", "Start free trial"):
+        if label not in cta_texts:
+            return f"fixture cta_texts missing {label!r}: {cta_texts!r}"
+    if "Log in" in cta_texts:
+        return f"fixture cta_texts should skip login: {cta_texts!r}"
+    for noise in ("Open menu", "Resources submenuResources"):
+        if noise in cta_texts:
+            return f"fixture cta_texts should skip chrome control {noise!r}: {cta_texts!r}"
+
+    page_types = set(signals["page_types"])
+    missing_types = {
+        "pricing", "features", "integrations", "alternatives", "blog", "docs", "changelog"
+    } - page_types
+    if missing_types:
+        return f"fixture page_types missing {sorted(missing_types)}: {signals['page_types']!r}"
+
+    trust = set(signals["trust_signals"])
+    if "G2" not in trust or "SOC 2" not in trust:
+        return f"fixture trust_signals expected G2 and SOC 2, got {signals['trust_signals']!r}"
+
+    if int(signals["cta_count"]) != len(cta_texts):
+        return f"fixture cta_count {signals['cta_count']!r} != len(cta_texts) {len(cta_texts)}"
+
+    return ""
 
 
 def run_cli(urls: List[str], *, skip_resources: bool = True, workers: int = 2) -> dict:
@@ -100,10 +200,23 @@ def main(argv: List[str] | None = None) -> int:
     contract = load_contract_fields()
     print(f"Contract fields ({len(contract)}): {', '.join(contract[:6])} ...")
 
+    fixture_error = _check_positioning_fixture()
+    if fixture_error:
+        print(fixture_error)
+        return 1
+    print("OK: offline positioning fixture")
+
     res = run_cli(args.urls, workers=args.workers)
     payload = res["json"]
     results = payload.get("results", [])
     field_order = payload.get("field_order", [])
+
+    if not results:
+        print("no results")
+        return 1
+    if payload.get("primary_url") != results[0]["URL"]:
+        print(f"primary_url {payload.get('primary_url')!r} != first row {results[0]['URL']!r}")
+        return 1
 
     # 1. field_order contains the full contract
     missing = [f for f in contract if f not in field_order]
@@ -129,6 +242,30 @@ def main(argv: List[str] | None = None) -> int:
             return 1
         if row.get("word_count", 0) is not None and not isinstance(row.get("word_count"), int):
             print("word_count not int")
+            return 1
+        if not isinstance(row.get("nav_labels", []), list):
+            print("nav_labels not list")
+            return 1
+        if not isinstance(row.get("cta_texts", []), list):
+            print("cta_texts not list")
+            return 1
+        if not isinstance(row.get("cta_count", 0), int):
+            print("cta_count not int")
+            return 1
+        if not isinstance(row.get("form_field_count", 0), int):
+            print("form_field_count not int")
+            return 1
+        if not isinstance(row.get("offer_type", ""), str):
+            print("offer_type not str")
+            return 1
+        if not isinstance(row.get("pricing_visible", False), bool):
+            print("pricing_visible not bool")
+            return 1
+        if not isinstance(row.get("trust_signals", []), list):
+            print("trust_signals not list")
+            return 1
+        if not isinstance(row.get("page_types", []), list):
+            print("page_types not list")
             return 1
 
     # 3. HTML was produced and contains key strings

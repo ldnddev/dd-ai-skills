@@ -37,6 +37,8 @@
     .app-pill-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem; }
     .app-charts { display: flex; flex-direction: column; gap: 1.25rem; }
     .app-error { border: 1px solid CanvasText; padding: .75rem 1rem; margin: 1rem 0; }
+    .dd-data-table__th.-primary,
+    .dd-data-table__td.-primary { box-shadow: inset 3px 0 0 CanvasText; }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
   </style>
 </head>
@@ -58,7 +60,7 @@
             <img src="{{AGENCY_LOGO}}" alt="ldnddev, LLC. logo" class="dd-img">
           </picture>
           <h1>Website Comparison Dashboard</h1>
-          <p class="muted">Generated <span id="generated-at">…</span> · homepage + direct resources only (no JS execution)</p>
+          <p class="muted">Generated <span id="generated-at">…</span> · Primary: <span id="primary-label">…</span> · homepage + direct resources only (no JS execution)</p>
         </div>
       </div>
     </div>
@@ -154,11 +156,13 @@
         ["css_file_count", "CSS File Count", "count"],
         ["h1_count", "H1 Count", "count"],
         ["word_count", "Word Count (v1.1)", "count"],
+        ["cta_count", "CTA Count", "count"],
+        ["form_field_count", "Form Field Count", "count"],
         ["image_count", "Image Count", "count"],
         ["link_count", "Link Count", "count"]
       ];
 
-      let dashboard, rows, fields;
+      let dashboard, rows, fields, primaryUrl;
       // Row registries so filtering hides rows in place (no tbody rebuild →
       // framework sort order and focused sort button both survive).
       let comparisonRows = [];   // { field, tr }
@@ -187,6 +191,20 @@
         if (status) status.textContent = message;
       }
 
+      function isPrimary(row) {
+        return !!(row && primaryUrl && row.URL === primaryUrl);
+      }
+
+      function siteHeading(row) {
+        const wrap = document.createDocumentFragment();
+        wrap.append(document.createTextNode(shortUrl(row.URL)));
+        if (isPrimary(row)) {
+          wrap.append(document.createTextNode(" "));
+          wrap.append(badge("", "Primary"));
+        }
+        return wrap;
+      }
+
       // --- summary --------------------------------------------------------
       function renderSummary() {
         const successful = rows.filter((row) => row.status_code >= 200 && row.status_code < 400).length;
@@ -196,6 +214,7 @@
         const fastest = timedRows.length ? timedRows.slice().sort((a, b) => a.response_time - b.response_time)[0] : null;
         const largest = sizedRows.length ? sizedRows.slice().sort((a, b) => b.total_page_load_size - a.total_page_load_size)[0] : null;
         const items = [
+          ["Primary site", primaryUrl ? shortUrl(primaryUrl) : "N/A"],
           ["Websites Compared", String(rows.length)],
           ["Successful Responses", String(successful)],
           ["Fastest Homepage", fastest ? `${shortUrl(fastest.URL)} (${fastest.response_time.toFixed(2)}s)` : "N/A"],
@@ -230,7 +249,7 @@
           values.forEach(([row, value]) => {
             const percent = Math.max((value / maxValue) * 100, 1);
             const li = mk("li", "dd-bar-chart__row");
-            li.append(mk("span", "dd-bar-chart__label", shortUrl(row.URL)));
+            li.append(mk("span", "dd-bar-chart__label", isPrimary(row) ? `${shortUrl(row.URL)} (primary)` : shortUrl(row.URL)));
             const track = mk("span", "dd-bar-chart__track", "", { "aria-hidden": "true" });
             const fill = mk("span", "dd-bar-chart__fill");
             fill.style.inlineSize = `${percent.toFixed(2)}%`;
@@ -271,9 +290,14 @@
         const thead = mk("thead");
         const headRow = mk("tr");
         headRow.append(mk("th", "dd-data-table__th", "Field"));
-        rows.forEach((row) => headRow.append(
-          mk("th", "dd-data-table__th", shortUrl(row.URL), { scope: "col", title: row.URL })
-        ));
+        rows.forEach((row) => {
+          const th = mk("th", isPrimary(row) ? "dd-data-table__th -primary" : "dd-data-table__th", "", {
+            scope: "col",
+            title: isPrimary(row) ? `${row.URL} (primary)` : row.URL
+          });
+          th.append(siteHeading(row));
+          headRow.append(th);
+        });
         thead.append(headRow);
         table.append(thead);
 
@@ -282,7 +306,7 @@
         fields.forEach((fieldName) => {
           const tr = mk("tr", "dd-data-table__row");
           tr.append(mk("th", "dd-data-table__td", fieldName, { scope: "row" }));
-          rows.forEach((row) => appendDisplayCell(tr, fieldName, row[fieldName]));
+          rows.forEach((row) => appendDisplayCell(tr, fieldName, row[fieldName], isPrimary(row) ? "-primary" : ""));
           tbody.append(tr);
           comparisonRows.push({ field: fieldName, tr });
         });
@@ -318,10 +342,15 @@
         const tbody = mk("tbody");
         detailRows = [];
         rows.forEach((row) => {
-          const tr = mk("tr", "dd-data-table__row");
+          const tr = mk("tr", isPrimary(row) ? "dd-data-table__row -primary" : "dd-data-table__row");
           fields.forEach((fieldName, i) => {
             if (i === 0) {
-              const th = mk("th", "dd-data-table__td", formatDisplayValue(fieldName, row[fieldName]), { scope: "row" });
+              const th = mk("th", isPrimary(row) ? "dd-data-table__td -primary" : "dd-data-table__td", "", { scope: "row" });
+              th.append(document.createTextNode(formatDisplayValue(fieldName, row[fieldName])));
+              if (isPrimary(row)) {
+                th.append(document.createTextNode(" "));
+                th.append(badge("", "Primary"));
+              }
               tr.append(th);
             } else {
               appendDisplayCell(tr, fieldName, row[fieldName]);
@@ -350,15 +379,17 @@
         });
       }
 
-      function appendDisplayCell(rowElement, fieldName, value) {
-        const cell = mk("td", "dd-data-table__td");
+      function appendDisplayCell(rowElement, fieldName, value, extraClass) {
+        const cell = mk("td", extraClass ? `dd-data-table__td ${extraClass}` : "dd-data-table__td");
         if (fieldName === "status_code") {
           cell.append(statusBadge(value));
-        } else if (["mobile_responsive", "has_favicon", "has_canonical", "redirected"].includes(fieldName)) {
+        } else if (["mobile_responsive", "has_favicon", "has_canonical", "redirected", "pricing_visible"].includes(fieldName)) {
           const boolVal = (value === true || value === "true");
           cell.append(badge(boolVal ? "-pass" : "-critical", boolVal ? "Yes" : "No"));
-        } else if (["trackers", "technologies", "keywords"].includes(fieldName)) {
+        } else if (["trackers", "technologies", "keywords", "nav_labels", "cta_texts", "trust_signals", "page_types"].includes(fieldName)) {
           cell.append(renderPills(value));
+        } else if (fieldName === "offer_type") {
+          cell.append(badge(value && value !== "unknown" ? "-pass" : "", String(value || "unknown")));
         } else {
           cell.textContent = formatDisplayValue(fieldName, value);
         }
@@ -432,7 +463,7 @@
         if (fieldName === "response_time") return typeof value === "number" ? `${value.toFixed(2)} seconds` : "N/A";
         if (fieldName === "page_size" || fieldName === "total_page_load_size") return formatBytes(value);
         if (fieldName === "largest_item") return value ? `${shortUrl(value.url || "N/A")} (${formatBytes(value.bytes)})` : "N/A";
-        if (["trackers", "technologies", "keywords"].includes(fieldName)) return Array.isArray(value) && value.length ? value.join(", ") : "None detected";
+        if (["trackers", "technologies", "keywords", "nav_labels", "cta_texts", "trust_signals", "page_types"].includes(fieldName)) return Array.isArray(value) && value.length ? value.join(", ") : "None detected";
         if (fieldName === "final_url" || fieldName === "URL") return value || "N/A";
         if (fieldName === "error") return value || "None";
         if (value === null || value === undefined || value === "") return "N/A";
@@ -506,7 +537,10 @@
         dashboard = JSON.parse(document.getElementById("dashboard-data").textContent);
         rows = dashboard.results || [];
         fields = dashboard.field_order || [];
+        primaryUrl = dashboard.primary_url || (rows[0] && rows[0].URL) || "";
         document.getElementById("generated-at").textContent = dashboard.generated_at || "unknown";
+        const primaryLabel = document.getElementById("primary-label");
+        if (primaryLabel) primaryLabel.textContent = primaryUrl ? shortUrl(primaryUrl) : "N/A";
         document.getElementById("field-list").textContent = fields.join(", ");
         renderSummary();
         renderCharts();

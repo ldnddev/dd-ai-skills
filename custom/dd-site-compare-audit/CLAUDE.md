@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is **not an application** — it's a packaged agentic **Skill** (`skills/dd-site-compare/SKILL.md` is the entry manifest) loaded by Claude Code, Codex, or other agent IDEs to compare websites into a self-contained dashboard. There is no build system and no service to run. The "code" is two things:
 
-1. **A standalone Python CLI** (`skills/dd-site-compare/scripts/compare_websites.py`) that fetches each homepage + linked resources and emits a 31-field JSON payload. Pure stdlib — **no external packages on the default path**.
+1. **A standalone Python CLI** (`skills/dd-site-compare/scripts/compare_websites.py`) that fetches each homepage + linked resources and emits a 42-field JSON payload plus `primary_url` (first input URL). Pure stdlib — **no external packages on the default path**.
 2. **An HTML template** (`templates/dashboard.html`) the script injects the JSON into to produce an ldnddev Framework dashboard (sort / filter / export, system dark mode). Built on framework components (`dd-header`/`dd-section`/`dd-data-table`/`dd-bar-chart`/`dd-badge`/`dd-footer`); the client JS emits framework markup at runtime and the framework's `dd_data_table` owns column sort + scroll a11y. The compiled framework build lives in `templates/assets/{css,js}` and is copied next to each rendered `index.html` (`copy_template_assets`).
 
 When working in this repo, you are usually editing the skill's instructions, the CLI, the field contract, or the template — not running a comparison.
@@ -36,7 +36,7 @@ python3 scripts/verify.py
 
 ## Field contract
 
-`skills/dd-site-compare/references/fields.md` is the source of truth: **every** field must be present in **every** row (failed fetches populate `error` and keep numeric defaults — never drop a row). Adding a field is a 9-step checklist documented at the bottom of `SKILL.md`; the short version: update `FIELD_ORDER` + the `SiteResult` dataclass + `analyze_site` (incl. the error early-return) + `references/fields.md` + the template display logic, then re-run `verify.py`.
+`skills/dd-site-compare/references/fields.md` is the source of truth: **every** field must be present in **every** row (failed fetches populate `error` and keep numeric defaults — never drop a row). Adding a field is a 9-step checklist documented at the bottom of `SKILL.md`; the short version: update `FIELD_ORDER` + the `SiteResult` dataclass + `analyze_site` (incl. the error early-return) + `references/fields.md` + the template display logic, then re-run `verify.py`. v1.3 competitive signals are derived from the same homepage parse (no extra fetches).
 
 ## Layout notes
 

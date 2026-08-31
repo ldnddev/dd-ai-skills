@@ -4,14 +4,16 @@ description: >
   Generate self-contained HTML dashboards that compare multiple websites by URL, HTTP status,
   response time, page size, total load size, resource counts, largest item, trackers, title,
   meta description, heading/image/link counts, detected technologies, dependency-free keyword
-  phrases, mobile viewport support, server headers, and errors. Supports parallelism and ~31
-  quantitative + qualitative signals.
+  phrases, mobile viewport support, server headers, homepage positioning (headline, subhead,
+  nav, CTAs), conversion signals (forms, offer type, pricing visibility, trust), nav page-type
+  presence, and errors. Supports parallelism and 42 quantitative + qualitative signals.
   When --web is used, automatically writes the HTML (as index.html) + JSON into
   web/<primary-domain>-compare-audit-YYYY-MM-DD/ at the project root.
-  Use when the user pastes 2+ URLs (or a file), asks to "compare websites", "competitive analysis",
-  "site audit dashboard", "homepage comparison report", or invokes /dd-site-compare or $dd-site-compare.
-version: 1.2.2
-when-to-use: "Use for website comparisons, competitive audits, multi-site technical reports, or when a self-contained HTML + JSON dashboard of homepage metrics is needed. Trigger phrases: compare sites, site comparison, website audit, competitive analysis, dashboard for these URLs."
+  Use when the user pastes 1+ URLs (or a file), asks to "compare websites", "competitive analysis",
+  "compare this to competitors", "site audit dashboard", "homepage comparison report", or invokes
+  /dd-site-compare or $dd-site-compare. One URL triggers peer discovery before the dashboard.
+version: 1.4.0
+when-to-use: "Use for website comparisons, competitive audits, multi-site technical reports, or when a self-contained HTML + JSON dashboard of homepage metrics is needed. Trigger phrases: compare sites, site comparison, website audit, competitive analysis, compare this to competitors, dashboard for these URLs."
 argument-hint: "[urls...] [--web] [--urls-file file.txt] [--skip-resources] [--max-resources N] [--workers 4] [--json-output out.json] [-o out.html]"
 ---
 
@@ -19,16 +21,33 @@ argument-hint: "[urls...] [--web] [--urls-file file.txt] [--skip-resources] [--m
 
 **v1.1 adds 12 new strictly-required fields** (final_url, redirected, word_count, h2/h3 counts, images_missing_alt, external_link_count, has_favicon, has_canonical, json_ld_count, server, powered_by), parallel fetching (default 4 workers), client-side sort/filter/export in the dashboard, richer field docs, dark mode, a `scripts/verify.py` harness, and the `--web` flag for automatic `web/<domain>-compare-audit-YYYY-MM-DD/` placement. All prior CLI flags and output shape remain compatible; new fields are always present.
 
+**v1.3 adds 11 homepage competitive signals** (positioning, conversion, nav page-types) from the same parse — no extra network. Names, types, and computation: `references/fields.md`.
+
+**v1.4** marks the first CLI URL as the **primary** site (`primary_url` on the dashboard payload) and adds discovery intake when the user gives one site or unnamed competitors.
+
 ## Workflow
 
-1. Collect the target website URLs from the user prompt, a pasted list, or a text file.
-2. Normalize missing schemes by adding `https://` (the script does this).
-3. Run `scripts/compare_websites.py` (from the skill dir or with absolute path), preferably with `--web` so the output HTML (index.html) and data.json are placed in the conventional project-level location:
+1. Collect URLs from the prompt, a pasted list, or a text file. **The first URL is the primary site** (your client / the site under review). Remaining URLs are peers.
+2. If there is only one URL, or the user asked to compare against competitors without naming them, run **Discovery intake** below and **wait** for confirmation (or an explicit skip) before step 3.
+3. Run `scripts/compare_websites.py` with the **primary URL first**, then confirmed peers, preferably with `--web`:
    `web/<first-domain>-compare-audit-YYYY-MM-DD/`
    (e.g. `web/example.com-compare-audit-2025-06-02/index.html`).
-   This follows the required naming convention for web-served audits.
-4. **Run `python3 scripts/verify.py`** (or the manual equivalent in the Verification section) and confirm the output includes **every field** listed in the current `references/fields.md` (the contract is now 31 fields).
-5. Report the generated HTML (and JSON) path(s). Explicitly note any URLs that failed or redirected. Mention that the dashboard opens in any browser with no server, as long as its sibling `assets/` folder (framework css/js, copied in by the script) travels with `index.html`.
+4. Confirm `data.json` includes `primary_url` (matching the first URL) and **every field** in `references/fields.md` for every row.
+5. Report the generated HTML (and JSON) path(s). Note failed or redirected URLs. The dashboard opens in any browser if its sibling `assets/` folder travels with `index.html`.
+6. Read `data.json` and add a short **gap note** framed as **primary vs peers** (a few bullets, not a narrative report): sharpest/most specific promise (`h1_text` + `hero_subhead`); offer friction (`offer_type`, `form_field_count`, `pricing_visible`); missing `page_types` vs the set; stronger `trust_signals`. Tone and “lead-with” (features vs outcomes vs price vs brand) are judgment over those extracted strings — do not invent metrics the script did not emit.
+
+## Discovery intake
+
+Use this when the compare set is incomplete. **Do not** pick peers inside the Python CLI, call paid traffic/SEO APIs, or run the dashboard until the set is confirmed.
+
+1. Keep the given URL as primary (it stays first on the CLI).
+2. Propose **4–8** candidates as a table: URL · Kind · Why (one line) · Source.
+   - **Direct** — same offer and buyer
+   - **Adjacent** — same category, different wedge
+   - **SERP/content** — competes for keywords; may not sell the same thing
+3. Sources, in order: primary homepage (`/alternatives`, `/compare`, vs pages, “unlike …”, peer logos, G2/Capterra category); web search (`[category] alternatives`, `best [category]`, `[name] vs`); model knowledge only as a hypothesis, labeled that way.
+4. Recommend **primary + 2–4 Direct** (then Adjacent). List the rest as optional, not in this run. If Direct and SERP/content are both included, keep Kind in the gap note.
+5. If the user skips discovery or says “just this URL”, run primary-only.
 
 ## Quick Start
 
@@ -91,10 +110,11 @@ python3 scripts/verify.py
 - The HTML dashboard lives in the sibling `../../templates/dashboard.html`. Edit the template for visual/layout changes; the Python only supplies the JSON payload.
 - `--skip-resources` is the fast path for many URLs or when subresource fetching is blocked/slow.
 - `--web` (recommended): automatically computes `<primary-domain>-compare-audit-YYYY-MM-DD` from the first URL + today's date (UTC) and writes `index.html` + `data.json` into `web/<folder>/` relative to the project root. The parent `web/` directory is created if needed. Explicit `--output` or `--json-output` basenames are respected inside that folder.
+- **Primary site:** the first input URL. The JSON payload includes `primary_url` (same value). The dashboard labels that column/row “Primary”.
 
 ## Required Fields (Contract)
 
-**Load `references/fields.md` before emitting or auditing output.** The script and dashboard **must** include every field for every row. The contract is additive and now strictly enforced (v1.1).
+**Load `references/fields.md` before emitting or auditing output.** The script and dashboard **must** include every field for every row. The contract is additive and strictly enforced.
 
 See the expanded reference for types, computation notes, and "lower/higher is better" guidance.
 
@@ -120,4 +140,4 @@ Legacy note: older notebook `script.py` / `keywords.py` were the source of the o
 8. Re-run `python3 scripts/verify.py` and a manual 3-URL test; confirm both tables, sort, filter, and exports work.
 9. Update this SKILL.md "Required Fields" list + the v1.x note if the contract grew.
 
-This discipline keeps the 31+ field contract and the zero-dep contract intact.
+This discipline keeps the field contract and the zero-dep contract intact.
