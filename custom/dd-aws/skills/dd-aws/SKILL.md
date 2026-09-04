@@ -1,6 +1,6 @@
 ---
 name: dd-aws
-description: Update, deploy, and maintain WordPress and Drupal sites hosted on AWS (EC2/RDS/CloudFront). Use whenever the user asks to update plugins, modules, or core; deploy code or config; run database operations; or otherwise maintain an AWS-hosted site. Trigger on mentions of AWS, EC2, RDS, SSM, CloudFront, Bitbucket Pipelines deploys, or a site name in this skill's sites.yml registry. If the site turns out to be Pantheon-hosted, use the dd-pantheon skill instead.
+description: Update, deploy, and maintain WordPress and Drupal sites hosted on AWS (EC2/RDS/CloudFront). Use whenever the user asks to update plugins, modules, or core; deploy code or config; run database operations; or otherwise maintain an AWS-hosted site. Trigger on mentions of AWS, EC2, RDS, SSM, CloudFront, Bitbucket Pipelines deploys, or a site name in this skill's sites.yml registry.
 ---
 
 # dd-aws: AWS Site Updates
@@ -9,7 +9,7 @@ Safely update and deploy WordPress and Drupal sites on AWS. There is no platform
 
 ## Step 1: Identify the site
 
-**Check the working directory for `.lando.yml` first.** A recipe like `drupal10`, `drupal11`, or `wordpress` identifies the CMS; hosting details come from `sites.yml`. Read `references/lando.md` for the local-first workflow. (A `recipe: pantheon` means this site belongs to the **dd-pantheon** skill — stop and use that instead.)
+**Check the working directory for `.lando.yml` first.** A recipe like `drupal10`, `drupal11`, or `wordpress` identifies the CMS; hosting details come from `sites.yml`. Read `references/lando.md` for the local-first workflow. (A `recipe: pantheon` means this is not an AWS-hosted site — stop and tell the user this skill only covers AWS.)
 
 **Then read `sites.yml`** (in this skill's directory) for the access method, branch map, and AWS resource IDs.
 

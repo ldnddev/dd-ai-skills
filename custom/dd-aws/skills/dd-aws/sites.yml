@@ -1,5 +1,5 @@
 # dd-aws site registry — AWS-hosted sites only.
-# Edit as sites are added. (Pantheon sites belong in the dd-pantheon skill's sites.yml.)
+# Edit as sites are added.
 #
 # access values:
 #   ssh       — direct SSH to EC2

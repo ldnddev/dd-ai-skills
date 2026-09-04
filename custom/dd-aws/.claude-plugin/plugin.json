@@ -1,6 +1,6 @@
 {
   "name": "dd-aws",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Update, deploy, and maintain WordPress and Drupal sites hosted on AWS (EC2/RDS/CloudFront) — access-aware per-site sites.yml registry, Bitbucket Pipelines deploys, and Lando local-first workflow.",
   "license": "MIT",
   "author": {

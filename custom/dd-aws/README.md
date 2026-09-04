@@ -25,8 +25,6 @@ Safely update, deploy, and maintain **WordPress and Drupal sites hosted on AWS**
 - mentions of AWS, EC2, RDS, SSM, CloudFront, or Bitbucket Pipelines deploys
 - a site name listed in this skill's `sites.yml`
 
-> If the site turns out to be Pantheon-hosted, use the **dd-pantheon** skill instead.
-
 ## Layout
 
 ```

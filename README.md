@@ -16,7 +16,6 @@ Custom Claude Code plugin marketplace by [ldnddev](https://ldnddev.com). Single 
 | [dd-site-compare](custom/dd-site-compare-audit/) | `dd-site-compare` | Multi-site homepage competitive comparison (positioning, conversion, cheap tech/size columns) | — |
 | [dd-site-speed](custom/dd-site-speed-audit/) | `dd-site-speed` | Page speed / Core Web Vitals depth (PSI lab + field) + dashboard + task list | — |
 | [dd-audit](custom/dd-audit/) | `dd-audit` | Orchestrator: nested crawl + SEO + speed dashboards under one cover page (requires those plugins + dd-site-compare) | — |
-| [dd-pantheon](custom/dd-pantheon/) | `dd-pantheon` | Update + deploy WordPress/Drupal sites on Pantheon (terminus, multidev) | — |
 | [dd-aws](custom/dd-aws/) | `dd-aws` | Update + deploy WordPress/Drupal sites on AWS (EC2/RDS/CloudFront) | — |
 
 ## Install
@@ -56,7 +55,6 @@ bash custom/dd-seo-audit/install.sh          # → ~/.codex/skills/dd-seo/
 bash custom/dd-vreg-audit/install.sh         # → ~/.codex/skills/dd-vreg/
 bash custom/dd-site-compare-audit/install.sh # → ~/.codex/skills/dd-site-compare/
 bash custom/dd-site-speed-audit/install.sh   # → ~/.codex/skills/dd-site-speed/
-bash custom/dd-pantheon/install.sh           # → ~/.codex/skills/dd-pantheon/
 bash custom/dd-aws/install.sh                # → ~/.codex/skills/dd-aws/
 bash custom/dd-audit/install.sh              # → ~/.codex/skills/dd-audit/
 ```
@@ -84,7 +82,6 @@ dd-ai-skills/
     ├── dd-seo-audit/
     ├── dd-vreg-audit/
     ├── dd-site-compare-audit/
-    ├── dd-pantheon/
     └── dd-aws/
 ```
 
