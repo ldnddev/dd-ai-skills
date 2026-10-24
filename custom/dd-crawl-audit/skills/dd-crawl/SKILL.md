@@ -56,11 +56,10 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_crawl.py https://example.com --no-web 
 
 | File | Purpose |
 |------|---------|
-| `index.html` | Framework dashboard: stats, broken, redirects, all URLs, chrome, downloads |
+| `index.html` | Framework dashboard: stats, broken, redirects, all URLs, chrome, downloads. Links webroot `/assets/`. |
 | `data.json` | Full machine-readable result |
 | `all-urls.csv` | Every URL (page + chrome) |
 | `broken.csv` | Broken only |
-| `assets/` | Framework CSS/JS |
 
 ### 4. Report to user
 

@@ -49,8 +49,7 @@ npm run verify   # smoke-tests Chromium launch
 - `ACCESSIBILITY-ACTION-PLAN.md`
 - `REMEDIATION-TASKS.csv`
 - `A11Y-CLIENT-REPORT.docx`
-- `index.html` — ldnddev Framework dashboard
-- `assets/` — framework build (`css/style.min.css` + `js/main.min.js`) + favicon/logo, copied from `templates/assets/`
+- `index.html` — ldnddev Framework dashboard (links webroot `/assets/`)
 
 Multi-page adds:
 

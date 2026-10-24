@@ -18,8 +18,7 @@ dd-site-speed-audit/
 │   └── generate_report.py
 ├── templates/
 │   ├── dashboard.html
-│   ├── brand.json
-│   └── assets/
+│   └── brand.json
 ├── install.sh
 └── README.md
 ```
@@ -41,7 +40,6 @@ Writes `web/<domain>-speed-audit-YYYY-MM-DD/` containing:
 | `ACTION-PLAN.docx` | yes |
 | `tasks.csv` | yes |
 | `data.json` | yes |
-| `assets/` | yes |
 
 ## Rules
 

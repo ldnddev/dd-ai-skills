@@ -39,7 +39,7 @@ Spec file format:
   - /pricing/
 ```
 
-The orchestrator writes `web/<ProjectName>-vreg-<YYYY-MM-DD>/` containing `index.html`, `DIFF-REPORT.docx`, `DIFFS.csv`, `ACTION-PLAN.md`, `report.md`, `metrics.json`, `screenshots/`, `diffs/`, `assets/`.
+The orchestrator writes `web/<ProjectName>-vreg-<YYYY-MM-DD>/` containing `index.html`, `DIFF-REPORT.docx`, `DIFFS.csv`, `ACTION-PLAN.md`, `report.md`, `metrics.json`, `screenshots/`, `diffs/`.
 
 ## Architecture
 
@@ -52,11 +52,10 @@ dd-vreg-audit/                                 ← plugin root
 │     ├─ classifySeverity                          ← Critical/Warning/Pass bucketing
 │     ├─ render* helpers                           ← template substitution + per-section HTML
 │     ├─ writeCsv / writeActionPlan / writeDocx    ← deliverable writers
-│     └─ copyTemplateAssets                        ← recursive asset copy into bundle
+│     └─ renderDashboard                           ← template substitution
 ├── templates/                                 ← shared with dd-a11y / dd-seo layout
 │   ├── dashboard.html                         ← ldnddev Framework dashboard with {{PLACEHOLDERS}}
-│   ├── brand.json                             ← agency name, logo path, copy strings
-│   └── assets/                                ← logo-mini.svg + favicon set
+│   └── brand.json                             ← agency name, logo path, copy strings
 └── skills/dd-vreg/
     ├── SKILL.md                               ← top-level orchestrator manifest
     └── references/
@@ -88,7 +87,6 @@ Every successful run writes **all** of these to `web/<Project>-vreg-<YYYY-MM-DD>
 | `metrics.json` | Raw metrics for programmatic consumption |
 | `screenshots/` | Test + prod PNGs per page-per-viewport |
 | `diffs/` | Pixelmatch overlay PNGs per page-per-viewport |
-| `assets/` | Logo + favicon set (mirror of `templates/assets/`) |
 
 Same-day re-runs **overwrite** the directory (matching dd-a11y / dd-seo behavior). If you need historical comparisons, copy the bundle elsewhere before re-running.
 
@@ -99,11 +97,10 @@ These are non-obvious invariants. Violating them breaks the contract that the re
 1. **Severity vocabulary** — only `Critical` / `Warning` / `Pass` (with the 🔴 / ⚠️ / ✅ glyphs). New severities are silently dropped by the CSV writer and the dashboard severity table.
 2. **Bundle artifact set is mandatory** — `writeDocx`, `writeCsv`, `writeActionPlan`, and the templated `index.html` must all run on every successful audit. If one fails, log it and continue; do not silently skip.
 3. **`{{PLACEHOLDER}}` discipline** — every placeholder in `templates/dashboard.html` must have a matching substitution in `renderTemplate()`. Unresolved placeholders render literally and look like bugs to clients. Run `grep -oE '\{\{[A-Z_]+\}\}' web/.../index.html` after every change.
-4. **`assets/` is a recursive copy** — favicons and logos live in subdirs of `templates/assets/`. The flat-copy bug from dd-seo (`os.listdir + isfile` only) must not return. Use `fs.cp(..., { recursive: true })` or equivalent.
-5. **Output dir naming is `web/<Project>-vreg-<YYYY-MM-DD>/`** — no hour/minute. Matches dd-a11y/dd-seo. Tests scripted on the legacy `web/<Project>-MMDDYYYY-HHMM/` format must be updated.
-6. **WCAG 2.2 AA on the dashboard** — `index.html` must pass axe-core with zero violations. The skill itself ships visual regression audits; its own deliverable being inaccessible is unacceptable. Run axe-core via playwright after template changes.
-7. **`SessionStart` bootstrap idempotency** — `hooks/bootstrap.sh` writes `.dd-vreg-bootstrap.ok` sentinel and skips on subsequent sessions. `DD_VREG_SKIP_BROWSER=1` skips Chromium download. Do not remove either escape hatch.
-8. **No third-party CDN dependency** — Playwright and pixelmatch are bundled via `npm install`. The dashboard is built on the **ldnddev Framework**: `templates/assets/css/style.min.css` + `js/main.min.js` are copied into every bundle (recursive `copyTemplateAssets`) and linked relatively — no CDN, no Tailwind, no Font Awesome. Dark mode is framework-driven (`prefers-color-scheme`); there is no manual theme toggle. The dashboard is built from framework components (`dd-header`/`dd-section`/`dd-data-table`/`dd-bar-chart`/`dd-badge`/`dd-footer`); the render* helpers emit framework markup. Per-page previews are semantic `<figure>` 3-ups (test/prod/diff), each linked `<img>` carrying a role-explicit non-empty `alt`. Validate rendered output with `dd_framework_helper.py validate index.html`.
+4. **Output dir naming is `web/<Project>-vreg-<YYYY-MM-DD>/`** — no hour/minute. Matches dd-a11y/dd-seo. Tests scripted on the legacy `web/<Project>-MMDDYYYY-HHMM/` format must be updated.
+5. **WCAG 2.2 AA on the dashboard** — `index.html` must pass axe-core with zero violations. The skill itself ships visual regression audits; its own deliverable being inaccessible is unacceptable. Run axe-core via playwright after template changes.
+6. **`SessionStart` bootstrap idempotency** — `hooks/bootstrap.sh` writes `.dd-vreg-bootstrap.ok` sentinel and skips on subsequent sessions. `DD_VREG_SKIP_BROWSER=1` skips Chromium download. Do not remove either escape hatch.
+7. **No third-party CDN dependency** — Playwright and pixelmatch are bundled via `npm install`. The dashboard is built on the **ldnddev Framework**: `/assets/css/style.min.css` + `/assets/js/main.min.js` from the webroot — no CDN, no Tailwind, no Font Awesome. Dark mode is framework-driven (`prefers-color-scheme`); there is no manual theme toggle. The dashboard is built from framework components (`dd-header`/`dd-section`/`dd-data-table`/`dd-bar-chart`/`dd-badge`/`dd-footer`); the render* helpers emit framework markup. Per-page previews are semantic `<figure>` 3-ups (test/prod/diff), each linked `<img>` carrying a role-explicit non-empty `alt`. Validate rendered output with `dd_framework_helper.py validate index.html`.
 
 ## Reference material
 

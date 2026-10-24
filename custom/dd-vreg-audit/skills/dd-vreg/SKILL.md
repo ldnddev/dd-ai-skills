@@ -76,7 +76,6 @@ Every successful run writes **all** of these to `web/<Project>-vreg-<YYYY-MM-DD>
 | `metrics.json` | Raw per-result objects (severity, dimensions, pixel counts, region metrics, screenshot paths). |
 | `screenshots/<viewport>/<test\|prod>/<slug>.png` | Captured screenshots per page-per-viewport-per-environment. |
 | `diffs/<viewport>/<slug>.png` | Pixelmatch overlay PNGs (red = changed pixels). |
-| `assets/` | Logo (`imgs/logo-mini.svg`) + favicon set copied from `templates/assets/`. |
 
 ## Severity vocabulary
 

@@ -163,7 +163,8 @@ class TestDashboard(unittest.TestCase):
             self.assertIn("example.com-design.md", text)
             self.assertIn("example.com-tokens.json", text)
             self.assertIn("swatch", text)
-            self.assertTrue((out / "assets" / "css" / "style.min.css").is_file())
+            self.assertIn("/assets/css/style.min.css", text)
+            self.assertFalse((out / "assets").exists())
 
 
 class TestDesignMd(unittest.TestCase):

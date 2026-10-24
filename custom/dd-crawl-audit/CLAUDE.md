@@ -12,7 +12,7 @@ dd-crawl-audit/
 ├── scripts/run_crawl.py
 ├── scripts/crawl_core.py
 ├── scripts/generate_dashboard.py
-└── templates/  # Framework dashboard + assets
+└── templates/  # dashboard.html + brand.json
 ```
 
 ## Invariants

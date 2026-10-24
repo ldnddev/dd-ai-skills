@@ -50,7 +50,6 @@ web/<domain>-site-audit-YYYY-MM-DD/
 ├── index.html
 ├── data.json
 ├── plan.json
-├── assets/
 ├── crawl/
 ├── seo/
 └── speed/

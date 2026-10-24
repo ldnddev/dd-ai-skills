@@ -10,7 +10,6 @@ Outputs (in --output-dir):
   - tasks.csv
   - index.html
   - data.json (copy/normalized)
-  - assets/ (framework branding)
 """
 
 from __future__ import annotations
@@ -19,7 +18,7 @@ import argparse
 import csv
 import html
 import json
-import shutil
+
 from datetime import UTC, datetime
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -302,27 +301,6 @@ def render_template(template_text: str, replacements: dict) -> str:
     for key, value in replacements.items():
         rendered = rendered.replace(f"{{{{{key}}}}}", value)
     return rendered
-
-
-def ensure_brand_asset(output_dir: Path, relative_asset_path: str) -> str:
-    for candidate in (TEMPLATES_DIR / relative_asset_path, SKILL_DIR / relative_asset_path):
-        if candidate.exists():
-            destination = output_dir / relative_asset_path
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(candidate, destination)
-            return relative_asset_path
-    return relative_asset_path
-
-
-def copy_framework_assets(output_dir: Path) -> None:
-    src = TEMPLATES_DIR / "assets"
-    if not src.is_dir():
-        return
-    dst = output_dir / "assets"
-    for sub in ("css", "js", "favicon", "imgs"):
-        candidate = src / sub
-        if candidate.is_dir():
-            shutil.copytree(candidate, dst / sub, dirs_exist_ok=True)
 
 
 def score_label(score) -> str:
@@ -1205,14 +1183,8 @@ def build_dashboard(path: Path, results: dict, rows: list[dict]) -> None:
         raise FileNotFoundError(f"Dashboard template not found: {template_path}")
 
     brand = load_brand_config()
-    output_dir = path.parent
-    logo_path = ensure_brand_asset(
-        output_dir, brand.get("agency_logo", "assets/imgs/logo-full-black-text.svg")
-    )
-    logo_dark_path = ensure_brand_asset(
-        output_dir, brand.get("agency_logo_dark", "assets/imgs/logo-full-white-text.svg")
-    )
-    copy_framework_assets(output_dir)
+    logo_path = brand.get("agency_logo", "/assets/imgs/logo-full-black-text.svg")
+    logo_dark_path = brand.get("agency_logo_dark", "/assets/imgs/logo-full-white-text.svg")
     summary = summarize_results(results)
     pages = get_pages(results)
     meta = results.get("metadata") or {}

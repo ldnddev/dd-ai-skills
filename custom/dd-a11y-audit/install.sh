@@ -17,7 +17,6 @@ cp -R \
   "$SCRIPT_DIR/package-lock.json" \
   "$SCRIPT_DIR/README.md" \
   "$SCRIPT_DIR/install.sh" \
-  "$SCRIPT_DIR/assets" \
   "$SCRIPT_DIR/hooks" \
   "$SCRIPT_DIR/scripts" \
   "$SCRIPT_DIR/templates" \

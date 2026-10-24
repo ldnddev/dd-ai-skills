@@ -1,6 +1,6 @@
 {
   "name": "dd-seo",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Deterministic LLM-first SEO audits for websites, blog posts, and GitHub repos — schema, AEO/GEO, prioritized fixes. Speed/CWV audits are dd-site-speed.",
   "license": "MIT",
   "author": {

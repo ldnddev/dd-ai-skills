@@ -14,7 +14,6 @@ import csv
 import html
 import json
 import re
-import shutil
 import struct
 from datetime import UTC, datetime
 from pathlib import Path
@@ -37,17 +36,6 @@ def load_brand_config():
     if not config_path.exists():
         return {}
     return json.loads(config_path.read_text())
-
-
-
-def ensure_brand_asset(output_dir, relative_asset_path):
-    for candidate in (TEMPLATES_DIR / relative_asset_path, SKILL_DIR / relative_asset_path):
-        if candidate.exists():
-            destination = output_dir / relative_asset_path
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(candidate, destination)
-            return relative_asset_path
-    return relative_asset_path
 
 
 def render_template(template_text, replacements):
@@ -1101,32 +1089,14 @@ def _inject_dashboard_sections(html_doc, results, rows):
     return html_doc
 
 
-
-def copy_framework_assets(output_dir):
-    """Copy compiled framework CSS/JS + favicon/imgs into the report bundle."""
-    src = TEMPLATES_DIR / "assets"
-    if not src.is_dir():
-        return
-    dst = Path(output_dir) / "assets"
-    for sub in ("css", "js", "favicon", "imgs"):
-        candidate = src / sub
-        if candidate.is_dir():
-            shutil.copytree(candidate, dst / sub, dirs_exist_ok=True)
-
-
 def build_dashboard(path, results, rows):
     template_path = TEMPLATES_DIR / "dashboard.html"
     if not template_path.exists():
         raise FileNotFoundError(f"Dashboard template not found: {template_path}")
 
     brand = load_brand_config()
-    logo_path = ensure_brand_asset(
-        path.parent, brand.get("agency_logo", "assets/imgs/logo-full-black-text.svg")
-    )
-    logo_dark_path = ensure_brand_asset(
-        path.parent, brand.get("agency_logo_dark", "assets/imgs/logo-full-white-text.svg")
-    )
-    copy_framework_assets(path.parent)
+    logo_path = brand.get("agency_logo", "/assets/imgs/logo-full-black-text.svg")
+    logo_dark_path = brand.get("agency_logo_dark", "/assets/imgs/logo-full-white-text.svg")
     score = results["metadata"]["score"]
     summary = results["summary"]
     pages = get_pages(results)

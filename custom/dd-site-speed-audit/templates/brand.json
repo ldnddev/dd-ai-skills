@@ -1,8 +1,8 @@
 {
   "agency_name": "ldnddev, LLC",
   "agency_kicker": "Page Speed Audit",
-  "agency_logo": "assets/imgs/logo-full-black-text.svg",
-  "agency_logo_dark": "assets/imgs/logo-full-white-text.svg",
+  "agency_logo": "/assets/imgs/logo-full-black-text.svg",
+  "agency_logo_dark": "/assets/imgs/logo-full-white-text.svg",
   "report_title": "Page Speed Audit Dashboard",
   "report_subtitle": "Core Web Vitals, Lighthouse opportunities, and prioritized speed fixes.",
   "downloads_note": "Use these links to review raw metrics and download packaged report files.",

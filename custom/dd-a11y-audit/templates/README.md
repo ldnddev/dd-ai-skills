@@ -10,13 +10,12 @@ The dashboard is built from **ldnddev Framework** components, not a self-contain
 theme. The head links the compiled framework build:
 
 ```html
-<link rel="stylesheet" href="assets/css/style.min.css">
-<script src="assets/js/main.min.js" defer></script>
+<link rel="stylesheet" href="/assets/css/style.min.css">
+<script src="/assets/js/main.min.js" defer></script>
 ```
 
-`build_dashboard` copies `templates/assets/{css,js,favicon,imgs}` into the output
-bundle so those links resolve. Column sort, `aria-sort`, and scroll-region
-keyboard access on the
+Dashboards link the webroot `/assets/` folder (framework CSS/JS, favicons,
+logos). Column sort, `aria-sort`, and scroll-region keyboard access on the
 task table come from the framework's `dd_data_table` JS — the template's own
 `<script>` only adds the filter, CSV export, a polite live region, and
 in-page focus handling.

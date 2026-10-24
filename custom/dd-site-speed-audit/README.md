@@ -42,8 +42,7 @@ web/<domain>-speed-audit-YYYY-MM-DD/
 ├── SPEED-CLIENT-REPORT.docx
 ├── ACTION-PLAN.docx
 ├── tasks.csv
-├── data.json
-└── assets/
+└── data.json
 ```
 
 ## Install

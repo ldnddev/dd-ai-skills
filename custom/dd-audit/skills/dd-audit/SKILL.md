@@ -107,7 +107,6 @@ web/<domain>-site-audit-YYYY-MM-DD/
   index.html      ← cover (this skill)
   data.json       ← rollup headlines only
   plan.json
-  assets/
   crawl/          ← full dd-crawl bundle
   seo/            ← full dd-seo bundle
   speed/          ← full dd-site-speed bundle

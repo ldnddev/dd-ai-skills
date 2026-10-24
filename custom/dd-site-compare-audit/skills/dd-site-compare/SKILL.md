@@ -1,7 +1,7 @@
 ---
 name: dd-site-compare
 description: >
-  Generate self-contained HTML dashboards that compare multiple websites by URL, HTTP status,
+  Generate HTML dashboards that compare multiple websites by URL, HTTP status,
   response time, page size, total load size, resource counts, largest item, trackers, title,
   meta description, heading/image/link counts, detected technologies, dependency-free keyword
   phrases, mobile viewport support, server headers, homepage positioning (headline, subhead,
@@ -12,7 +12,7 @@ description: >
   Use when the user pastes 1+ URLs (or a file), asks to "compare websites", "competitive analysis",
   "compare this to competitors", "homepage comparison report", or invokes
   /dd-site-compare or $dd-site-compare. One URL triggers peer discovery before the dashboard.
-version: 1.4.1
+version: 1.4.2
 when-to-use: "Use for website comparisons, competitive audits, multi-site homepage metric dashboards. Trigger phrases: compare sites, site comparison, competitive analysis, compare this to competitors, homepage comparison report, dashboard for these URLs."
 argument-hint: "[urls...] [--web] [--urls-file file.txt] [--skip-resources] [--max-resources N] [--workers 4] [--json-output out.json] [-o out.html]"
 ---
@@ -35,7 +35,7 @@ argument-hint: "[urls...] [--web] [--urls-file file.txt] [--skip-resources] [--m
    `web/<first-domain>-compare-audit-YYYY-MM-DD/`
    (e.g. `web/example.com-compare-audit-2025-06-02/index.html`).
 4. Confirm `data.json` includes `primary_url` (matching the first URL) and **every field** in `references/fields.md` for every row.
-5. Report the generated HTML (and JSON) path(s). Note failed or redirected URLs. The dashboard opens in any browser if its sibling `assets/` folder travels with `index.html`.
+5. Report the generated HTML (and JSON) path(s). Note failed or redirected URLs. The dashboard links webroot `/assets/` for framework CSS/JS.
 6. Read `data.json` and add a short **gap note** framed as **primary vs peers** (a few bullets, not a narrative report): sharpest/most specific promise (`h1_text` + `hero_subhead`); offer friction (`offer_type`, `form_field_count`, `pricing_visible`); missing `page_types` vs the set; stronger `trust_signals`. Tone and “lead-with” (features vs outcomes vs price vs brand) are judgment over those extracted strings — do not invent metrics the script did not emit.
 
 ## Discovery intake
@@ -65,8 +65,7 @@ This creates (for example):
 
 ```
 web/example.com-compare-audit-2025-06-02/
-├── index.html   # the dashboard (ldnddev Framework)
-├── assets/      # framework css/js, copied in (no CDNs)
+├── index.html   # the dashboard (ldnddev Framework; links webroot /assets/)
 └── data.json    # raw results
 ```
 
@@ -126,7 +125,7 @@ Legacy note: older notebook `script.py` / `keywords.py` were the source of the o
 
 - Keep user-provided URLs in the report (even on redirect). Populate `final_url` + `redirected`.
 - Always emit a row for every input URL; use the `error` field instead of omitting.
-- When the user says "like the old demo" or "Markdown table", still produce (and point to) the **self-contained HTML dashboard** + optional JSON. Never hand-craft a static MD transcript.
+- When the user says "like the old demo" or "Markdown table", still produce (and point to) the **HTML dashboard** + optional JSON. Never hand-craft a static MD transcript.
 - After edits to the script or template, run `python3 scripts/verify.py` and paste a summary of its output.
 - The `agents/openai.yaml` provides the interface metadata for agent registries; keep `default_prompt` in sync with the description above if you change invocation language.
 

@@ -1,6 +1,6 @@
 {
   "name": "dd-crawl",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Whole-site URL inventory and broken-link check — robots-aware crawl, chrome-once tables, Framework dashboard with CSV/JSON downloads.",
   "license": "MIT",
   "author": {

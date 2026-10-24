@@ -190,11 +190,10 @@ python3 <SKILL_DIR>/scripts/generate_report.py <url>
 # Override the output directory if needed:
 python3 <SKILL_DIR>/scripts/generate_report.py <url> --output-dir reports/acme-2026Q2/
 # Produces inside the output directory:
-#   index.html                 ← templated dashboard (templates/dashboard.html + brand.json)
+#   index.html                 ← templated dashboard (templates/dashboard.html + brand.json); links webroot /assets/
 #   FULL-AUDIT-REPORT.docx     ← findings + scoring narrative
 #   ACTION-PLAN.docx           ← prioritized remediation tasks
 #   tasks.csv                  ← same tasks in CSV form (Jira/Linear/Asana-ready)
-#   assets/                    ← agency logo and any other branded assets
 ```
 
 ### Google Search Console enrichment (optional)
@@ -276,7 +275,7 @@ For `seo audit`, `seo page`, and generic `perform seo analysis on <url>` flows, 
 
 1. Create `FULL-AUDIT-REPORT.md` in the current working directory at the start of the audit, then update it as evidence is collected.
 2. Create `ACTION-PLAN.md` in the current working directory at the start of the audit, then update it with prioritized fixes.
-3. **Always run `python3 <SKILL_DIR>/scripts/generate_report.py <url>`** before finalizing. This writes the client bundle directory `web/<domain>-seo-audit-<YYYY-MM-DD>/` containing `index.html`, `FULL-AUDIT-REPORT.docx`, `ACTION-PLAN.docx`, `tasks.csv`, and `assets/`. All four artifacts are written together by the script. Skip only if Python or required deps are unavailable — then report explicit `Environment Limitation` and continue.
+3. **Always run `python3 <SKILL_DIR>/scripts/generate_report.py <url>`** before finalizing. This writes the client bundle directory `web/<domain>-seo-audit-<YYYY-MM-DD>/` containing `index.html`, `FULL-AUDIT-REPORT.docx`, `ACTION-PLAN.docx`, and `tasks.csv`. All four artifacts are written together by the script. Skip only if Python or required deps are unavailable — then report explicit `Environment Limitation` and continue.
 4. In the final response, explicitly list every generated artifact and absolute path: both markdown files + bundle directory + each file inside.
 5. If technical checks or `generate_report.py` are blocked by environment limits, still write both markdown files and include an "Environment Limitations" section naming what failed and why.
 
@@ -368,7 +367,7 @@ Structure reports as:
 8. **Location page limits** — Warning at 30+ pages, hard stop at 50+ pages. Enforce unique content requirements.
 9. **AI crawler management** — Check robots.txt for GPTBot, ClaudeBot, PerplexityBot, Applebot-Extended, Google-Extended, Bytespider, CCBot.
 10. **LLM-first, resilient pipeline** — Start by reading the page with `read_url_content`, then always run relevant scripts for structured evidence. Scripts are the **preferred** evidence source — use them actively. However, if any script fails (timeout, network, parsing), the LLM MUST still produce a complete analysis using its own reasoning (confidence: `Likely`). Never block a report on a single script failure.
-11. **Always produce file artifacts for audit flows** — `FULL-AUDIT-REPORT.md`, `ACTION-PLAN.md`, **and** the full client bundle (`index.html` + `FULL-AUDIT-REPORT.docx` + `ACTION-PLAN.docx` + `tasks.csv` + `assets/`) via `generate_report.py` are required outputs for every full/page/generic audit. Bundle generation is default behavior, not opt-in. Only skip if `generate_report.py` itself fails — note as `Environment Limitation`.
+11. **Always produce file artifacts for audit flows** — `FULL-AUDIT-REPORT.md`, `ACTION-PLAN.md`, **and** the full client bundle (`index.html` + `FULL-AUDIT-REPORT.docx` + `ACTION-PLAN.docx` + `tasks.csv`) via `generate_report.py` are required outputs for every full/page/generic audit. Bundle generation is default behavior, not opt-in. Only skip if `generate_report.py` itself fails — note as `Environment Limitation`.
 12. **Bound evidence retries** — Avoid long search/retry loops. If core checks fail due DNS/network, finalize promptly with confidence labels and file outputs.
 13. **Avoid redundant web fallbacks** — If direct fetch/scripts fail and one fallback also fails, stop retrying and finish the report with explicit limitations.
 14. **Signal freshness tracking** — Every reference file should contain a `<!-- Updated: YYYY-MM-DD -->` comment. Flag any reference file older than 90 days for review. When Google announces algorithm changes, verify affected reference files within 7 days. Key dates to track: core updates (quarterly), schema deprecations (schema-types.md).

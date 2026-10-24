@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a self-contained HTML dashboard comparing multiple websites.
+"""Generate an HTML dashboard comparing multiple websites.
 
 v1.3: 42 strictly-required fields. v1.1 added final_url/redirected/word_count/
 h2/h3/images_missing_alt/external_link_count/has_favicon/has_canonical/
@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import shutil
 import sys
 import time
 from collections import OrderedDict
@@ -1001,7 +1000,7 @@ def derive_competitive_signals(parser: ParsedHTML, html_text: str) -> Dict[str, 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Compare multiple websites and generate a self-contained HTML dashboard."
+        description="Compare multiple websites and generate an HTML dashboard."
     )
     parser.add_argument("urls", nargs="*", help="Website URLs to compare.")
     parser.add_argument("--urls-file", help="Text file with one URL per line.")
@@ -1149,7 +1148,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html_output, encoding="utf-8")
-    copy_template_assets(Path(args.template), output_path.parent)
 
     if args.json_output:
         json_path = Path(args.json_output)
@@ -1608,27 +1606,13 @@ def render_dashboard(payload: Dict[str, object], template_path: Path) -> str:
     if placeholder not in template:
         raise ValueError(f"Dashboard template is missing {placeholder}")
     brand = load_brand_config(template_path)
-    logo = str(brand.get("agency_logo") or "assets/imgs/logo-full-black-text.svg")
-    logo_dark = str(brand.get("agency_logo_dark") or "assets/imgs/logo-full-white-text.svg")
+    logo = str(brand.get("agency_logo") or "/assets/imgs/logo-full-black-text.svg")
+    logo_dark = str(brand.get("agency_logo_dark") or "/assets/imgs/logo-full-white-text.svg")
     html = template.replace(placeholder, json_for_html(payload))
     html = html.replace("{{AGENCY_LOGO}}", logo)
     html = html.replace("{{AGENCY_LOGO_DARK}}", logo_dark)
     return html
 
-
-
-def copy_template_assets(template_path: Path, output_dir: Path) -> None:
-    """Copy the ldnddev Framework build (css/js) next to the rendered HTML so
-    the dashboard's <link>/<script> resolve. Sourced from the template's sibling
-    assets/ folder. No-op if the template has no assets/ (e.g. a custom template).
-    """
-    src = template_path.parent / "assets"
-    if not src.is_dir():
-        return
-    for sub in ("css", "js", "favicon", "imgs"):
-        candidate = src / sub
-        if candidate.is_dir():
-            shutil.copytree(candidate, output_dir / "assets" / sub, dirs_exist_ok=True)
 
 
 def json_for_html(payload: Dict[str, object]) -> str:

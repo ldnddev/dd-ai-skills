@@ -26,7 +26,7 @@ Apply `resources/references/llm-audit-rubric.md` for evidence standards, confide
 4. **LLM analysis** — Apply `llm-audit-rubric.md`, score each category using chain-of-thought. Combine LLM reasoning with script evidence. If a script failed, the LLM still covers that area using its own analysis (confidence: `Likely` instead of `Confirmed`).
 5. **Score** — aggregate into SEO Health Score (0-100)
 6. **Report** — generate prioritized action plan
-7. **Generate client bundle (mandatory)** — run `python3 <SKILL_DIR>/scripts/generate_report.py <url>`. Produces `web/<domain>-seo-audit-<YYYY-MM-DD>/` containing `index.html`, `FULL-AUDIT-REPORT.docx`, `ACTION-PLAN.docx`, `tasks.csv`, `assets/`. Required default for every audit — only skip on environment failure (note as `Environment Limitation`).
+7. **Generate client bundle (mandatory)** — run `python3 <SKILL_DIR>/scripts/generate_report.py <url>`. Produces `web/<domain>-seo-audit-<YYYY-MM-DD>/` containing `index.html`, `FULL-AUDIT-REPORT.docx`, `ACTION-PLAN.docx`, `tasks.csv`. Required default for every audit — only skip on environment failure (note as `Environment Limitation`).
 
 ## Page sample (not a site crawl)
 
@@ -44,11 +44,10 @@ All outputs below are **required by default** — `generate_report.py` is mandat
 - `FULL-AUDIT-REPORT.md` — Comprehensive findings
 - `ACTION-PLAN.md` — Prioritized recommendations (Critical → High → Medium → Low)
 - `web/<domain>-seo-audit-<YYYY-MM-DD>/` — Client bundle (always produced via `generate_report.py`). Contents:
-  - `index.html` — Branded interactive dashboard (rendered from `templates/dashboard.html` + `templates/brand.json`)
+  - `index.html` — Branded interactive dashboard (rendered from `templates/dashboard.html` + `templates/brand.json`); links webroot `/assets/`
   - `FULL-AUDIT-REPORT.docx` — Findings + scoring narrative
   - `ACTION-PLAN.docx` — Prioritized remediation tasks (P0/P1/P2 grouping)
   - `tasks.csv` — Same tasks in CSV form (project-tracker-ready)
-  - `assets/` — Agency logo and any branded assets copied from `templates/assets/`
 - `screenshots/` — Desktop + mobile captures (if Playwright available)
 
 ## Scoring Weights

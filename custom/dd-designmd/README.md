@@ -34,9 +34,8 @@ python3 scripts/run_designmd.py https://www.ldnddev.com --web
 
 **`--web` mode** writes `web/ldnddev.com-designmd-YYYY-MM-DD/`:
 
-- `index.html` — light Framework dashboard (swatches, tokens, Framework map, downloads)
+- `index.html` — light Framework dashboard (swatches, tokens, Framework map, downloads); links webroot `/assets/`
 - same design/token/evidence files as above
-- `assets/` — Framework CSS/JS + branding
 
 ### Options
 

@@ -6,7 +6,6 @@ from __future__ import annotations
 import csv
 import html
 import json
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -27,23 +26,13 @@ def load_brand() -> dict:
     return {
         "agency_name": "ldnddev, LLC",
         "agency_kicker": "Site Audit",
-        "agency_logo": "assets/imgs/logo-full-black-text.svg",
-        "agency_logo_dark": "assets/imgs/logo-full-white-text.svg",
+        "agency_logo": "/assets/imgs/logo-full-black-text.svg",
+        "agency_logo_dark": "/assets/imgs/logo-full-white-text.svg",
         "report_title": "Site Audit Overview",
         "report_subtitle": "Cover dashboard for crawl, SEO, and page-speed reports.",
         "downloads_note": "Keep this folder together so relative links work.",
         "footer_text": "Prepared by © ldnddev, LLC — dd-audit",
     }
-
-
-def copy_assets(output_dir: Path) -> None:
-    src = TEMPLATES_DIR / "assets"
-    dst = output_dir / "assets"
-    if not src.is_dir():
-        return
-    if dst.exists():
-        shutil.rmtree(dst)
-    shutil.copytree(src, dst)
 
 
 def _load_json(path: Path) -> dict | None:
@@ -259,10 +248,10 @@ def render_dashboard(rollup: dict) -> str:
         "AGENCY_NAME": html.escape(brand.get("agency_name", "ldnddev, LLC")),
         "AGENCY_KICKER": html.escape(brand.get("agency_kicker", "Site Audit")),
         "AGENCY_LOGO": html.escape(
-            brand.get("agency_logo", "assets/imgs/logo-full-black-text.svg")
+            brand.get("agency_logo", "/assets/imgs/logo-full-black-text.svg")
         ),
         "AGENCY_LOGO_DARK": html.escape(
-            brand.get("agency_logo_dark", "assets/imgs/logo-full-white-text.svg")
+            brand.get("agency_logo_dark", "/assets/imgs/logo-full-white-text.svg")
         ),
         "FOOTER_TEXT": html.escape(brand.get("footer_text", "")),
         "DOWNLOADS_NOTE": html.escape(brand.get("downloads_note", "")),
@@ -284,7 +273,6 @@ def assemble(parent: Path) -> dict:
     parent = Path(parent)
     parent.mkdir(parents=True, exist_ok=True)
     rollup = inspect_parent(parent)
-    copy_assets(parent)
     (parent / "data.json").write_text(
         json.dumps(rollup, indent=2) + "\n", encoding="utf-8"
     )

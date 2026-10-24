@@ -15,15 +15,14 @@ Act as an **Expert Design System Lead**. Collect **evidence** from the site, syn
 
 | File | Purpose |
 |------|---------|
-| `index.html` | Light Framework dashboard (with `--web` or `--dashboard`) |
+| `index.html` | Light Framework dashboard (with `--web` or `--dashboard`); links webroot `/assets/` |
 | `{domain}-design.md` | Full DS brief (required sections) |
 | `{domain}-tokens.json` | Machine-readable tokens with evidence |
 | `{domain}-tokens.css` | CSS custom properties companion |
 | `{domain}-designmd-evidence.json` | Raw pipeline evidence (optional for client; useful for agents) |
-| `assets/` | Framework CSS/JS + branding (copied with dashboard) |
 
 **Default location:** current working directory.  
-**Client bundle:** `--web` → `web/{domain}-designmd-YYYY-MM-DD/` (index + files + assets).
+**Client bundle:** `--web` → `web/{domain}-designmd-YYYY-MM-DD/` (index + files).
 
 Domain = URL host, lowercase, **`www.` stripped** (e.g. `https://www.ldnddev.com` → `ldnddev.com`).
 

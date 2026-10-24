@@ -1,6 +1,6 @@
 {
   "name": "dd-designmd",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Extract a semantic design system from a website URL into {domain}-design.md plus tokens and a light Framework dashboard (download links, swatches, Framework map).",
   "license": "MIT",
   "author": {

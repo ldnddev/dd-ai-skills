@@ -118,7 +118,8 @@ class TestExports(unittest.TestCase):
             self.assertIn("Site chrome", text)
             self.assertIn("Downloads", text)
             self.assertIn("all-urls.csv", text)
-            self.assertTrue((out / "assets" / "css" / "style.min.css").is_file())
+            self.assertIn("/assets/css/style.min.css", text)
+            self.assertFalse((out / "assets").exists())
 
 
 if __name__ == "__main__":

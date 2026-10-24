@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import html
 import json
-import shutil
 from datetime import date
 from pathlib import Path
 
@@ -20,8 +19,8 @@ def load_brand() -> dict:
     return {
         "agency_name": "ldnddev, LLC",
         "agency_kicker": "Site Crawl",
-        "agency_logo": "assets/imgs/logo-full-black-text.svg",
-        "agency_logo_dark": "assets/imgs/logo-full-white-text.svg",
+        "agency_logo": "/assets/imgs/logo-full-black-text.svg",
+        "agency_logo_dark": "/assets/imgs/logo-full-white-text.svg",
         "report_title": "Site Crawl Report",
         "report_subtitle": "URL inventory and broken-link check.",
         "downloads_note": "Download CSV/JSON inventories.",
@@ -34,16 +33,6 @@ def render_template(text: str, rep: dict) -> str:
     for k, v in rep.items():
         out = out.replace("{{" + k + "}}", str(v))
     return out
-
-
-def copy_assets(output_dir: Path) -> None:
-    src = TEMPLATES_DIR / "assets"
-    dst = output_dir / "assets"
-    if not src.is_dir():
-        return
-    if dst.exists():
-        shutil.rmtree(dst)
-    shutil.copytree(src, dst)
 
 
 def default_web_dir(domain: str, project_root: Path | None = None) -> Path:
@@ -102,7 +91,6 @@ def _downloads(files: list[tuple[str, str]]) -> str:
 def build_dashboard(output_dir: Path, data: dict, file_basenames: dict[str, str]) -> Path:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    copy_assets(output_dir)
     brand = load_brand()
     meta = data.get("meta") or {}
     summary = data.get("summary") or {}
@@ -128,9 +116,9 @@ def build_dashboard(output_dir: Path, data: dict, file_basenames: dict[str, str]
         "REPORT_SUBTITLE": html.escape(brand.get("report_subtitle", "")),
         "AGENCY_NAME": html.escape(brand.get("agency_name", "ldnddev, LLC")),
         "AGENCY_KICKER": html.escape(brand.get("agency_kicker", "Site Crawl")),
-        "AGENCY_LOGO": html.escape(brand.get("agency_logo", "assets/imgs/logo-full-black-text.svg")),
+        "AGENCY_LOGO": html.escape(brand.get("agency_logo", "/assets/imgs/logo-full-black-text.svg")),
         "AGENCY_LOGO_DARK": html.escape(
-            brand.get("agency_logo_dark", "assets/imgs/logo-full-white-text.svg")
+            brand.get("agency_logo_dark", "/assets/imgs/logo-full-white-text.svg")
         ),
         "FOOTER_TEXT": html.escape(brand.get("footer_text", "")),
         "DOWNLOADS_NOTE": html.escape(brand.get("downloads_note", "")),

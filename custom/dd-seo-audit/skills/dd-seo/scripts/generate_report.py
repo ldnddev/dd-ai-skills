@@ -2,8 +2,8 @@
 """
 Generate an interactive HTML SEO report.
 
-Runs all analysis scripts and aggregates results into a single,
-self-contained interactive HTML file with a premium dashboard UI.
+Runs all analysis scripts and aggregates results into a branded
+interactive HTML dashboard (framework CSS/JS from webroot /assets/).
 
 Usage:
     python generate_report.py https://example.com
@@ -17,7 +17,6 @@ import json
 import os
 import re
 import subprocess
-import shutil
 import sys
 import tempfile
 import time
@@ -1271,8 +1270,8 @@ def generate_html(data: dict, scores: dict, artifacts: list, rows: list) -> str:
         "REPORT_SUBTITLE": brand.get("report_subtitle", ""),
         "AGENCY_NAME": brand.get("agency_name", ""),
         "AGENCY_KICKER": brand.get("agency_kicker", "SEO Audit"),
-        "AGENCY_LOGO": brand.get("agency_logo", "assets/imgs/logo-full-black-text.svg"),
-        "AGENCY_LOGO_DARK": brand.get("agency_logo_dark", "assets/imgs/logo-full-white-text.svg"),
+        "AGENCY_LOGO": brand.get("agency_logo", "/assets/imgs/logo-full-black-text.svg"),
+        "AGENCY_LOGO_DARK": brand.get("agency_logo_dark", "/assets/imgs/logo-full-white-text.svg"),
         "AGENCY_LOGO_INITIAL": (brand.get("agency_logo_initial") or brand.get("agency_name", "A")[:1]).upper(),
         "DOWNLOADS_NOTE": brand.get("downloads_note", ""),
         "TASKS_NOTE": brand.get("tasks_note", ""),
@@ -1686,14 +1685,6 @@ def derive_output_dir(url: str, override: str = None) -> str:
     return os.path.abspath(os.path.join("web", f"{domain}-seo-audit-{audit_date}"))
 
 
-def _copy_template_assets(output_dir: str) -> None:
-    src = os.path.join(TEMPLATES_DIR, "assets")
-    if not os.path.isdir(src):
-        return
-    dst = os.path.join(output_dir, "assets")
-    shutil.copytree(src, dst, dirs_exist_ok=True)
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Generate SEO audit bundle (index.html + DOCX + CSV)"
@@ -1722,7 +1713,6 @@ def main():
 
     output_dir = derive_output_dir(args.url, args.output_dir)
     os.makedirs(output_dir, exist_ok=True)
-    _copy_template_assets(output_dir)
 
     artifacts = [
         {"kind": "DOCX", "label": "Full Audit Report",  "filename": "FULL-AUDIT-REPORT.docx"},

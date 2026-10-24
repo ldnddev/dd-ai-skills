@@ -74,14 +74,13 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/generate_report.py --input data.json --out
 
 | File | Purpose |
 |------|---------|
-| `index.html` | Branded dashboard (scores, CWV, tasks with expandable What/Why/How insights, CSV download button) |
+| `index.html` | Branded dashboard (scores, CWV, tasks with expandable What/Why/How insights, CSV download button). Links webroot `/assets/`. |
 | `SPEED-AUDIT-REPORT.md` | Full findings narrative |
 | `ACTION-PLAN.md` | Prioritized remediation plan (What / Why / How per task) |
 | `SPEED-CLIENT-REPORT.docx` | Client-facing report |
 | `ACTION-PLAN.docx` | Client-facing action plan |
 | `tasks.csv` | Tracker-ready task list with what, why, how columns (downloadable) |
 | `data.json` | Raw audit JSON (PSI + stack) |
-| `assets/` | Framework CSS/JS + branding |
 
 ## Defaults & options
 

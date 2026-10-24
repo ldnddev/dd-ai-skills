@@ -5,8 +5,8 @@ Framework component system. Derived from the `dd-seo-audit` dashboard conversion
 Apply it to `dd-a11y`, `dd-site-compare`, and `dd-vreg`.
 
 **Strategy used ("full framework"):** drop the dashboard's bespoke inline CSS/theme,
-link the framework build (`style.min.css` + `main.min.js`) from the report bundle's
-root `assets/`, and rebuild the UI from framework components + the 24-col grid.
+link the framework build (`style.min.css` + `main.min.js`) from the webroot
+`/assets/` folder, and rebuild the UI from framework components + the 24-col grid.
 Trade-off: you lose the bespoke theme **and** the manual light/dark toggle (the
 framework themes by system `prefers-color-scheme` only).
 
@@ -16,8 +16,8 @@ framework themes by system `prefers-color-scheme` only).
 
 | Thing | Value |
 |---|---|
-| Stylesheet | `assets/css/style.min.css` (compiled from `source/scss/style.scss`) |
-| JS bundle | `assets/js/main.min.js` (concat of `source/js/components/*.js` + `main.js`) |
+| Stylesheet | `/assets/css/style.min.css` (compiled from `source/scss/style.scss`) |
+| JS bundle | `/assets/js/main.min.js` (concat of `source/js/components/*.js` + `main.js`) |
 | Grid | 24-column: `dd-g` (row) + `dd-u-{n}-{d}` fractions, responsive `dd-u-lg-6-24` etc. |
 | Dark mode | `@media (prefers-color-scheme: dark)` per-rule. **No `.dark`/`data-theme` class, no manual toggle.** |
 | Tokens | SCSS `$c_*` variables, **compiled away** — NOT CSS custom properties at runtime. Custom shell CSS cannot reference them. |
@@ -74,8 +74,8 @@ convert together or the output renders half-styled.
 ### 3a. The template (`templates/*.html`)
 1. **Head:** replace the entire inline design system with:
    ```html
-   <link rel="stylesheet" href="assets/css/style.min.css">
-   <script src="assets/js/main.min.js" defer></script>
+   <link rel="stylesheet" href="/assets/css/style.min.css">
+   <script src="/assets/js/main.min.js" defer></script>
    ```
    Keep the favicon block. Add `<title>{{TITLE}} — {{AGENCY}}</title>`. Drop any
    theme-preset script and the manual toggle button.

@@ -1,15 +1,13 @@
 # Dashboard Template
 
-Client-facing HTML dashboard, brand tokens, and shared assets for the dd-seo audit. Wired into `scripts/generate_report.py` — editing these files changes every audit dashboard the script emits.
+Client-facing HTML dashboard and brand tokens for the dd-seo audit. Wired into `scripts/generate_report.py` — editing these files changes every audit dashboard the script emits.
 
 ## Files
 
 ```
 templates/
 ├── dashboard.html   # Outer chrome of the report (HTML + CSS, no JS)
-├── brand.json       # Brand colors, fonts, agency lockup, copy
-└── assets/
-    └── agency-logo.svg
+└── brand.json       # Brand colors, fonts, agency lockup, copy
 ```
 
 ## Output bundle
@@ -18,12 +16,10 @@ When the user runs `generate_report.py <url>`, the script writes:
 
 ```
 web/<domain>-seo-audit-<YYYY-MM-DD>/
-├── index.html               # populated dashboard.html
+├── index.html               # populated dashboard.html (links webroot /assets/)
 ├── FULL-AUDIT-REPORT.docx   # findings + scoring narrative
 ├── ACTION-PLAN.docx         # prioritized remediation tasks
-├── tasks.csv                # the same tasks in CSV form
-└── assets/
-    └── agency-logo.svg      # copied from templates/assets/
+└── tasks.csv                # the same tasks in CSV form
 ```
 
 The `web/<domain>-seo-audit-<date>/` folder name is the public contract — sub-skill files and README references rely on it.
@@ -36,7 +32,7 @@ The `web/<domain>-seo-audit-<date>/` folder name is the public contract — sub-
 |---|---|---|
 | `{{AGENCY_NAME}}` | `brand.json:agency_name` | alt text + plain text |
 | `{{AGENCY_KICKER}}` | `brand.json:agency_kicker` | small caps line above the title |
-| `{{AGENCY_LOGO}}` | `brand.json:agency_logo` | path is relative to `index.html` (script copies the file into `assets/`) |
+| `{{AGENCY_LOGO}}` | `brand.json:agency_logo` | webroot path, e.g. `/assets/imgs/logo-full-black-text.svg` |
 | `{{REPORT_TITLE}}` | `brand.json:report_title` | `<h1>` |
 | `{{REPORT_SUBTITLE}}` | `brand.json:report_subtitle` | hero paragraph + `<meta name="description">` |
 | `{{DOWNLOADS_NOTE}}` | `brand.json:downloads_note` | copy above the download grid |
@@ -82,20 +78,19 @@ The dashboard is built from **ldnddev Framework components** (see `custom/dd-fra
 The template links the framework build and lets it theme everything:
 
 ```
-<link rel="stylesheet" href="assets/css/style.min.css">
-<script src="assets/js/main.min.js" defer></script>
+<link rel="stylesheet" href="/assets/css/style.min.css">
+<script src="/assets/js/main.min.js" defer></script>
 ```
 
-Drop `style.min.css` + `main.min.js` (from `framework.ldnddev.com`) into the report bundle's `assets/`. The framework provides all component styling, the 24-col `dd-g` grid, dark mode (via `prefers-color-scheme`), and `dd-data-table` sort + scroll-region accessibility. **There is no manual theme toggle** — the framework themes by system preference only.
+The dashboard links the webroot `/assets/` framework build. The framework provides all component styling, the 24-col `dd-g` grid, dark mode (via `prefers-color-scheme`), and `dd-data-table` sort + scroll-region accessibility. **There is no manual theme toggle** — the framework themes by system preference only.
 
 Severity colors, focus rings, and control-border contrast (WCAG 1.4.11 / 2.4.13) all live in the framework stylesheet — verify AA there, not here. The template keeps only a small inline `<style>` for the few shell bits the framework has no component for (skip link, summary `<dl>`, sticky rail, status tables inside accordions). The old `brand.json` color/font tokens (`BRAND_BG`, `DISPLAY_FONT`, `PRIORITY_BG`, …) are **no longer consumed** by the template; theming is the framework's job.
 
 ## Editing workflow
 
 1. Adjust `dashboard.html` for layout / structure / WCAG compliance.
-2. Adjust `brand.json` for per-agency copy and color tokens.
-3. Drop the agency mark into `templates/assets/agency-logo.svg` (or update `brand.json:agency_logo` to a new filename — anything in `templates/assets/` is copied into the audit bundle).
-4. Smoke-test:
+2. Adjust `brand.json` for per-agency copy. Logo paths are webroot `/assets/imgs/...`.
+3. Smoke-test:
    ```bash
    python3 ../skills/dd-seo/scripts/generate_report.py https://example.com
    open "web/example.com-seo-audit-$(date +%F)/index.html"

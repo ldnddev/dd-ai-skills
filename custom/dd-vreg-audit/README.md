@@ -64,7 +64,6 @@ Every successful run writes the full set:
 | `metrics.json` | Raw per-result objects. |
 | `screenshots/` | Test + prod PNGs per page-per-viewport. |
 | `diffs/` | Pixelmatch overlay PNGs. |
-| `assets/` | ldnddev Framework build (`css/style.min.css` + `js/main.min.js`) + logo + favicon set. |
 
 Same-day re-runs overwrite the directory.
 
@@ -94,9 +93,8 @@ dd-vreg-audit/
 ├── install.sh
 ├── scripts/run_visual_regression.js       ← single-file orchestrator (root-level, matches dd-a11y)
 ├── templates/                             ← shared layout with dd-a11y / dd-seo
-│   ├── dashboard.html                     ← ldnddev Framework (style.min.css + main.min.js)
-│   ├── brand.json
-│   └── assets/{css/*, js/*, imgs/logo-mini.svg, favicon/*}
+│   ├── dashboard.html                     ← ldnddev Framework (links webroot /assets/)
+│   └── brand.json
 └── skills/dd-vreg/
     ├── SKILL.md
     └── references/

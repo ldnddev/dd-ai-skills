@@ -13,7 +13,7 @@ mkdir -p "$TARGET_DIR"
 cp "$SCRIPT_DIR/skills/dd-designmd/SKILL.md" "$TARGET_DIR/SKILL.md"
 cp -R "$SCRIPT_DIR/skills/dd-designmd/references" "$TARGET_DIR/references"
 cp -R "$SCRIPT_DIR/scripts" "$TARGET_DIR/scripts"
-# Dashboard template + Framework assets (for --web / --dashboard)
+# Dashboard template + brand.json (for --web / --dashboard)
 if [ -d "$SCRIPT_DIR/templates" ]; then
   cp -R "$SCRIPT_DIR/templates" "$TARGET_DIR/templates"
 fi

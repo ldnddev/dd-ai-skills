@@ -11,7 +11,6 @@ const pluginRoot = path.resolve(__dirname, '..');
 const templatesDir = path.join(pluginRoot, 'templates');
 const templateHtmlPath = path.join(templatesDir, 'dashboard.html');
 const brandJsonPath = path.join(templatesDir, 'brand.json');
-const templateAssetsDir = path.join(templatesDir, 'assets');
 
 const viewports = {
   desktop: {
@@ -416,8 +415,8 @@ async function renderDashboard(spec, results, brand, audit_date, artifacts) {
     REPORT_SUBTITLE: brand.report_subtitle || '',
     AGENCY_NAME: brand.agency_name || '',
     AGENCY_KICKER: brand.agency_kicker || 'Visual Regression',
-    AGENCY_LOGO: brand.agency_logo || 'assets/imgs/logo-full-black-text.svg',
-    AGENCY_LOGO_DARK: brand.agency_logo_dark || 'assets/imgs/logo-full-white-text.svg',
+    AGENCY_LOGO: brand.agency_logo || '/assets/imgs/logo-full-black-text.svg',
+    AGENCY_LOGO_DARK: brand.agency_logo_dark || '/assets/imgs/logo-full-white-text.svg',
     FOOTER_TEXT: brand.footer_text || '',
     DOWNLOADS_NOTE: brand.downloads_note || '',
     TASKS_NOTE: brand.tasks_note || '',
@@ -667,18 +666,6 @@ function buildMarkdownReport(spec, results, audit_date) {
   return lines.join('\n') + '\n';
 }
 
-// --- Asset copy -------------------------------------------------------------
-
-async function copyTemplateAssets(outputDir) {
-  try {
-    await fs.access(templateAssetsDir);
-  } catch {
-    return;
-  }
-  const dst = path.join(outputDir, 'assets');
-  await fs.cp(templateAssetsDir, dst, { recursive: true });
-}
-
 // --- Output dir -------------------------------------------------------------
 
 async function prepareOutputDir(spec) {
@@ -716,7 +703,6 @@ async function main() {
   const diffDir = path.join(outputDir, 'diffs');
   await ensureDir(screenshotDir);
   await ensureDir(diffDir);
-  await copyTemplateAssets(outputDir);
 
   const audit_date = buildHumanDate();
   const brand = await loadBrand();

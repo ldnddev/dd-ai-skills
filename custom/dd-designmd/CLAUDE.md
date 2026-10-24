@@ -12,10 +12,10 @@ dd-designmd/
 ├── skills/dd-designmd/references/
 ├── scripts/run_designmd.py      # orchestrator
 ├── scripts/generate_dashboard.py
-└── templates/                   # dashboard.html + brand.json + assets/
+└── templates/                   # dashboard.html + brand.json
 ```
 
-`--web` writes `web/<domain>-designmd-YYYY-MM-DD/index.html` + deliverables + `assets/`.
+`--web` writes `web/<domain>-designmd-YYYY-MM-DD/index.html` + deliverables. Dashboard CSS/JS/logos come from webroot `/assets/`.
 
 ## Invariants
 
