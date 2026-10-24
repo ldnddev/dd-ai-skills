@@ -16,9 +16,10 @@ theme. The head links the compiled framework build:
 
 `build_dashboard` copies `templates/assets/{css,js,favicon,imgs}` into the output
 bundle so those links resolve. Column sort, `aria-sort`, and scroll-region
-keyboard access on the task table come from the framework's `dd_data_table` JS —
-the template's own `<script>` only adds the filter, CSV export, a polite live
-region, and in-page focus handling.
+keyboard access on the
+task table come from the framework's `dd_data_table` JS — the template's own
+`<script>` only adds the filter, CSV export, a polite live region, and
+in-page focus handling.
 
 **Dark mode** is driven by the framework via `prefers-color-scheme` only — there
 is no manual light/dark toggle. Brand color/font tokens are **not** used
@@ -47,7 +48,7 @@ Brand / chrome (from `brand.json`):
 
 Audit data (from the axe results):
 
-- `{{AUDIT_URL}}`, `{{AUDIT_DATE}}`, `{{WCAG_TARGET}}`
+- `{{AUDIT_URL}}`, `{{AUDIT_DATE}}`, `{{WCAG_TARGET}}`, `{{AXE_VERSION}}`
 - `{{SCORE_VALUE}}`, `{{SCORE_RATING}}`, `{{TOTAL_ISSUES}}`, `{{TASK_COUNT}}`
 - `{{CRITICAL_COUNT}}`, `{{SERIOUS_COUNT}}`, `{{MODERATE_COUNT}}`, `{{MINOR_COUNT}}`
 
@@ -62,10 +63,11 @@ Server-rendered component fragments:
 
 Baked into the builders (`accessibility-lead` reviewed): badge label text carries
 the axe severity word (never color alone, 1.4.1); screenshot links have unique,
-context-bearing names (2.4.4/2.5.3); card screenshots are decorative `alt=""` with
-a self-describing "View screenshot of {url}" link; download labels state the real
+context-bearing names (2.4.4/2.5.3); each page card links to the live page
+("Open page" plus the URL). A legacy pin map, when present, is decorative
+`alt=""` with a "View pin map" link; download labels state the real
 format (Markdown/CSV/DOCX/JSON, 2.5.3); a `role="status"` live region announces
-filter results; `prefers-reduced-motion` is honored.
+filter results. Dashboards do not animate: no `data-sal` / `data-sal-delay` / `data-sal-duration` / `data-sal-easing` on any element, and the shell CSS sets `animation: none` and `transition: none`.
 
 Validate any rendered output with:
 

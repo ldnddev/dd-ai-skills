@@ -6,6 +6,9 @@ node_modules/
 # Plugin SessionStart bootstrap sentinels (per-host state)
 .dd-*-bootstrap.ok
 
+# axe-core resolved from the npm latest tag at audit time
+**/.axe-runtime/
+
 # Python cache
 __pycache__/
 *.pyc

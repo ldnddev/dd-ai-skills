@@ -15,7 +15,10 @@ def simulate_axe_audit(url):
             "url": url,
             "timestamp": datetime.now().isoformat(),
             "tool": "axe-core (simulated)",
+            "axe_core_version": None,
+            "wcag_version": "2.2",
             "wcag_level": "AA",
+            "wcag_target": "WCAG 2.2 Level AA",
             "score": 72.5
         },
         "summary": {

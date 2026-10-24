@@ -48,6 +48,8 @@ All accessibility findings MUST include:
 | **Robust** | 25% | Compatible with assistive technologies |
 
 ### Scoring Formula
+
+Use this only for a manual success-criterion matrix. The generated report does not compute it. The report's score is the axe rule pass rate, and its principle table is a count of failing rules.
 ```
 Category Score = (Passing Criteria / Total Criteria) × 100
 Overall Score = Σ(Category Score × Category Weight)
@@ -55,13 +57,7 @@ Overall Score = Σ(Category Score × Category Weight)
 
 ### Score Interpretation
 
-| Score Range | Rating | Compliance Level | Action Required |
-|-------------|--------|-----------------|-----------------|
-| **90-100** | AA Compliant | WCAG 2.2 Level AA | Maintenance only |
-| **75-89** | A Compliant | WCAG 2.2 Level A | Address AA issues |
-| **50-74** | Needs Improvement | Partial compliance | Priority remediation |
-| **25-49** | Significant Barriers | Major non-compliance | Urgent remediation |
-| **0-24** | Critical Barriers | Severe non-compliance | Complete overhaul |
+The number on the report is the share of axe rules that passed. `score_label` in `scripts/generate_a11y_report.py` names it. Do not call any score "AA compliant" or "A compliant". A high score is not a WCAG 2.2 conformance claim. The report lists success criteria at the scanned level that axe did not run. Conformance still needs the manual checks in this rubric.
 
 ## Evidence Requirements
 
@@ -84,9 +80,9 @@ Overall Score = Σ(Category Score × Category Weight)
 ## Report Structure
 
 ### 1. Executive Summary
-- Overall score and rating
+- Overall axe rule pass rate and automated rating
 - Critical issues summary
-- Compliance status (A/AA/AAA)
+- WCAG 2.2 target (A, AA, or AAA). Do not state conformance from the score alone.
 - Mobile accessibility assessment
 
 ### 2. Detailed Findings
@@ -96,7 +92,7 @@ Grouped by WCAG principle with:
 - Screenshots and code examples
 
 ### 3. Compliance Matrix
-- WCAG 2.2 success criteria checklist
+- WCAG 2.2 criteria from `scripts/wcag_criteria.py`
 - Pass/Fail/Not Applicable status
 - Mobile-specific compliance
 
@@ -149,12 +145,12 @@ Grouped by WCAG principle with:
 
 ### Testing Requirements
 - **Viewports**: 320px, 375px, 414px (mobile), 768px (tablet)
-- **Touch Targets**: Minimum 44×44 CSS pixels
+- **Touch Targets**: WCAG 2.2 AA 2.5.8 is 24×24 CSS pixels or sufficient spacing. 44×44 is 2.5.5 AAA.
 - **Gestures**: Test with single pointer alternatives
 - **Orientation**: Test portrait and landscape
 
 ### Mobile-Specific Issues
-- **Touch Target Size**: Below 44×44 pixels
+- **Touch Target Size**: Below the 2.5.8 AA minimum (24×24 CSS pixels, or the spacing exception)
 - **Gesture Complexity**: Requires multi-finger gestures
 - **Viewport Issues**: Content doesn't reflow
 - **Zoom Restrictions**: Content not zoomable

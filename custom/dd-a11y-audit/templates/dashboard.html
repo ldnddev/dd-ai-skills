@@ -34,7 +34,9 @@
     .rail { position: sticky; top: 1rem; }
     @media (max-width: 920px) { .rail { position: static; } }
     .muted { color: color-mix(in srgb, CanvasText 70%, Canvas); }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+    /* Audit dashboards do not animate, including SAL scroll effects from the framework stylesheet. */
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    [data-sal] { opacity: 1 !important; transform: none !important; filter: none !important; }
   </style>
 </head>
 
@@ -76,6 +78,7 @@
                   <div class="app-summary__row"><dt>Moderate / Minor</dt><dd>{{MODERATE_COUNT}} / {{MINOR_COUNT}}</dd></div>
                   <div class="app-summary__row"><dt>Audited URL</dt><dd>{{AUDIT_URL}}</dd></div>
                   <div class="app-summary__row"><dt>WCAG Target</dt><dd>{{WCAG_TARGET}}</dd></div>
+                  <div class="app-summary__row"><dt>axe-core</dt><dd>{{AXE_VERSION}}</dd></div>
                   <div class="app-summary__row"><dt>Audit Date</dt><dd>{{AUDIT_DATE}}</dd></div>
                 </dl>
               </div>

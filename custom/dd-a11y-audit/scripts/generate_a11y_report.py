@@ -13,14 +13,19 @@ import argparse
 import csv
 import html
 import json
+import re
 import shutil
 import struct
 from datetime import UTC, datetime
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
+from wcag_criteria import criteria_not_run
+
 SKILL_DIR = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = SKILL_DIR / "templates"
+# SAL attributes the framework animates. Produced dashboards must not carry them.
+_SAL_ATTR = re.compile(r"""\s+data-sal(?:-[a-z]+)?=(?:"[^"]*"|'[^']*')""")
 
 
 def load_results(path):
@@ -34,12 +39,6 @@ def load_brand_config():
     return json.loads(config_path.read_text())
 
 
-def render_template(template_text, replacements):
-    rendered = template_text
-    for key, value in replacements.items():
-        rendered = rendered.replace(f"{{{{{key}}}}}", value)
-    return rendered
-
 
 def ensure_brand_asset(output_dir, relative_asset_path):
     for candidate in (TEMPLATES_DIR / relative_asset_path, SKILL_DIR / relative_asset_path):
@@ -49,6 +48,13 @@ def ensure_brand_asset(output_dir, relative_asset_path):
             shutil.copyfile(candidate, destination)
             return relative_asset_path
     return relative_asset_path
+
+
+def render_template(template_text, replacements):
+    rendered = template_text
+    for key, value in replacements.items():
+        rendered = rendered.replace(f"{{{{{key}}}}}", value)
+    return rendered
 
 
 def format_audit_date(timestamp):
@@ -62,15 +68,27 @@ def format_audit_date(timestamp):
 
 
 def score_label(score):
+    """Rating for the axe rule pass rate. Not a WCAG conformance claim."""
     if score >= 90:
-        return "AA Compliant"
+        return "Strong automated result"
     if score >= 75:
-        return "A Compliant"
+        return "Mixed automated result"
     if score >= 50:
         return "Needs Improvement"
     if score >= 25:
         return "Significant Barriers"
     return "Critical Barriers"
+
+
+def wcag_target_label(meta):
+    """Display string for the scan standard. New runs store wcag_target."""
+    if meta.get("wcag_target"):
+        return str(meta["wcag_target"])
+    level = meta.get("wcag_level") or "AA"
+    version = meta.get("wcag_version")
+    if version:
+        return f"WCAG {version} Level {level}"
+    return f"Level {level}"
 
 
 def severity_label(impact):
@@ -112,18 +130,6 @@ def estimate_effort(nodes_count, impact):
         "minor": 0.5,
     }.get(impact, 1.0)
     return round(max(0.5, base * max(1, nodes_count)), 1)
-
-
-def principle_score(results, principle):
-    total = max(1, results["summary"]["total_violations"])
-    count = results["principle_counts"].get(principle, 0)
-    return max(0, round(100 - ((count / total) * 35)))
-
-
-def page_principle_score(page, principle):
-    total = max(1, page.get("summary", {}).get("total_violations", 0))
-    count = page.get("principle_counts", {}).get(principle, 0)
-    return max(0, round(100 - ((count / total) * 35)))
 
 
 def first_target(violation):
@@ -183,38 +189,215 @@ def _shot_path_for_task(page, task_id, local_index):
     return ""
 
 
-def build_task_rows(results):
-    rows = []
-    global_index = 1
+_SCOPE_LABEL = {
+    "sitewide-chrome": "Sitewide chrome",
+    "sitewide-template": "Sitewide template",
+    "page": "Page",
+}
+
+
+def scope_label(scope):
+    return _SCOPE_LABEL.get(scope or "page", "Page")
+
+
+def recorded_sc_checked(results):
+    """SC tags axe executed, or None when this result did not record them."""
+    meta = results.get("metadata") or {}
+    if "sc_checked" in meta:
+        return set(meta.get("sc_checked") or [])
+    found = False
+    tags = set()
     for page in get_pages(results):
-        page_url = page.get("page_url") or page.get("metadata", {}).get("url", "")
-        page_slug = page.get("page_slug", "page")
-        page_screenshot = _page_pin_map(page)
-        # Prefer stored start (multi-page runner); else continue sequential numbering.
-        if page.get("task_id_start"):
+        page_meta = page.get("metadata") or {}
+        if "sc_checked" in page_meta:
+            found = True
+            tags.update(page_meta.get("sc_checked") or [])
+    if not found:
+        return None
+    return tags
+
+
+def criteria_gap(results):
+    """Return (target label, missing criteria). Missing is None when unrecorded."""
+    meta = results.get("metadata") or {}
+    checked = recorded_sc_checked(results)
+    if checked is None:
+        return wcag_target_label(meta), None
+    missing = criteria_not_run(meta.get("wcag_level") or "AA", checked)
+    return wcag_target_label(meta), missing
+
+
+def _page_has_stored_ids(page):
+    for violation in page.get("violations") or []:
+        if violation.get("task_id") or violation.get("rollup_task_id"):
+            return True
+    return False
+
+
+def _base_row(task_id, page_url, page_slug, scope, seen_on, page_count, shot, pin, source):
+    impact = source.get("impact")
+    tags = source.get("wcag_tags") or []
+    return {
+        "task_id": task_id,
+        "page_url": page_url,
+        "page_slug": page_slug,
+        "scope": scope,
+        "seen_on": seen_on,
+        "page_count": page_count,
+        "page_screenshot": pin or "",
+        "issue_screenshot": shot or "",
+        "priority": severity_label(impact),
+        "rule_id": source.get("rule_id") or source.get("id") or "",
+        "issue": source.get("description") or source.get("issue") or "",
+        "wcag_tags": ", ".join(tags) if isinstance(tags, list) else tags,
+        "selector": source.get("selector") or first_target(source),
+        "evidence": source.get("html") or source.get("evidence") or first_html_preview(source),
+        "fix": source.get("help") or source.get("fix") or "",
+        "timeline": severity_timeline(impact),
+        "owner": owner_for_impact(impact),
+        "estimated_hours": estimate_effort(source.get("nodes_count", 1), impact),
+        "nodes_count": source.get("nodes_count", 0),
+        "status": "Open",
+    }
+
+
+def _row_from_sitewide(item, pages):
+    seen = [page["page_url"] for page in item.get("pages") or [] if page.get("page_url")]
+    representative = item.get("representative") or {}
+    shot = item.get("issue_screenshot") or ""
+    if not shot:
+        for page in pages:
+            if representative.get("page_slug") and page.get("page_slug") != representative.get("page_slug"):
+                continue
+            shot = _shot_path_for_task(page, item.get("task_id"), 0)
+            if shot:
+                break
+    return _base_row(
+        item.get("task_id") or "",
+        "Sitewide",
+        "sitewide",
+        item.get("scope") or "sitewide-template",
+        " | ".join(seen),
+        item.get("page_count") or len(seen),
+        shot,
+        "",
+        item,
+    )
+
+
+def build_task_rows(results):
+    pages = get_pages(results)
+    rows = [_row_from_sitewide(item, pages) for item in results.get("sitewide") or []]
+    global_index = 1
+    for page in pages:
+        stored = _page_has_stored_ids(page)
+        if page.get("task_id_start") and not stored:
             global_index = int(page["task_id_start"])
-        for local_index, violation in enumerate(page.get("violations", []), start=1):
-            task_id = f"A11Y-{global_index:03d}"
-            rows.append({
-                "task_id": task_id,
-                "page_url": page_url,
-                "page_slug": page_slug,
-                "page_screenshot": page_screenshot or "",
-                "issue_screenshot": _shot_path_for_task(page, task_id, local_index),
-                "priority": severity_label(violation.get("impact")),
-                "rule_id": violation.get("id", ""),
-                "issue": violation.get("description", ""),
-                "wcag_tags": ", ".join(violation.get("wcag_tags", [])),
-                "selector": first_target(violation),
-                "evidence": first_html_preview(violation),
-                "fix": violation.get("help", ""),
-                "timeline": severity_timeline(violation.get("impact")),
-                "owner": owner_for_impact(violation.get("impact")),
-                "estimated_hours": estimate_effort(violation.get("nodes_count", 1), violation.get("impact")),
-                "status": "Open",
-            })
-            global_index += 1
+        page_url = page.get("page_url") or page.get("metadata", {}).get("url", "")
+        pin = _page_pin_map(page)
+        for local_index, violation in enumerate(page.get("violations") or [], start=1):
+            if violation.get("rollup_task_id"):
+                continue
+            if violation.get("task_id"):
+                task_id = violation["task_id"]
+            else:
+                task_id = f"A11Y-{global_index:03d}"
+                global_index += 1
+            rows.append(_base_row(
+                task_id,
+                page_url,
+                page.get("page_slug", "page"),
+                "page",
+                "",
+                1,
+                _shot_path_for_task(page, task_id, local_index),
+                pin,
+                violation,
+            ))
     return rows
+
+
+def _shot_markdown(row, embed_screenshots):
+    path = row.get("issue_screenshot")
+    if not path:
+        return None
+    if embed_screenshots:
+        return f"![Annotated issue {row['task_id']}]({path})"
+    return f"[Annotated screenshot for {row['task_id']}]({path})"
+
+
+def _finding_markdown(row, embed_screenshots, level=4):
+    marks = "#" * level
+    lines = [
+        f"{marks} {row['task_id']} — {row['issue']}",
+        f"**Severity:** {row['priority']}",
+        f"**WCAG Tags:** {row['wcag_tags'] or 'n/a'}",
+        f"**Selector:** `{row['selector'] or 'n/a'}`",
+        f"**Occurrences:** {row.get('nodes_count', 0)}",
+        f"**Fix:** {row['fix']}",
+        f"**Evidence:** `{(row.get('evidence') or '')[:180] or 'n/a'}`",
+    ]
+    shot = _shot_markdown(row, embed_screenshots)
+    if shot:
+        lines.append(shot)
+    lines.append("")
+    return lines
+
+
+def _criteria_markdown(results):
+    target, missing = criteria_gap(results)
+    lines = ["## Criteria this scan did not run", ""]
+    if missing is None:
+        lines.extend([
+            "This result did not record which success criteria ran.",
+            "",
+        ])
+        return lines
+    lines.extend([
+        f"These {target} success criteria had no axe rule execute in this scan. "
+        "The score is not a conformance claim. Criteria that did run can still fail a manual review.",
+        "",
+    ])
+    if not missing:
+        lines.extend([
+            "Every success criterion at this level had at least one axe rule execute.",
+            "",
+        ])
+        return lines
+    for sc in missing:
+        lines.append(f"- {sc['id']} {sc['name']} ({sc['level']})")
+    lines.append("")
+    return lines
+
+
+def _sitewide_markdown(results, rows, embed_screenshots):
+    sitewide_rows = [row for row in rows if row.get("scope", "page") != "page"]
+    if not sitewide_rows:
+        return []
+    lines = [
+        "## Sitewide findings",
+        "",
+        "The same issue in shared chrome, or the same selector on more than one page, is listed once.",
+        "",
+    ]
+    for row in sitewide_rows:
+        lines.extend([
+            f"### {row['task_id']} — {row['issue']}",
+            f"**Scope:** {scope_label(row['scope'])}",
+            f"**Seen on:** {row.get('page_count', 0)} pages",
+            f"**Severity:** {row['priority']}",
+            f"**WCAG Tags:** {row['wcag_tags'] or 'n/a'}",
+            f"**Selector:** `{row['selector'] or 'n/a'}`",
+            f"**Fix:** {row['fix']}",
+            f"**Evidence:** `{(row.get('evidence') or '')[:180] or 'n/a'}`",
+        ])
+        if row.get("seen_on"):
+            lines.append("**Pages:** " + row["seen_on"].replace(" | ", ", "))
+        shot = _shot_markdown(row, embed_screenshots)
+        if shot:
+            lines.append(shot)
+        lines.append("")
+    return lines
 
 
 def generate_markdown_report(results, embed_screenshots=False):
@@ -231,9 +414,10 @@ def generate_markdown_report(results, embed_screenshots=False):
         "",
         "## Executive Summary",
         "",
-        f"**Overall Score:** {score}/100",
-        f"**Compliance Rating:** {score_label(score)}",
-        f"**WCAG Target:** Level {meta['wcag_level']}",
+        f"**Overall Score:** {score}/100 (share of axe rules that passed; not a conformance percentage)",
+        f"**Automated rating:** {score_label(score)}",
+        f"**WCAG Target:** {wcag_target_label(meta)}",
+        f"**axe-core:** {meta.get('axe_core_version') or 'not recorded'}",
         f"**Pages Audited:** {len(pages)}",
         "",
         f"**Critical Issues:** {summary['critical_violations']}",
@@ -241,19 +425,31 @@ def generate_markdown_report(results, embed_screenshots=False):
         f"**Moderate Issues:** {summary['moderate_violations']}",
         f"**Minor Issues:** {summary['minor_violations']}",
         "",
-        "## WCAG Principle Scores",
+        "## WCAG Principle Counts",
         "",
-        "| Principle | Score | Violations |",
-        "|-----------|-------|------------|",
-        f"| Perceivable | {principle_score(results, 'perceivable')}% | {results['principle_counts'].get('perceivable', 0)} |",
-        f"| Operable | {principle_score(results, 'operable')}% | {results['principle_counts'].get('operable', 0)} |",
-        f"| Understandable | {principle_score(results, 'understandable')}% | {results['principle_counts'].get('understandable', 0)} |",
-        f"| Robust | {principle_score(results, 'robust')}% | {results['principle_counts'].get('robust', 0)} |",
+        "Counts are failing axe rules mapped from success-criterion tags (1.x perceivable, 2.x operable, 3.x understandable, 4.x robust). A rule can count in more than one principle.",
         "",
-        "## Findings",
+        "| Principle | Violations |",
+        "|-----------|------------|",
+        f"| Perceivable | {results['principle_counts'].get('perceivable', 0)} |",
+        f"| Operable | {results['principle_counts'].get('operable', 0)} |",
+        f"| Understandable | {results['principle_counts'].get('understandable', 0)} |",
+        f"| Robust | {results['principle_counts'].get('robust', 0)} |",
         "",
     ]
+    if results.get("sitewide"):
+        sitewide_count = len(results["sitewide"])
+        lines.append(
+            f"**Unique remediation items:** {len(rows)} "
+            f"({sitewide_count} sitewide, {len(rows) - sitewide_count} page-only). "
+            "Totals above count each page before that rollup."
+        )
+        lines.append("")
+    lines.extend(_criteria_markdown(results))
+    lines.extend(_sitewide_markdown(results, rows, embed_screenshots))
+    lines.extend(["## Findings", ""])
 
+    page_rows_all = [item for item in rows if item.get("scope", "page") == "page"]
     if not rows:
         lines.extend([
             "No violations were detected by the automated audit.",
@@ -284,30 +480,20 @@ def generate_markdown_report(results, embed_screenshots=False):
                     f"#{p['pin']} → {p['task_id']} ({p.get('rule_id', '')})" for p in legend
                 ))
                 lines.append("")
-            # Walk rows for this page in order so task_id and screenshot stay paired
-            # (avoids ambiguous rule_id+selector matches when duplicates exist).
-            page_rows = [item for item in rows if item["page_url"] == page_url]
-            violations = page.get("violations", [])
-            for row, violation in zip(page_rows, violations):
-                lines.extend([
-                    f"#### {row['task_id']} — {row['issue']}",
-                    f"**Severity:** {row['priority']}",
-                    f"**WCAG Tags:** {row['wcag_tags'] or 'n/a'}",
-                    f"**Selector:** `{row['selector'] or 'n/a'}`",
-                    f"**Occurrences:** {violation.get('nodes_count', 0)}",
-                    f"**Fix:** {row['fix']}",
-                    f"**Evidence:** `{row['evidence'][:180] or 'n/a'}`",
-                ])
-                if row.get("issue_screenshot"):
-                    if embed_screenshots:
-                        lines.append(
-                            f"![Annotated issue {row['task_id']}]({row['issue_screenshot']})"
-                        )
-                    else:
-                        lines.append(
-                            f"[Annotated screenshot for {row['task_id']}]({row['issue_screenshot']})"
-                        )
+            rolled = sum(
+                1 for item in results.get("sitewide") or []
+                if any(entry.get("page_url") == page_url for entry in item.get("pages") or [])
+            )
+            if rolled:
+                lines.append(
+                    f"Sitewide findings on this page are listed once above ({rolled})."
+                )
                 lines.append("")
+            page_rows = [item for item in page_rows_all if item["page_url"] == page_url]
+            if not page_rows:
+                lines.extend(["No page-only violations.", ""])
+            for row in page_rows:
+                lines.extend(_finding_markdown(row, embed_screenshots, level=4))
 
     lines.extend([
         "## Recommendations",
@@ -335,10 +521,18 @@ def generate_markdown_report(results, embed_screenshots=False):
     return "\n".join(lines)
 
 
+def _priority_counts(rows):
+    counts = {"Critical": 0, "Serious": 0, "Moderate": 0, "Minor": 0}
+    for row in rows:
+        if row["priority"] in counts:
+            counts[row["priority"]] += 1
+    return counts
+
+
 def generate_action_plan(results):
-    summary = results["summary"]
     rows = build_task_rows(results)
     pages = get_pages(results)
+    counts = _priority_counts(rows)
     lines = [
         "# Accessibility Action Plan",
         f"<!-- URL: {results['metadata']['url']} -->",
@@ -346,12 +540,14 @@ def generate_action_plan(results):
         "",
         "## Priority Matrix",
         "",
+        "Counts are unique remediation items. A repeated chrome or template issue counts once.",
+        "",
         "| Priority | Count | Timeline | Owner |",
         "|----------|-------|----------|-------|",
-        f"| Critical | {summary['critical_violations']} | Immediate (1-2 days) | Frontend Development |",
-        f"| Serious | {summary['serious_violations']} | Week 1 | Frontend Development |",
-        f"| Moderate | {summary['moderate_violations']} | Month 1 | Design + Development |",
-        f"| Minor | {summary['minor_violations']} | Month 2-3 | Product / Maintenance |",
+        f"| Critical | {counts['Critical']} | Immediate (1-2 days) | Frontend Development |",
+        f"| Serious | {counts['Serious']} | Week 1 | Frontend Development |",
+        f"| Moderate | {counts['Moderate']} | Month 1 | Design + Development |",
+        f"| Minor | {counts['Minor']} | Month 2-3 | Product / Maintenance |",
         "",
         f"Pages in scope: {len(pages)}",
         "",
@@ -365,6 +561,11 @@ def generate_action_plan(results):
             lines.extend([
                 f"### {row['task_id']} — {row['issue']}",
                 f"- Page: {row['page_url']}",
+                f"- Scope: {scope_label(row.get('scope'))}",
+            ])
+            if row.get("seen_on"):
+                lines.append(f"- Seen on: {row['seen_on'].replace(' | ', ', ')}")
+            lines.extend([
                 f"- Owner: {row['owner']}",
                 f"- Timeline: {row['timeline']}",
                 f"- Estimated effort: {row['estimated_hours']} hours",
@@ -377,9 +578,10 @@ def generate_action_plan(results):
 
 def write_csv(path, rows):
     fieldnames = [
-        "task_id", "page_url", "page_slug", "page_screenshot", "issue_screenshot",
+        "task_id", "page_url", "page_slug", "scope", "seen_on", "page_count",
+        "page_screenshot", "issue_screenshot",
         "priority", "rule_id", "issue", "wcag_tags", "selector",
-        "evidence", "fix", "timeline", "owner", "estimated_hours", "status",
+        "evidence", "fix", "timeline", "owner", "estimated_hours", "nodes_count", "status",
     ]
     with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -495,12 +697,45 @@ def build_docx(path, results, rows, base_dir=None, embed_screenshots=False):
     body.append(paragraph_xml(f"URL: {meta['url']}"))
     body.append(paragraph_xml(f"Generated: {meta['timestamp']}"))
     body.append(paragraph_xml(f"Overall score: {meta['score']}/100 ({score_label(meta['score'])})"))
+    body.append(paragraph_xml(f"WCAG target: {wcag_target_label(meta)}"))
+    body.append(paragraph_xml(f"axe-core: {meta.get('axe_core_version') or 'not recorded'}"))
     body.append(paragraph_xml(f"Pages audited: {len(pages)}"))
     body.append(paragraph_xml(
         f"Critical: {summary['critical_violations']}, Serious: {summary['serious_violations']}, "
         f"Moderate: {summary['moderate_violations']}, Minor: {summary['minor_violations']}"
     ))
+    target, missing = criteria_gap(results)
+    body.append(paragraph_xml("Criteria this scan did not run"))
+    if missing is None:
+        body.append(paragraph_xml("This result did not record which success criteria ran."))
+    else:
+        body.append(paragraph_xml(
+            f"These {target} success criteria had no axe rule execute in this scan. "
+            "The score is not a conformance claim."
+        ))
+        if not missing:
+            body.append(paragraph_xml(
+                "Every success criterion at this level had at least one axe rule execute."
+            ))
+        for sc in missing or []:
+            body.append(paragraph_xml(f"{sc['id']} {sc['name']} ({sc['level']})"))
     body.append(paragraph_xml(" "))
+    sitewide_rows = [item for item in rows if item.get("scope", "page") != "page"]
+    if sitewide_rows:
+        body.append(paragraph_xml("Sitewide findings"))
+        body.append(paragraph_xml(
+            "The same issue in shared chrome, or the same selector on more than one page, is listed once."
+        ))
+        for row in sitewide_rows:
+            body.append(paragraph_xml(
+                f"{row['task_id']} | {scope_label(row['scope'])} | {row['priority']} | {row['issue']} | "
+                f"Seen on {row.get('page_count', 0)} pages"
+            ))
+            if row.get("seen_on"):
+                body.append(paragraph_xml(row["seen_on"].replace(" | ", ", ")))
+            body.append(paragraph_xml(f"Fix: {row['fix']}"))
+            if row["issue_screenshot"]:
+                append_image_or_path("Annotated issue screenshot:", row["issue_screenshot"])
     if not rows:
         body.append(paragraph_xml("No automated violations were detected."))
     else:
@@ -510,7 +745,13 @@ def build_docx(path, results, rows, base_dir=None, embed_screenshots=False):
             pin_map = _page_pin_map(page)
             if pin_map:
                 append_image_or_path("Pin map:", pin_map)
-            for row in [item for item in rows if item["page_url"] == page_url]:
+            page_rows = [
+                item for item in rows
+                if item.get("scope", "page") == "page" and item["page_url"] == page_url
+            ]
+            if not page_rows:
+                body.append(paragraph_xml("No page-only violations."))
+            for row in page_rows:
                 body.append(paragraph_xml(
                     f"{row['task_id']} | {row['priority']} | {row['issue']} | "
                     f"Owner: {row['owner']} | Timeline: {row['timeline']}"
@@ -619,18 +860,6 @@ def _badge(impact, label):
             f'{html.escape(str(label))}</span></span>')
 
 
-def copy_framework_assets(output_dir):
-    """Copy compiled framework CSS/JS + favicon/imgs into the report bundle."""
-    src = TEMPLATES_DIR / "assets"
-    if not src.is_dir():
-        return
-    dst = Path(output_dir) / "assets"
-    for sub in ("css", "js", "favicon", "imgs"):
-        candidate = src / sub
-        if candidate.is_dir():
-            shutil.copytree(candidate, dst / sub, dirs_exist_ok=True)
-
-
 def _render_severity_bars(summary):
     """Server-rendered dd-bar-chart rows. Label + count text is the accessible
     truth; the track/fill are decorative (aria-hidden). Widths are proportional
@@ -657,36 +886,38 @@ def _render_severity_bars(summary):
 
 
 def _render_page_cards(pages):
-    """dd-card grid — one card per audited page. The URL is the card <h3> title
-    (M1); the pin map is illustrative → alt="" (1.1.1), reached via a
-    self-describing link (2.4.4/2.5.3)."""
+    """dd-card grid — one card per audited page. The URL is the card <h3> title.
+
+    Cards link to the live page. They do not embed a full-page capture.
+    A legacy pin map, when present, is decorative (alt="") and reached via
+    its own link. No data-sal attributes. Audit dashboards do not animate.
+    """
     cards = []
-    for i, page in enumerate(pages):
+    for page in pages:
         page_url = page.get("page_url") or page.get("metadata", {}).get("url", "")
         shot = _page_pin_map(page)
         score_val = page.get("metadata", {}).get("score", "n/a")
         esc_url = html.escape(page_url)
-        delay_attr = f' data-sal-delay="{min(i * 100, 1000)}"' if i else ""
         image = ""
-        extra = ""
+        links = [
+            f'<div class="dd-card__link">'
+            f'<a href="{esc_url}" class="dd-button -secondary">'
+            f'Open page<span class="visually-hidden"> {esc_url}</span></a></div>'
+        ]
         if shot:
             esc_shot = html.escape(shot)
             image = (
                 f'<div class="dd-card__image">'
                 f'<img src="{esc_shot}" alt="" class="dd-image" loading="lazy"></div>'
             )
-            extra = (
-                f'<div class="dd-card__links dd-g"><div class="dd-card__link">'
+            links.append(
+                f'<div class="dd-card__link">'
                 f'<a href="{esc_shot}" class="dd-button -secondary">View pin map'
-                f'<span class="visually-hidden"> of accessibility issues on {esc_url}</span></a></div></div>'
+                f'<span class="visually-hidden"> of accessibility issues on {esc_url}</span></a></div>'
             )
-        else:
-            extra = (
-                '<p class="muted">No pin map captured for this page '
-                "(no locatable issues or capture skipped).</p>"
-            )
+        extra = f'<div class="dd-card__links dd-g">{"".join(links)}</div>'
         cards.append(
-            f'<div class="dd-card__item l-box dd-u-1-1 dd-u-md-12-24" data-sal="slide-up"{delay_attr}>'
+            f'<div class="dd-card__item l-box dd-u-1-1 dd-u-md-12-24">'
             f'<div class="dd-card__body dd-g">'
             f'{image}'
             f'<div class="dd-card__copy l-box">'
@@ -715,6 +946,11 @@ def _render_task_rows(rows):
     out = []
     for r in rows:
         priority = r["priority"]
+        if r.get("scope", "page") != "page":
+            count = r.get("page_count") or 0
+            page_cell = f"{scope_label(r['scope'])} ({count} pages)"
+        else:
+            page_cell = r["page_url"]
         # Screenshot cell needs a unique, context-bearing accessible name
         # (2.4.4/2.5.3) — the visible word ("Annotated"/"Pin map") is a substring of it.
         if r.get("issue_screenshot"):
@@ -732,7 +968,7 @@ def _render_task_rows(rows):
         out.append(
             f'<tr class="dd-data-table__row">'
             f'<th scope="row" class="dd-data-table__td">{html.escape(r["task_id"])}</th>'
-            f'<td class="dd-data-table__td">{html.escape(r["page_url"])}</td>'
+            f'<td class="dd-data-table__td">{html.escape(page_cell)}</td>'
             f'<td class="dd-data-table__td">{_badge(priority.lower(), priority)}</td>'
             f'<td class="dd-data-table__td">{html.escape(r["issue"])}</td>'
             f'<td class="dd-data-table__td">{html.escape(r["owner"])}</td>'
@@ -755,6 +991,127 @@ def _render_download_links(links):
             f'aria-label="Download {text}">{text}</a></div>'
         )
     return "\n".join(out)
+
+
+def _render_criteria_section(results):
+    target, missing = criteria_gap(results)
+    if missing is None:
+        body = "<p>This result did not record which success criteria ran.</p>"
+    else:
+        intro = (
+            f"<p>These {html.escape(target)} success criteria had no axe rule execute in this scan. "
+            "The score is not a conformance claim. Criteria that did run can still fail a manual review.</p>"
+        )
+        if not missing:
+            body = intro + "<p>Every success criterion at this level had at least one axe rule execute.</p>"
+        else:
+            items = "\n".join(
+                f"<li>{html.escape(sc['id'])} {html.escape(sc['name'])} ({html.escape(sc['level'])})</li>"
+                for sc in missing
+            )
+            body = intro + f"<ul>\n{items}\n</ul>"
+    return (
+        '<section class="dd-section" id="criteria-not-run" tabindex="-1" aria-labelledby="criteria-label">'
+        '<div class="dd-section__content">'
+        '<h2 class="dd-section__title l-box" id="criteria-label">Criteria this scan did not run</h2>'
+        '<div class="dd-section__items dd-g"><div class="dd-section__item dd-u-1-1 l-box">'
+        f"{body}"
+        "</div></div></div></section>"
+    )
+
+
+def _render_sitewide_section(rows):
+    sitewide = [row for row in rows if row.get("scope", "page") != "page"]
+    if not sitewide:
+        return ""
+    body_rows = []
+    for row in sitewide:
+        if row.get("issue_screenshot"):
+            shot = (
+                f'<a href="{html.escape(row["issue_screenshot"])}">Annotated'
+                f'<span class="visually-hidden"> screenshot for {html.escape(row["task_id"])}</span></a>'
+            )
+        else:
+            shot = '<span class="muted">n/a</span>'
+        page_links = []
+        for url in (row.get("seen_on") or "").split(" | "):
+            if not url:
+                continue
+            esc = html.escape(url)
+            page_links.append(f'<li><a href="{esc}">{esc}</a></li>')
+        count = row.get("page_count") or len(page_links)
+        if page_links:
+            pages_cell = (
+                f"<details><summary>{count} pages</summary><ul>{''.join(page_links)}</ul></details>"
+            )
+        else:
+            pages_cell = html.escape(str(count))
+        body_rows.append(
+            "<tr class=\"dd-data-table__row\">"
+            f"<th scope=\"row\" class=\"dd-data-table__td\">{html.escape(row['task_id'])}</th>"
+            f"<td class=\"dd-data-table__td\">{html.escape(scope_label(row['scope']))}</td>"
+            f"<td class=\"dd-data-table__td\">{html.escape(row['priority'])}</td>"
+            f"<td class=\"dd-data-table__td\">{html.escape(row['issue'])}</td>"
+            f"<td class=\"dd-data-table__td\">{pages_cell}</td>"
+            f"<td class=\"dd-data-table__td app-selector\">{html.escape(row['selector'])}</td>"
+            f"<td class=\"dd-data-table__td\">{shot}</td>"
+            "</tr>"
+        )
+    table = (
+        '<div class="dd-data-table"><div class="dd-data-table__scroll" data-label="Sitewide findings, scrollable">'
+        '<table class="dd-data-table__table">'
+        '<caption class="dd-data-table__caption visually-hidden">'
+        "Repeated chrome and template issues, listed once</caption>"
+        "<thead><tr>"
+        '<th scope="col" class="dd-data-table__th">ID</th>'
+        '<th scope="col" class="dd-data-table__th">Scope</th>'
+        '<th scope="col" class="dd-data-table__th">Priority</th>'
+        '<th scope="col" class="dd-data-table__th">Issue</th>'
+        '<th scope="col" class="dd-data-table__th">Pages</th>'
+        '<th scope="col" class="dd-data-table__th">Selector</th>'
+        '<th scope="col" class="dd-data-table__th">Screenshot</th>'
+        "</tr></thead><tbody>"
+        + "\n".join(body_rows)
+        + "</tbody></table></div></div>"
+    )
+    return (
+        '<section class="dd-section" id="sitewide" tabindex="-1" aria-labelledby="sitewide-label">'
+        '<div class="dd-section__content">'
+        '<h2 class="dd-section__title l-box" id="sitewide-label">Sitewide findings</h2>'
+        '<div class="dd-section__items dd-g"><div class="dd-section__item dd-u-1-1 l-box">'
+        "<p>The same issue in shared chrome, or the same selector on more than one page, is listed once.</p>"
+        f"{table}"
+        "</div></div></div></section>"
+    )
+
+
+def _inject_dashboard_sections(html_doc, results, rows):
+    """Insert criteria and sitewide sections into the dashboard shell."""
+    criteria = _render_criteria_section(results)
+    sitewide = _render_sitewide_section(rows)
+    nav = '<li><a href="#criteria-not-run">Criteria not run</a></li>'
+    if sitewide:
+        nav += '<li><a href="#sitewide">Sitewide findings</a></li>'
+    pages_link = '<li><a href="#pages">Page Previews</a></li>'
+    if pages_link in html_doc:
+        html_doc = html_doc.replace(pages_link, nav + pages_link, 1)
+    pages_section = '<section class="dd-section" id="pages"'
+    if pages_section in html_doc:
+        html_doc = html_doc.replace(pages_section, criteria + sitewide + pages_section, 1)
+    return html_doc
+
+
+
+def copy_framework_assets(output_dir):
+    """Copy compiled framework CSS/JS + favicon/imgs into the report bundle."""
+    src = TEMPLATES_DIR / "assets"
+    if not src.is_dir():
+        return
+    dst = Path(output_dir) / "assets"
+    for sub in ("css", "js", "favicon", "imgs"):
+        candidate = src / sub
+        if candidate.is_dir():
+            shutil.copytree(candidate, dst / sub, dirs_exist_ok=True)
 
 
 def build_dashboard(path, results, rows):
@@ -802,7 +1159,8 @@ def build_dashboard(path, results, rows):
             "AGENCY_LOGO_DARK": html.escape(logo_dark_path),
             "AUDIT_URL": html.escape(results["metadata"]["url"]),
             "AUDIT_DATE": html.escape(format_audit_date(results["metadata"]["timestamp"])),
-            "WCAG_TARGET": html.escape(f"Level {results['metadata']['wcag_level']}"),
+            "WCAG_TARGET": html.escape(wcag_target_label(results["metadata"])),
+            "AXE_VERSION": html.escape(str(results["metadata"].get("axe_core_version") or "not recorded")),
             "SCORE_VALUE": html.escape(f"{score}"),
             "SCORE_RATING": html.escape(score_label(score)),
             "CRITICAL_COUNT": html.escape(str(summary["critical_violations"])),
@@ -835,7 +1193,8 @@ def build_dashboard(path, results, rows):
             "TASK_ROWS": _render_task_rows(rows),
         },
     )
-    Path(path).write_text(html_doc, encoding="utf-8")
+    html_doc = _inject_dashboard_sections(html_doc, results, rows)
+    Path(path).write_text(_SAL_ATTR.sub("", html_doc), encoding="utf-8")
 
 
 def main():

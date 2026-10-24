@@ -34,13 +34,13 @@ No test suite, linter, or formatter is configured. `npm run verify` is the only 
 
 ## Architecture
 
-Pipeline is a chain of subprocess-invoked Python scripts under `scripts/`. `run_a11y_audit.py` is the orchestrator — it does not import the others; it shells out to them. Stay consistent with that pattern when adding stages.
+Pipeline is a chain of subprocess-invoked Python scripts under `scripts/`. `run_a11y_audit.py` is the orchestrator. It shells out to the other scripts, and it imports `is_visual_finding` and `IMPACT_ORDER` from `capture_a11y_screenshots.py` so the visual-rule set has one home.
 
 ```
 run_a11y_audit.py
   ├─ axe_audit.py            (one subprocess per URL)
   │    └─ node -e <inline JS> using playwright + @axe-core/playwright
-  ├─ capture_a11y_screenshots.py   (per page after axe; pin-map + annotated shots, best-effort)
+  ├─ capture_a11y_screenshots.py   (per page after axe; visual crops only, best-effort)
   └─ generate_a11y_report.py       (final stage, consumes combined JSON)
 ```
 
@@ -49,9 +49,9 @@ Key contracts between stages:
 - **`axe-results.json` is the canonical handoff format.** `axe_audit.py` writes it; `generate_a11y_report.py` reads it. Single-page mode writes one file at the output root. Multi-page mode writes per-page files under `pages/<slug>/axe-results.json` and an aggregated file at the output root with shape `{metadata, summary, principle_counts, pages[], recommendations[]}` (see `aggregate_pages` in `run_a11y_audit.py:128`).
 - **Exit codes are semantic, not just success/failure.** `axe_audit.py` exits `0` (clean), `2` (critical violations present), `3` (>5 serious violations), `1` (error). `run_a11y_audit.py:295` treats `0/2/3` as "audit ran fine, continue to report generation" — do not collapse these.
 - **`SKILL_DIR` resolves relative to the script file**, so `package.json` and `templates/` are found in the installed copy, not CWD. Output (`web/<domain>-a11y-audit-<date>/`) is written under CWD.
-- **Node-side execution**: `axe_audit.py` builds a JS string, writes it to a tempfile, runs `node` with `cwd=SKILL_DIR`, and uses `createRequire(<package.json>)` so the inline script resolves modules against the skill's `node_modules`. URL and level are interpolated directly into the JS string.
-- **Deliverables** (`generate_a11y_report.py`): `WCAG-AUDIT-REPORT.md`, `ACCESSIBILITY-ACTION-PLAN.md`, `REMEDIATION-TASKS.csv`, `A11Y-CLIENT-REPORT.docx` (built as a ZIP), `index.html`. Branding pulled from `templates/brand.json` and `templates/assets/`.
-- **Screenshots** (`capture_a11y_screenshots.py`, best-effort after axe): `pages/<slug>/screenshots/pin-map.png` (full-page numbered pin map for locatable issues, impact-priority, default cap 12) and `pages/<slug>/screenshots/A11Y-###.png` (annotated viewport highlight + badge when capture succeeds). Skip with `--no-screenshots`. Selector + HTML snippet remain source of truth; non-locatable issues have no image.
+- **Node-side execution**: `axe_audit.py` builds a JS string, writes it to a tempfile, and runs `node` with `cwd=SKILL_DIR`. Playwright resolves from the skill `package.json`. axe-core and `@axe-core/playwright` resolve from `.axe-runtime/package.json`, which `ensure_latest_axe()` refreshes to the npm `latest` dist-tags before a scan (`run_a11y_audit.py` calls `--prepare-axe` once per run). The default tag set is WCAG 2.2 Level AA (`wcag_tags("AA")`). URL and tags are passed as JSON, not string-interpolated.
+- **Deliverables** (`generate_a11y_report.py`): `WCAG-AUDIT-REPORT.md`, `ACCESSIBILITY-ACTION-PLAN.md`, `REMEDIATION-TASKS.csv`, `A11Y-CLIENT-REPORT.docx` (built as a ZIP), `index.html`. Branding pulled from `templates/brand.json` and `templates/assets/` (copied into the report bundle).
+- **Screenshots** (`capture_a11y_screenshots.py`, best-effort after axe): a PNG crop for visual findings only (`is_visual_finding`). No full-page pin map. `prepare_findings` in `run_a11y_audit.py` rolls the same rule + selector on two or more URLs into one sitewide finding and one crop. The report lists criteria axe did not run from `scripts/wcag_criteria.py`, at `metadata.wcag_level`. Skip images with `--no-screenshots`. Selector + HTML snippet remain source of truth.
 
 ## Hooks (Codex/Claude Code integration)
 
@@ -70,4 +70,4 @@ The enforce/mark-reviewed pair depends on a session-scoped marker in `/tmp`. Rem
 
 ## Reference material
 
-`skills/dd-a11y/SKILL.md` (workflow) and `skills/dd-a11y/references/{wcag-audit-rubric,wcag-checklist}.md` (rubric/checklist) — read by the LLM at audit time, not by the scripts. Edit to change audit guidance without touching code.
+`skills/dd-a11y/SKILL.md` (workflow), `scripts/wcag_criteria.py` (the WCAG 2.2 criterion list the report uses), and `skills/dd-a11y/references/{wcag-audit-rubric,wcag-checklist}.md` (rubric and manual checks). The criterion ids live in the Python catalog.

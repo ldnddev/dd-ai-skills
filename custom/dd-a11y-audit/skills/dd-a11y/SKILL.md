@@ -21,20 +21,22 @@ Run automated WCAG 2.2 accessibility audits and produce a client-ready report se
 
 ## Workflow
 
-1. Read `${CLAUDE_PLUGIN_ROOT}/skills/dd-a11y/references/wcag-audit-rubric.md` and `wcag-checklist.md`.
+1. Read `${CLAUDE_PLUGIN_ROOT}/skills/dd-a11y/references/wcag-audit-rubric.md`, `${CLAUDE_PLUGIN_ROOT}/scripts/wcag_criteria.py` (the WCAG 2.2 criterion list), and `wcag-checklist.md`.
 2. Run the pipeline:
 
 ```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_a11y_audit.py <url>
+# same scan, explicit: WCAG 2.2 Level AA
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_a11y_audit.py <url> --level AA
 ```
 
-Multi-page (default **light** screenshots — keeps large runs small):
+Multi-page (default **light** screenshots — visual crops only):
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_a11y_audit.py --urls-file ./urls.txt
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_a11y_audit.py --sitemap https://example.com/sitemap.xml --max-urls 25
 
-# Dense evidence (old behavior)
+# All impacts, higher page-only crop cap
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_a11y_audit.py --urls-file ./urls.txt --screenshot-mode full
 
 # No images
@@ -57,22 +59,27 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/test_a11y_skill.py <url>
 - `A11Y-CLIENT-REPORT.docx`
 - `index.html`
 - `pages/<slug>/axe-results.json`
-- `pages/<slug>/screenshots/pin-map.jpg` — JPEG pin map (every page in light mode)
-- `pages/<slug>/screenshots/A11Y-###.png` — annotated close-up when captured (critical only; worst pages)
+- `pages/<slug>/screenshots/A11Y-###.png` — crop of a visual finding, when one was captured
 
 ### Screenshot modes (`--screenshot-mode`)
 
 | Mode | Behavior |
 |------|----------|
-| **`light` (default)** | Pin map on every page (JPEG). Annotated shots: **critical only**, cap **3**/page, only the **worst 15** pages (by critical/serious count + score). MD/DOCX **link** to files (no embeds). |
-| **`full`** | Prior dense capture (all impacts, higher caps, PNG pin maps). |
+| **`light` (default)** | Crop only visual findings (`is_visual_finding` in `scripts/capture_a11y_screenshots.py`): contrast, target size, focus, text in images. Critical and serious. Cap **3** page-only crops per page, on every page. |
+| **`full`** | Same crops for every impact. Cap **12** page-only crops per page. |
 | **`off`** | No screenshots (`--no-screenshots` is an alias). |
 
-Optional: `--screenshot-cap N`, `--annotated-pages N`, `--embed-screenshots` (inline images in DOCX/MD). Selector + HTML snippet remain the source of truth.
+Repeated chrome (header, footer, nav, cookie or consent banner) and any other finding with the same rule and selector on more than one URL are one sitewide finding and one crop, on the first page where it appears. Page-only visual findings keep their own crop. Names, alt text, headings, and duplicate ids stay selector + HTML, with no image.
+
+Optional: `--screenshot-cap N`, `--annotated-pages N` (only the N worst pages; default is every page), `--embed-screenshots` (inline images in DOCX/MD). Selector + HTML snippet remain the source of truth.
 
 ## Notes
 
-- Default WCAG level is AA. Pass `--level A` or `--level AAA` to override.
-- Node deps (`playwright`, `@axe-core/playwright`) and Chromium are installed by the plugin postinstall step.
+- Default scan is **WCAG 2.2 Level AA**. Pass `--level A` or `--level AAA` to override. The axe tag set for each level lives in `scripts/axe_audit.py` (`wcag_tags`). Do not pass a different tag list.
+- Before every audit, `axe_audit.py --prepare-axe` installs the npm `latest` dist-tags of `axe-core` and `@axe-core/playwright` into `.axe-runtime/` and the scan loads that copy. Do not pin an older axe-core or skip prepare.
+- The HTML dashboard does not animate. Do not add `data-sal`, `data-sal-delay`, `data-sal-duration`, or `data-sal-easing` to it.
+- Node deps (`playwright`, `@axe-core/playwright`) and Chromium are installed by the plugin postinstall step. The scan still refreshes axe-core at run time.
 - If Chromium fails to launch, the runner emits a structured JSON error with `missing_dependencies` and `install_commands`. Document blocked checks as environment limitations.
 - Screenshot capture runs after axe via `capture_a11y_screenshots.py` (best-effort; failures do not block the report).
+- The numeric score is the share of axe rules that passed. It is not a WCAG conformance claim. Do not describe a score as "AA compliant".
+- The report lists success criteria at the scanned level that had no axe rule execute. The level follows `--level` (default AA). The catalog is `scripts/wcag_criteria.py`.

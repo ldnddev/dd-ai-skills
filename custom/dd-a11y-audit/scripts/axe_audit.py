@@ -5,6 +5,7 @@ Uses Playwright with axe-core for automated WCAG testing.
 """
 
 import json
+import re
 import sys
 import argparse
 import subprocess
@@ -15,15 +16,310 @@ from datetime import datetime
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 PACKAGE_JSON_PATH = SKILL_DIR / "package.json"
+AXE_RUNTIME_DIR = SKILL_DIR / ".axe-runtime"
+AXE_RUNTIME_PACKAGE = AXE_RUNTIME_DIR / "package.json"
+AXE_READY_PATH = AXE_RUNTIME_DIR / "ready.json"
+
+# axe-core tags are not cumulative. wcag22aa is only the success criteria
+# added in WCAG 2.2 at AA. A 2.2 AA scan is every A and AA tag from 2.0, 2.1,
+# and 2.2. Tags with no rules yet (wcag22a today) match nothing and pick up
+# new rules when axe adds them. best-practice and wcag2a-obsolete are not
+# part of this set: obsolete rules are no longer required for 2.2 conformance.
+WCAG_TAGS = {
+    "A": ["wcag2a", "wcag21a", "wcag22a"],
+    "AA": ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"],
+    "AAA": [
+        "wcag2a", "wcag2aa", "wcag2aaa",
+        "wcag21a", "wcag21aa", "wcag21aaa",
+        "wcag22a", "wcag22aa", "wcag22aaa",
+    ],
+}
+
+# Disabled rules with these tags stay off. experimental is not stable enough
+# to treat as a conformance result. deprecated and wcag2a-obsolete are not
+# required (4.1.1 Parsing was removed in WCAG 2.2). Other disabled rules that
+# carry the selected WCAG tags are turned on — axe ships target-size (2.5.8)
+# tagged wcag22aa with enabled:false, so a tag-only run would skip it.
+SKIP_RULE_TAGS = ["experimental", "deprecated", "wcag2a-obsolete"]
+
+_PRINCIPLES = {
+    "1": "perceivable",
+    "2": "operable",
+    "3": "understandable",
+    "4": "robust",
+}
+
+# Success-criterion tags (wcag143, wcag2411). Level tags (wcag2aa, wcag22aa) are not all digits.
+_SC_TAG = re.compile(r"^wcag\d+$")
+
+
+def wcag_tags(level):
+    """Return the axe tag list for a WCAG 2.2 conformance level."""
+    try:
+        return list(WCAG_TAGS[level])
+    except KeyError as exc:
+        raise ValueError(f"Unsupported WCAG level: {level}") from exc
+
+
+def principles_for_tags(tags):
+    """Map axe success-criterion tags (wcag111, wcag1410, wcag2411) to POUR.
+
+    Level tags such as wcag2aa and wcag22aa are not criterion numbers and are
+    ignored. A rule can count toward more than one principle.
+    """
+    found = []
+    for tag in tags or []:
+        if not isinstance(tag, str) or not tag.startswith("wcag"):
+            continue
+        rest = tag[4:]
+        if not rest.isdigit():
+            continue
+        principle = _PRINCIPLES.get(rest[0])
+        if principle and principle not in found:
+            found.append(principle)
+    return found
+
+
+def runtime_manifest(axe_core_version, axe_playwright_version):
+    """Package manifest that pins both packages to the versions just resolved.
+
+    The override forces @axe-core/playwright to load this axe-core, not an
+    older nested copy from its own dependency range.
+    """
+    return {
+        "name": "dd-a11y-axe-runtime",
+        "private": True,
+        "description": "Resolved at audit time from the npm latest dist-tags. Do not edit.",
+        "dependencies": {
+            "@axe-core/playwright": axe_playwright_version,
+            "axe-core": axe_core_version,
+        },
+        "overrides": {
+            "axe-core": "$axe-core",
+        },
+    }
+
+
+def _npm_latest(package):
+    """Return the npm `latest` dist-tag. That tag is the current stable release."""
+    result = subprocess.run(
+        ["npm", "view", package, "version"],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(detail or f"npm view {package} failed")
+    lines = [line.strip().strip('"') for line in result.stdout.splitlines() if line.strip()]
+    if not lines:
+        raise RuntimeError(f"npm view {package} returned no version")
+    return lines[-1]
+
+
+def _installed_version(package_name, root):
+    if package_name.startswith("@"):
+        scope, name = package_name.split("/", 1)
+        path = root / "node_modules" / scope / name / "package.json"
+    else:
+        path = root / "node_modules" / package_name / "package.json"
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text()).get("version")
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _resolved_axe_version(package_json):
+    """Version of axe-core that Node will load from this package.json.
+
+    Require the package itself. axe-core's exports block `axe-core/package.json`,
+    and @axe-core/playwright blocks its package.json subpath too.
+    """
+    script = """
+const { createRequire } = require('module');
+const requireFromAxe = createRequire(process.argv[1]);
+try {
+  const axe = requireFromAxe('axe-core');
+  const axePlaywright = requireFromAxe('@axe-core/playwright');
+  if (!axe || !axe.version || !axePlaywright) {
+    throw new Error('axe runtime did not load');
+  }
+  process.stdout.write(JSON.stringify({ axe_core: axe.version }));
+} catch (error) {
+  process.stderr.write(error && error.message ? error.message : String(error));
+  process.exit(1);
+}
+"""
+    result = subprocess.run(
+        [_node_command(), "-e", script, str(package_json)],
+        capture_output=True,
+        text=True,
+        cwd=package_json.parent,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None
+
+
+def _write_ready(status):
+    AXE_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+    AXE_READY_PATH.write_text(json.dumps(status, indent=2) + "\n")
+
+
+def load_ready():
+    if not AXE_READY_PATH.is_file():
+        return {}
+    try:
+        return json.loads(AXE_READY_PATH.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _fallback_package_json():
+    """Prefer the audit-time runtime. Fall back to the skill install."""
+    if _installed_version("axe-core", AXE_RUNTIME_DIR) and _installed_version(
+        "@axe-core/playwright", AXE_RUNTIME_DIR
+    ):
+        return AXE_RUNTIME_PACKAGE
+    if PACKAGE_JSON_PATH.is_file():
+        return PACKAGE_JSON_PATH
+    return None
+
+
+def ensure_latest_axe():
+    """Install the npm `latest` axe-core and @axe-core/playwright into `.axe-runtime`.
+
+    Returns a status dict. `usable` means a scan can load axe. `ok` means that
+    copy matches the registry latest tags. A registry outage keeps the copy
+    already on disk and sets `warning`.
+    """
+    try:
+        latest_core = _npm_latest("axe-core")
+        latest_playwright = _npm_latest("@axe-core/playwright")
+    except (RuntimeError, subprocess.TimeoutExpired, FileNotFoundError) as exc:
+        package_json = _fallback_package_json()
+        resolved = _resolved_axe_version(package_json) if package_json else None
+        playwright_version = _installed_version(
+            "@axe-core/playwright", Path(package_json).parent if package_json else AXE_RUNTIME_DIR
+        )
+        usable = bool(resolved and resolved.get("axe_core"))
+        warning = (
+            "Could not reach the npm registry to confirm axe-core is the current "
+            f"release ({exc}). "
+        )
+        if usable:
+            warning += f"Scanning with installed axe-core {resolved['axe_core']}."
+        else:
+            warning += "No axe-core is installed, so the scan cannot run."
+        status = {
+            "ok": False,
+            "usable": usable,
+            "updated": False,
+            "axe_core": (resolved or {}).get("axe_core"),
+            "axe_playwright": playwright_version,
+            "latest_axe_core": None,
+            "latest_axe_playwright": None,
+            "package_json": str(package_json) if package_json else None,
+            "warning": warning,
+        }
+        if usable:
+            _write_ready(status)
+        return status
+
+    resolved_now = (
+        _resolved_axe_version(AXE_RUNTIME_PACKAGE) if AXE_RUNTIME_PACKAGE.is_file() else None
+    )
+    installed_core = (resolved_now or {}).get("axe_core") or _installed_version("axe-core", AXE_RUNTIME_DIR)
+    installed_playwright = _installed_version("@axe-core/playwright", AXE_RUNTIME_DIR)
+    needs_install = installed_core != latest_core or installed_playwright != latest_playwright
+    if needs_install:
+        AXE_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+        manifest = runtime_manifest(latest_core, latest_playwright)
+        AXE_RUNTIME_PACKAGE.write_text(json.dumps(manifest, indent=2) + "\n")
+        try:
+            subprocess.run(
+                ["npm", "install", "--no-audit", "--no-fund", "--ignore-scripts"],
+                cwd=AXE_RUNTIME_DIR,
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError) as exc:
+            detail = ""
+            if isinstance(exc, subprocess.CalledProcessError):
+                detail = (exc.stderr or exc.stdout or "").strip()
+            package_json = _fallback_package_json()
+            resolved = _resolved_axe_version(package_json) if package_json else None
+            playwright_version = _installed_version(
+                "@axe-core/playwright", Path(package_json).parent if package_json else AXE_RUNTIME_DIR
+            )
+            usable = bool(resolved and resolved.get("axe_core"))
+            warning = "Failed to install the latest axe-core. "
+            if detail:
+                warning += detail[:500] + " "
+            if usable:
+                warning += f"Scanning with installed axe-core {resolved['axe_core']}."
+            else:
+                warning += "No usable axe-core is installed."
+            status = {
+                "ok": False,
+                "usable": usable,
+                "updated": False,
+                "axe_core": (resolved or {}).get("axe_core"),
+                "axe_playwright": playwright_version,
+                "latest_axe_core": latest_core,
+                "latest_axe_playwright": latest_playwright,
+                "package_json": str(package_json) if package_json else None,
+                "warning": warning,
+            }
+            if usable:
+                _write_ready(status)
+            return status
+
+    resolved = _resolved_axe_version(AXE_RUNTIME_PACKAGE)
+    actual = (resolved or {}).get("axe_core")
+    installed_playwright = _installed_version("@axe-core/playwright", AXE_RUNTIME_DIR) or installed_playwright
+    warning = None
+    ok = actual == latest_core
+    if actual and actual != latest_core:
+        warning = (
+            f"npm latest axe-core is {latest_core}, but the runtime resolved {actual}."
+        )
+    elif not actual:
+        warning = "axe-core installed, but Node could not resolve it from .axe-runtime."
+        ok = False
+    status = {
+        "ok": ok,
+        "usable": bool(actual),
+        "updated": needs_install and bool(actual),
+        "axe_core": actual,
+        "axe_playwright": installed_playwright or latest_playwright,
+        "latest_axe_core": latest_core,
+        "latest_axe_playwright": latest_playwright,
+        "package_json": str(AXE_RUNTIME_PACKAGE) if actual else None,
+        "warning": warning,
+    }
+    if actual:
+        _write_ready(status)
+    return status
 
 def _node_command():
     """Return the node executable if available."""
     return "node"
 
-def check_dependencies():
+def check_dependencies(axe_package_json=None):
     """Check whether the Node-side axe/playwright runtime is usable."""
     missing = []
     install_commands = []
+    axe_package = Path(axe_package_json) if axe_package_json else _fallback_package_json()
+    if axe_package is None:
+        axe_package = PACKAGE_JSON_PATH
 
     try:
         node_version = subprocess.run(
@@ -38,12 +334,16 @@ def check_dependencies():
         node_version = None
 
     if not PACKAGE_JSON_PATH.exists():
-        missing.extend(["playwright (Node package)", "@axe-core/playwright"])
-        install_commands.append(f"cd {SKILL_DIR} && npm install playwright @axe-core/playwright")
+        missing.append("playwright (Node package)")
+        install_commands.append(f"cd {SKILL_DIR} && npm ci")
+    if not axe_package.exists():
+        missing.extend(["@axe-core/playwright", "axe-core"])
+        install_commands.append(f"cd {SKILL_DIR} && python3 scripts/axe_audit.py --prepare-axe")
     elif not missing:
         probe = """
 const { createRequire } = require('module');
 const requireFromSkill = createRequire(process.argv[1]);
+const requireFromAxe = createRequire(process.argv[2]);
 try {
   requireFromSkill('playwright');
 } catch (error) {
@@ -51,15 +351,21 @@ try {
   process.exit(11);
 }
 try {
-  requireFromSkill('@axe-core/playwright');
+  requireFromAxe('@axe-core/playwright');
 } catch (error) {
   console.error('missing:@axe-core/playwright');
   process.exit(12);
 }
+try {
+  requireFromAxe('axe-core');
+} catch (error) {
+  console.error('missing:axe-core');
+  process.exit(14);
+}
 process.exit(0);
 """
         result = subprocess.run(
-            [_node_command(), "-e", probe, str(PACKAGE_JSON_PATH)],
+            [_node_command(), "-e", probe, str(PACKAGE_JSON_PATH), str(axe_package)],
             capture_output=True,
             text=True,
             cwd=SKILL_DIR,
@@ -68,11 +374,18 @@ process.exit(0);
             missing.append("playwright (Node package)")
         elif result.returncode == 12:
             missing.append("@axe-core/playwright")
+        elif result.returncode == 14:
+            missing.append("axe-core")
         elif result.returncode != 0:
             missing.append("Node module resolution")
 
         if missing:
-            install_commands.append(f"cd {SKILL_DIR} && npm install playwright @axe-core/playwright")
+            if "playwright (Node package)" in missing:
+                install_commands.append(f"cd {SKILL_DIR} && npm ci")
+            if "@axe-core/playwright" in missing or "axe-core" in missing:
+                install_commands.append(
+                    f"cd {SKILL_DIR} && python3 scripts/axe_audit.py --prepare-axe"
+                )
 
     browser_probe = """
 const { createRequire } = require('module');
@@ -167,81 +480,103 @@ def dependency_error_result(dependency_status, url):
         "install_commands": commands,
     }
 
-def run_axe_audit(url, level="AA", rules=None, timeout=30000):
+def run_axe_audit(url, level="AA", rules=None, timeout=30000, axe_package_json=None, expected_axe_version=None):
     """
     Run axe-core accessibility audit on a URL.
-    
+
     Args:
         url: URL to test
-        level: WCAG level (A, AA, AAA)
-        rules: Specific rules to run (comma-separated)
+        level: WCAG 2.2 level (A, AA, AAA). Default AA.
+        rules: Specific rules to run (comma-separated). Replaces the WCAG tag set.
         timeout: Page load timeout in milliseconds
-    
+        axe_package_json: package.json whose node_modules holds axe-core
+        expected_axe_version: npm latest version this run should have loaded
+
     Returns:
         dict: Audit results
     """
-    # Create a temporary JavaScript file
+    axe_package = str(axe_package_json or _fallback_package_json() or PACKAGE_JSON_PATH)
+    rule_list = [part.strip() for part in (rules or "").split(",") if part.strip()]
+    config = {
+        "url": url,
+        "tags": wcag_tags(level),
+        "rules": rule_list,
+        "skipRuleTags": SKIP_RULE_TAGS,
+        "packageJson": str(PACKAGE_JSON_PATH),
+        "axePackageJson": axe_package,
+    }
+    # Create a temporary JavaScript file. Config is JSON so the URL cannot break out.
     js_content = """
     const { createRequire } = require('module');
-    const requireFromSkill = createRequire('""" + str(PACKAGE_JSON_PATH) + """');
+    const config = __CONFIG__;
+    const requireFromSkill = createRequire(config.packageJson);
+    const requireFromAxe = createRequire(config.axePackageJson);
     const { chromium } = requireFromSkill('playwright');
-    const axePlaywright = requireFromSkill('@axe-core/playwright');
+    const axePlaywright = requireFromAxe('@axe-core/playwright');
     const AxeBuilder = axePlaywright.default || axePlaywright.AxeBuilder || axePlaywright;
-    
+    const axe = requireFromAxe('axe-core');
+
+    function wcagRuleOptions(tags) {
+      const options = {};
+      if (typeof axe.getRules !== 'function') {
+        return options;
+      }
+      const skip = new Set(config.skipRuleTags || []);
+      for (const rule of axe.getRules(tags)) {
+        const ruleTags = rule.tags || [];
+        if (ruleTags.some((tag) => skip.has(tag))) {
+          options[rule.ruleId] = { enabled: false };
+          continue;
+        }
+        if (rule.enabled === false) {
+          options[rule.ruleId] = { enabled: true };
+        }
+      }
+      return options;
+    }
+
     async function runAxeAudit() {
         const browser = await chromium.launch({ headless: true, channel: 'chromium' });
         const context = await browser.newContext();
         const page = await context.newPage();
-        
+
         try {
-            await page.goto('""" + url + """', { waitUntil: 'networkidle' });
-            
+            await page.goto(config.url, { waitUntil: 'networkidle' });
+
             const builder = new AxeBuilder({ page });
-            
-            // Configure options
-            builder.withTags(['wcag2a', 'wcag2aa', 'wcag2aaa']);
-            
-            if ('""" + level + """' === 'A') {
-                builder.withTags(['wcag2a']);
-            } else if ('""" + level + """' === 'AA') {
-                builder.withTags(['wcag2a', 'wcag2aa']);
-            } else if ('""" + level + """' === 'AAA') {
-                builder.withTags(['wcag2a', 'wcag2aa', 'wcag2aaa']);
+            const ruleOptions = wcagRuleOptions(config.tags);
+            if (Object.keys(ruleOptions).length) {
+              builder.options({ rules: ruleOptions });
             }
-            
-            // Add specific rules if provided
-            const rulesStr = '""" + (rules or "") + """';
-            if (rulesStr) {
-                const ruleList = rulesStr.split(',').map(r => r.trim()).filter(r => r);
-                builder.withRules(ruleList);
+            if (config.rules.length) {
+              builder.withRules(config.rules);
+            } else {
+              builder.withTags(config.tags);
             }
-            
-            // Run analysis
+
             const results = await builder.analyze();
-            
-            // Close browser
+
             await browser.close();
-            
-            // Return results
-            console.log(JSON.stringify(results, null, 2));
-            
+
+            console.log(JSON.stringify(results));
+
         } catch (error) {
             await browser.close();
             console.error(JSON.stringify({
                 error: true,
                 message: error.message,
-                url: '""" + url + """'
+                url: config.url
             }));
         }
     }
-    
+
     runAxeAudit().catch(error => {
         console.error(JSON.stringify({
             error: true,
             message: error.message
         }));
     });
-    """
+    """.replace("__CONFIG__", json.dumps(config))
     
     # Write JS to temp file
     with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False) as f:
@@ -283,7 +618,7 @@ def run_axe_audit(url, level="AA", rules=None, timeout=30000):
             return data
         
         # Format results
-        return format_axe_results(data, url, level)
+        return format_axe_results(data, url, level, expected_axe_version)
         
     except subprocess.TimeoutExpired:
         if os.path.exists(js_file):
@@ -308,14 +643,31 @@ def run_axe_audit(url, level="AA", rules=None, timeout=30000):
             "url": url
         }
 
-def format_axe_results(data, url, level):
+def collect_sc_tags(*rule_lists):
+    """SC tags axe actually executed, including inapplicable rules.
+
+    Collected before passes are truncated. The report subtracts these from the
+    scanned level to list criteria that did not run.
+    """
+    found = set()
+    for rules in rule_lists:
+        for rule in rules or []:
+            for tag in rule.get("tags") or []:
+                if _SC_TAG.match(tag):
+                    found.add(tag)
+    return sorted(found)
+
+
+def format_axe_results(data, url, level, expected_axe_version=None):
     """Format axe-core results into structured output."""
     violations = data.get("violations", [])
     passes = data.get("passes", [])
     incomplete = data.get("incomplete", [])
     inapplicable = data.get("inapplicable", [])
+    sc_checked = collect_sc_tags(violations, passes, incomplete, inapplicable)
     
-    # Calculate scores
+    # Share of rules that passed. Incomplete rules are not passes.
+    # This is not a WCAG conformance percentage.
     total_checks = len(violations) + len(passes) + len(incomplete)
     if total_checks == 0:
         score = 0
@@ -327,32 +679,34 @@ def format_axe_results(data, url, level):
     serious = [v for v in violations if v.get("impact") == "serious"]
     moderate = [v for v in violations if v.get("impact") == "moderate"]
     minor = [v for v in violations if v.get("impact") == "minor"]
-    
-    # Map to WCAG principles
-    wcag_mapping = {
-        "perceivable": ["color-contrast", "image-alt", "label", "aria-hidden-focus"],
-        "operable": ["button-name", "link-name", "keyboard", "focus-order"],
-        "understandable": ["page-has-heading-one", "heading-order", "language"],
-        "robust": ["aria-valid-attr", "aria-required-attr", "duplicate-id"]
-    }
-    
-    # Count violations by principle
-    principle_counts = {principle: 0 for principle in wcag_mapping.keys()}
+
+    principle_counts = {principle: 0 for principle in _PRINCIPLES.values()}
     for violation in violations:
-        rule_id = violation.get("id", "")
-        for principle, rules in wcag_mapping.items():
-            if rule_id in rules:
-                principle_counts[principle] += 1
-                break
-    
+        for principle in principles_for_tags(violation.get("tags") or []):
+            principle_counts[principle] += 1
+
+    engine = data.get("testEngine") or {}
+    axe_version = engine.get("version")
+    metadata = {
+        "url": url,
+        "timestamp": datetime.now().isoformat(),
+        "tool": engine.get("name") or "axe-core",
+        "axe_core_version": axe_version,
+        "wcag_version": "2.2",
+        "wcag_level": level,
+        "wcag_target": f"WCAG 2.2 Level {level}",
+        "wcag_tags": wcag_tags(level),
+        "score": round(score, 1),
+        "score_method": "passed_rules / (passed + violated + incomplete rules)",
+        "sc_checked": sc_checked,
+    }
+    if expected_axe_version and axe_version and axe_version != expected_axe_version:
+        metadata["axe_version_warning"] = (
+            f"Scan ran axe-core {axe_version}, but npm latest is {expected_axe_version}."
+        )
+
     return {
-        "metadata": {
-            "url": url,
-            "timestamp": datetime.now().isoformat(),
-            "tool": "axe-core",
-            "wcag_level": level,
-            "score": round(score, 1)
-        },
+        "metadata": metadata,
         "summary": {
             "total_violations": len(violations),
             "total_passes": len(passes),
@@ -468,9 +822,11 @@ def generate_recommendations(violations, score):
 
 def main():
     parser = argparse.ArgumentParser(description="Run axe-core accessibility audit")
-    parser.add_argument("url", help="URL to test")
+    parser.add_argument("url", nargs="?", help="URL to test")
     parser.add_argument("--level", choices=["A", "AA", "AAA"], default="AA",
-                       help="WCAG compliance level (default: AA)")
+                       help="WCAG 2.2 conformance level (default: AA)")
+    parser.add_argument("--prepare-axe", action="store_true",
+                       help="Install the npm latest axe-core and @axe-core/playwright, then exit")
     parser.add_argument("--rules", help="Specific rules to run (comma-separated)")
     parser.add_argument("--timeout", type=int, default=30000,
                        help="Page load timeout in milliseconds (default: 30000)")
@@ -478,9 +834,28 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     
     args = parser.parse_args()
-    
+
+    if args.prepare_axe:
+        status = ensure_latest_axe()
+        print(json.dumps(status, indent=2))
+        sys.exit(0 if status.get("usable") else 1)
+
+    if not args.url:
+        parser.error("URL is required unless --prepare-axe is set.")
+
+    if os.environ.get("DD_A11Y_SKIP_AXE_UPDATE") == "1":
+        ready = load_ready()
+        axe_status = ready or {"package_json": str(_fallback_package_json() or "")}
+    else:
+        axe_status = ensure_latest_axe()
+        if axe_status.get("warning"):
+            print(axe_status["warning"], file=sys.stderr)
+
+    axe_package_json = axe_status.get("package_json") or str(_fallback_package_json() or PACKAGE_JSON_PATH)
+    expected_axe_version = axe_status.get("latest_axe_core") or axe_status.get("axe_core")
+
     # Check dependencies
-    dependency_status = check_dependencies()
+    dependency_status = check_dependencies(axe_package_json)
     if not dependency_status.get("ok"):
         results = dependency_error_result(dependency_status, args.url)
         output = json.dumps(results, indent=2) if args.json else format_human_readable(results)
@@ -494,7 +869,14 @@ def main():
     
     # Run audit
     print(f"Running axe-core audit on {args.url}...", file=sys.stderr)
-    results = run_axe_audit(args.url, args.level, args.rules, args.timeout)
+    results = run_axe_audit(
+        args.url,
+        args.level,
+        args.rules,
+        args.timeout,
+        axe_package_json=axe_package_json,
+        expected_axe_version=expected_axe_version,
+    )
     
     # Output results
     if args.json:
@@ -533,8 +915,12 @@ def format_human_readable(results):
     output.append("=" * 60)
     output.append(f"URL: {meta['url']}")
     output.append(f"Timestamp: {meta['timestamp']}")
-    output.append(f"WCAG Level: {meta['wcag_level']}")
-    output.append(f"Overall Score: {meta['score']}/100")
+    output.append(f"WCAG Target: {meta.get('wcag_target') or meta['wcag_level']}")
+    if meta.get("axe_core_version"):
+        output.append(f"axe-core: {meta['axe_core_version']}")
+    if meta.get("axe_version_warning"):
+        output.append(f"Warning: {meta['axe_version_warning']}")
+    output.append(f"Overall Score: {meta['score']}/100 (rule pass rate, not conformance)")
     output.append("")
     
     output.append("Summary:")

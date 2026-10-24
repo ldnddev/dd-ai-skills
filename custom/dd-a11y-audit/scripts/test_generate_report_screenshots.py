@@ -145,10 +145,13 @@ class TestScreenshotRows(unittest.TestCase):
         self.assertIn('src="screenshots/pin-map.png"', html)
         self.assertNotIn("View screenshot", html)
 
-    def test_page_cards_empty_pin_map_message(self):
+    def test_page_cards_link_to_the_live_page(self):
         pages = [{"page_url": "https://ex.com", "metadata": {"score": 90}, "screenshots": {}}]
         html = r._render_page_cards(pages)
-        self.assertIn("No pin map captured for this page", html)
+        self.assertIn("Open page", html)
+        self.assertIn('href="https://ex.com"', html)
+        self.assertNotIn("No pin map captured", html)
+        self.assertNotIn("<img", html)
 
     def test_task_rows_annotated_and_pin_map_labels(self):
         rows = [{

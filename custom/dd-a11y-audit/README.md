@@ -55,21 +55,15 @@ npm run verify   # smoke-tests Chromium launch
 Multi-page adds:
 
 - `pages/<page-slug>/axe-results.json`
-- `pages/<page-slug>/screenshots/pin-map.jpg` — JPEG pin map (default light mode)
-- `pages/<page-slug>/screenshots/A11Y-###.png` — annotated close-up when captured
+- `pages/<page-slug>/screenshots/A11Y-###.png` — crop of a visual finding, when captured
 
-**Light screenshots (default)** keep large multi-page runs small:
-
-- Pin map on every page (JPEG)
-- Annotated shots: critical only, max 3/page, worst 15 pages only
-- MD/DOCX link to image paths (use `--embed-screenshots` to inline)
-- `--screenshot-mode full` restores dense capture; `off` skips images
-
-Selector + HTML snippet remain the source of truth. CSV includes page-level context + screenshot paths. The HTML dashboard links to pin maps and annotated shots.
+Screenshot behavior is the table in `skills/dd-a11y/SKILL.md`. Light mode crops visual findings only. Repeated chrome and repeated selectors are one sitewide finding. The report lists WCAG criteria at the scanned level that axe did not run.
 
 ## UI-edit hook gating
 
 `hooks/a11y-enforce-edit.sh` blocks `Edit`/`Write` on UI files (`.jsx`, `.tsx`, `.vue`, `.svelte`, `.html`, `.css`, etc.) until `accessibility-agents:accessibility-lead` subagent runs in the same session. `hooks/a11y-mark-reviewed.sh` clears the block via a `/tmp` session marker.
+
+The default scan is WCAG 2.2 Level AA. Each run installs the npm `latest` `axe-core` and `@axe-core/playwright` into `.axe-runtime/` before testing. The HTML dashboard does not use SAL or other animation.
 
 ## Caveats
 

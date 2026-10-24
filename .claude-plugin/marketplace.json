@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Custom Claude Code plugins for design + development workflows.",
-    "version": "1.4.3"
+    "version": "1.4.4"
   },
   "plugins": [
     {
@@ -26,7 +26,7 @@
     {
       "name": "dd-a11y",
       "source": "./custom/dd-a11y-audit",
-      "description": "WCAG 2.2 accessibility audit — Playwright + axe-core, single or multi-page, light pin-map screenshots by default for large runs, generates client deliverables.",
+      "description": "WCAG 2.2 accessibility audit — Playwright + axe-core (npm latest at scan time), single or multi-page, visual crops and sitewide findings, client deliverables.",
       "category": "accessibility",
       "tags": ["a11y", "wcag", "axe-core", "playwright", "audit"]
     },

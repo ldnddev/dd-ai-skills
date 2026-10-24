@@ -5,6 +5,8 @@ Run single-page or multi-page accessibility audits and generate a combined repor
 
 import argparse
 import json
+import os
+import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -12,6 +14,8 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
+
+from capture_a11y_screenshots import IMPACT_ORDER, is_visual_finding
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -90,7 +94,35 @@ def collect_urls(args):
     return deduped
 
 
-def run_page_audit(url, level, output_json):
+def prepare_axe_env():
+    """Resolve npm latest axe-core once, then reuse that copy for every page."""
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT_DIR / "axe_audit.py"), "--prepare-axe"],
+        capture_output=True,
+        text=True,
+    )
+    if proc.stdout.strip():
+        try:
+            status = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            status = {}
+        if status.get("warning"):
+            print(status["warning"], file=sys.stderr)
+        elif status.get("axe_core"):
+            freshness = "current" if status.get("ok") else "installed"
+            print(
+                f"axe-core {status['axe_core']} ({freshness}); "
+                f"@axe-core/playwright {status.get('axe_playwright') or 'unknown'}",
+                file=sys.stderr,
+            )
+    elif proc.stderr.strip():
+        print(proc.stderr.strip(), file=sys.stderr)
+    env = os.environ.copy()
+    env["DD_A11Y_SKIP_AXE_UPDATE"] = "1"
+    return env
+
+
+def run_page_audit(url, level, output_json, env=None):
     cmd = [
         sys.executable,
         str(SCRIPT_DIR / "axe_audit.py"),
@@ -101,7 +133,7 @@ def run_page_audit(url, level, output_json):
         "--output",
         str(output_json),
     ]
-    result = subprocess.run(cmd)
+    result = subprocess.run(cmd, env=env)
     return result.returncode
 
 
@@ -170,6 +202,163 @@ def relpath(path, root):
     return str(Path(path).relative_to(root))
 
 
+# Shared chrome: header, footer, nav, banner/contentinfo/navigation landmarks,
+# and cookie or consent widgets. A repeated main-content selector is a template,
+# not chrome. The same rule + selector on two or more URLs rolls up either way.
+_CHROME = re.compile(
+    r"(?:"
+    r"(?:^|[^\w])(?:header|footer|nav)(?:[^\w]|$)"
+    r"|role=[\"']?(?:banner|contentinfo|navigation)"
+    r"|cookie|consent|gdpr|onetrust|cookiebot|cookieyes"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def finding_selector_key(violation):
+    """Stable identity for the same node across pages. Blank when there is no target."""
+    previews = violation.get("nodes_preview") or []
+    if not previews:
+        return ""
+    target = previews[0].get("target") or []
+    parts = []
+    for item in target:
+        if isinstance(item, list):
+            parts.extend(str(part) for part in item if part)
+        elif item:
+            parts.append(str(item))
+    return re.sub(r"\s+", " ", " >> ".join(parts)).strip().lower()
+
+
+def is_chrome_finding(selector, html_snippet):
+    return bool(_CHROME.search(f"{selector or ''}\n{html_snippet or ''}"))
+
+
+def _worst_impact(impacts):
+    return min(impacts, key=lambda name: IMPACT_ORDER.get((name or "minor").lower(), 9))
+
+
+def rollup_repeated(pages):
+    """Group the same rule + selector seen on two or more URLs.
+
+    Returns sitewide findings without task ids. Page violations are not removed;
+    ``prepare_findings`` marks them so the report lists each group once.
+    """
+    groups = {}
+    for page_index, page in enumerate(pages):
+        if page.get("error"):
+            continue
+        for violation_index, violation in enumerate(page.get("violations") or []):
+            selector_key = finding_selector_key(violation)
+            if not selector_key:
+                continue
+            key = (violation.get("id") or "", selector_key)
+            groups.setdefault(key, []).append({
+                "page_index": page_index,
+                "violation_index": violation_index,
+                "page_url": page.get("page_url") or "",
+                "page_slug": page.get("page_slug") or "",
+                "impact": (violation.get("impact") or "minor").lower(),
+                "violation": violation,
+            })
+
+    sitewide = []
+    for (rule_id, selector_key), occurrences in groups.items():
+        urls = []
+        seen_urls = set()
+        for item in occurrences:
+            if item["page_url"] in seen_urls:
+                continue
+            seen_urls.add(item["page_url"])
+            urls.append({"page_url": item["page_url"], "page_slug": item["page_slug"]})
+        if len(urls) < 2:
+            continue
+        representative = occurrences[0]["violation"]
+        previews = representative.get("nodes_preview") or [{}]
+        html_snippet = (previews[0] or {}).get("html", "")
+        scope = (
+            "sitewide-chrome"
+            if is_chrome_finding(selector_key, html_snippet)
+            else "sitewide-template"
+        )
+        sitewide.append({
+            "rule_id": rule_id,
+            "impact": _worst_impact(item["impact"] for item in occurrences),
+            "scope": scope,
+            "selector": selector_key,
+            "html": html_snippet,
+            "description": representative.get("description", ""),
+            "help": representative.get("help", ""),
+            "wcag_tags": list(representative.get("wcag_tags") or []),
+            "nodes_count": representative.get("nodes_count", 1),
+            "page_count": len(urls),
+            "pages": urls,
+            "occurrences": [
+                {key: item[key] for key in ("page_index", "violation_index", "page_url", "page_slug", "impact")}
+                for item in occurrences
+            ],
+            "visual": is_visual_finding(representative),
+            "issue_screenshot": "",
+        })
+
+    sitewide.sort(key=lambda item: (
+        0 if item["scope"] == "sitewide-chrome" else 1,
+        IMPACT_ORDER.get(item["impact"], 9),
+        item["rule_id"],
+        item["selector"],
+    ))
+    return sitewide
+
+
+def prepare_findings(pages):
+    """Assign task ids after rollup. Sitewide ids come first. Mutates ``pages``."""
+    sitewide = rollup_repeated(pages)
+    number = 1
+    for item in sitewide:
+        item["task_id"] = f"A11Y-{number:03d}"
+        number += 1
+        for occurrence in item["occurrences"]:
+            violation = pages[occurrence["page_index"]]["violations"][occurrence["violation_index"]]
+            violation["rollup_task_id"] = item["task_id"]
+            violation["needs_crop"] = False
+        representative = item["occurrences"][0]
+        violation = pages[representative["page_index"]]["violations"][representative["violation_index"]]
+        violation["task_id"] = item["task_id"]
+        violation["sitewide_representative"] = True
+        violation["needs_crop"] = True
+        item["representative"] = {
+            "page_url": representative["page_url"],
+            "page_slug": representative["page_slug"],
+            "page_index": representative["page_index"],
+        }
+    for page in pages:
+        if page.get("error"):
+            continue
+        page["task_id_start"] = number
+        for violation in page.get("violations") or []:
+            if violation.get("rollup_task_id"):
+                continue
+            violation["task_id"] = f"A11Y-{number:03d}"
+            number += 1
+    return sitewide
+
+
+def attach_sitewide_screenshots(sitewide, pages):
+    """Copy the representative page's crop onto the sitewide finding."""
+    by_slug = {page.get("page_slug"): page for page in pages}
+    for item in sitewide:
+        representative = item.get("representative") or {}
+        page = by_slug.get(representative.get("page_slug"))
+        if not page:
+            continue
+        for shot in (page.get("screenshots") or {}).get("issues") or []:
+            if shot.get("task_id") != item.get("task_id"):
+                continue
+            if shot.get("status") == "captured" and shot.get("path"):
+                item["issue_screenshot"] = shot["path"]
+                break
+
+
 def normalize_screenshots(shot_data, output_dir):
     """Map capture stdout into page_data['screenshots'] with relative paths."""
     if shot_data.get("error"):
@@ -202,7 +391,9 @@ def aggregate_pages(pages, root_url, level):
                 "url": root_url,
                 "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
                 "tool": "axe-core",
+                "wcag_version": "2.2",
                 "wcag_level": level,
+                "wcag_target": f"WCAG 2.2 Level {level}",
                 "score": 0.0,
                 "mode": "multi",
                 "page_count": len(pages),
@@ -251,6 +442,12 @@ def aggregate_pages(pages, root_url, level):
         recommendations.extend(page.get("recommendations", []))
 
     avg_score = round(sum(page["metadata"]["score"] for page in valid_pages) / len(valid_pages), 1)
+    engine_meta = {}
+    for page in valid_pages:
+        meta = page.get("metadata") or {}
+        if meta.get("axe_core_version"):
+            engine_meta = meta
+            break
     deduped_recs = []
     seen = set()
     for rec in recommendations:
@@ -260,16 +457,33 @@ def aggregate_pages(pages, root_url, level):
         seen.add(marker)
         deduped_recs.append(rec)
 
+    sc_checked = set()
+    saw_sc = False
+    for page in valid_pages:
+        page_meta = page.get("metadata") or {}
+        if "sc_checked" in page_meta:
+            saw_sc = True
+            sc_checked.update(page_meta.get("sc_checked") or [])
+
+    metadata = {
+        "url": root_url,
+        "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "tool": engine_meta.get("tool") or "axe-core",
+        "axe_core_version": engine_meta.get("axe_core_version"),
+        "wcag_version": engine_meta.get("wcag_version") or "2.2",
+        "wcag_level": level,
+        "wcag_target": engine_meta.get("wcag_target") or f"WCAG 2.2 Level {level}",
+        "wcag_tags": engine_meta.get("wcag_tags"),
+        "score": avg_score,
+        "score_method": engine_meta.get("score_method"),
+        "mode": "multi",
+        "page_count": len(valid_pages),
+    }
+    if saw_sc:
+        metadata["sc_checked"] = sorted(sc_checked)
+
     return {
-        "metadata": {
-            "url": root_url,
-            "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
-            "tool": "axe-core",
-            "wcag_level": level,
-            "score": avg_score,
-            "mode": "multi",
-            "page_count": len(valid_pages),
-        },
+        "metadata": metadata,
         "summary": summary,
         "principle_counts": principle_counts,
         "pages": pages,
@@ -284,30 +498,29 @@ def run_multi_audit(
     screenshot_cap=3,
     no_screenshots=False,
     screenshot_mode="light",
-    annotated_pages=15,
-    impacts="critical",
+    annotated_pages=None,
+    impacts="critical,serious",
     pin_impacts="critical,serious",
     pin_cap=8,
     pin_format="jpeg",
+    env=None,
 ):
-    """Two-phase multi-page audit: axe all pages, then screenshots with light profile."""
+    """Two-phase multi-page audit: axe all pages, roll up repeats, then visual crops."""
     output_dir.mkdir(parents=True, exist_ok=True)
     pages_dir = output_dir / "pages"
     pages_dir.mkdir(exist_ok=True)
     used_slugs = set()
     page_results = []
     highest_exit = 0
-    # Globally unique A11Y-### across pages so report rows, filenames, and badges match.
-    next_task_id = 1
 
-    # Phase 1 — axe only (so we can rank worst pages before capturing).
+    # Phase 1 — axe only, then roll repeated chrome and templates into one finding.
     for url in urls:
         page_slug = slugify_url(url, used_slugs)
         page_dir = pages_dir / page_slug
         page_dir.mkdir(parents=True, exist_ok=True)
         page_json = page_dir / "axe-results.json"
 
-        exit_code = run_page_audit(url, level, page_json)
+        exit_code = run_page_audit(url, level, page_json, env=env)
         highest_exit = max(highest_exit, exit_code)
 
         if not page_json.exists():
@@ -325,22 +538,31 @@ def run_multi_audit(
         page_data["artifacts"] = {
             "audit_json": relpath(page_json, output_dir),
         }
-        page_data["task_id_start"] = next_task_id
-        if not page_data.get("error"):
-            next_task_id += len(page_data.get("violations") or [])
-        page_json.write_text(json.dumps(page_data, indent=2))
         page_results.append(page_data)
 
-    # Phase 2 — screenshots (package A light profile by default).
+    sitewide = prepare_findings(page_results)
+    for page_data in page_results:
+        if page_data.get("error"):
+            continue
+        page_json = pages_dir / page_data["page_slug"] / "axe-results.json"
+        page_json.write_text(json.dumps(page_data, indent=2))
+
+    # Phase 2 — visual crops. Sitewide representatives are shot on their first page.
     if not no_screenshots and screenshot_mode != "off":
         full = screenshot_mode == "full"
         ann_impacts = "all" if full else impacts
         pin_imp = "all" if full else pin_impacts
-        ann_cap = screenshot_cap if full else screenshot_cap
+        ann_cap = screenshot_cap
         pcap = 12 if full else pin_cap
         annotate_slugs = None
-        if not full:
+        if not full and annotated_pages is not None:
             annotate_slugs = select_annotated_page_slugs(page_results, limit=annotated_pages)
+            for item in sitewide:
+                if not item.get("visual"):
+                    continue
+                slug = (item.get("representative") or {}).get("page_slug")
+                if slug:
+                    annotate_slugs.add(slug)
 
         for page_data in page_results:
             if page_data.get("error"):
@@ -351,7 +573,17 @@ def run_multi_audit(
             page_json = page_dir / "axe-results.json"
             screenshots_dir = page_dir / "screenshots"
             id_start = int(page_data.get("task_id_start") or 1)
-            do_annotate = full or (annotate_slugs is not None and page_slug in annotate_slugs)
+            do_annotate = annotate_slugs is None or page_slug in annotate_slugs
+            if not do_annotate:
+                page_data["screenshots"] = {
+                    "pin_map": None,
+                    "full_page": None,
+                    "pin_legend": [],
+                    "issues": [],
+                }
+                page_data["screenshot_annotated"] = False
+                page_json.write_text(json.dumps(page_data, indent=2))
+                continue
             shot_data = capture_screenshots(
                 url,
                 page_json,
@@ -367,8 +599,10 @@ def run_multi_audit(
             page_data["screenshots"] = normalize_screenshots(shot_data, output_dir)
             page_data["screenshot_annotated"] = bool(do_annotate)
             page_json.write_text(json.dumps(page_data, indent=2))
+        attach_sitewide_screenshots(sitewide, page_results)
 
     combined = aggregate_pages(page_results, urls[0], level)
+    combined["sitewide"] = sitewide
     if not no_screenshots:
         combined.setdefault("metadata", {})["screenshot_mode"] = screenshot_mode
     combined_json = output_dir / "axe-results.json"
@@ -389,21 +623,22 @@ def main():
         choices=["light", "full", "off"],
         default="light",
         help=(
-            "light (default): pin-map every page (JPEG), critical annotated shots "
-            "cap 3 on worst 15 pages; full: previous dense capture; off: no screenshots"
+            "light (default): visual crops, critical and serious, cap 3 page-only "
+            "per page; full: all impacts, cap 12 page-only; off: no screenshots. "
+            "Repeated chrome is one sitewide crop either way."
         ),
     )
     parser.add_argument(
         "--screenshot-cap",
         type=int,
         default=None,
-        help="Max annotated issue screenshots per page (default: 3 light, 12 full)",
+        help="Max page-only visual crops per page (default: 3 light, 12 full)",
     )
     parser.add_argument(
         "--annotated-pages",
         type=int,
-        default=15,
-        help="In light mode, only the N worst pages get annotated shots (default 15)",
+        default=None,
+        help="Only crop the N worst pages. Default: every page.",
     )
     parser.add_argument(
         "--no-screenshots",
@@ -428,12 +663,13 @@ def main():
         cap = 12 if mode == "full" else 3
 
     root_reference = args.url or urls[0]
+    audit_env = prepare_axe_env()
     output_dir = Path(args.output_dir) if args.output_dir else default_output_dir(root_reference)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if len(urls) == 1:
         json_path = output_dir / "axe-results.json"
-        audit_result = run_page_audit(urls[0], args.level, json_path)
+        audit_result = run_page_audit(urls[0], args.level, json_path, env=audit_env)
         if audit_result in (0, 2, 3) and json_path.exists() and mode != "off":
             screenshots_dir = output_dir / "screenshots"
             full = mode == "full"
@@ -442,11 +678,11 @@ def main():
                 json_path,
                 screenshots_dir,
                 cap=cap,
-                impacts="all" if full else "critical",
+                impacts="all" if full else "critical,serious",
                 pin_impacts="all" if full else "critical,serious",
                 pin_cap=12 if full else 8,
                 annotate=True,
-                pin_format="png" if full else "jpeg",
+                pin_format="png",
             )
             page_data = json.loads(json_path.read_text())
             page_data["screenshots"] = normalize_screenshots(shot_data, output_dir)
@@ -462,6 +698,7 @@ def main():
             no_screenshots=(mode == "off"),
             screenshot_mode=mode,
             annotated_pages=args.annotated_pages,
+            env=audit_env,
         )
 
     if audit_result not in (0, 2, 3):

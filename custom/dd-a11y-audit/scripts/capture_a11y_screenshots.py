@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Capture pin-map and annotated viewport screenshots for an accessibility audit page.
+Capture a small crop for visual accessibility findings.
+
+Full-page pin maps are not captured. Non-visual findings stay selector + HTML.
 """
 
 import argparse
@@ -25,6 +27,39 @@ IMPACT_ORDER = {
     "moderate": 2,
     "minor": 3,
 }
+
+# A crop is evidence only when the failure is something you have to see:
+# contrast, use of color, text in an image, focus visibility / obscured focus,
+# and target size. Names, alt, headings, and duplicate ids are the snippet.
+VISUAL_RULE_IDS = frozenset({
+    "color-contrast",
+    "color-contrast-enhanced",
+    "link-in-text-block",
+    "target-size",
+})
+VISUAL_SC_TAGS = frozenset({
+    "wcag141",    # 1.4.1 Use of Color
+    "wcag143",    # 1.4.3 Contrast (Minimum)
+    "wcag145",    # 1.4.5 Images of Text
+    "wcag146",    # 1.4.6 Contrast (Enhanced)
+    "wcag149",    # 1.4.9 Images of Text (No Exception)
+    "wcag1411",   # 1.4.11 Non-text Contrast
+    "wcag247",    # 2.4.7 Focus Visible
+    "wcag2411",   # 2.4.11 Focus Not Obscured (Minimum)
+    "wcag2412",   # 2.4.12 Focus Not Obscured (Enhanced)
+    "wcag2413",   # 2.4.13 Focus Appearance
+    "wcag255",    # 2.5.5 Target Size (Enhanced)
+    "wcag258",    # 2.5.8 Target Size (Minimum)
+})
+
+
+def is_visual_finding(violation):
+    """True when a screenshot is the evidence for this finding."""
+    rule_id = violation.get("id") or violation.get("rule_id") or ""
+    if rule_id in VISUAL_RULE_IDS:
+        return True
+    tags = violation.get("wcag_tags") or violation.get("tags") or []
+    return any(tag in VISUAL_SC_TAGS for tag in tags)
 
 
 def _first_selector(violation):
@@ -51,10 +86,24 @@ def _normalize_impacts(impacts):
 
 
 def _sort_tasks(tasks):
+    """Sitewide template shots come first so the per-page cap cannot drop them."""
     return sorted(
         tasks,
-        key=lambda t: (IMPACT_ORDER.get(t["impact"], 9), t["task_id"]),
+        key=lambda t: (
+            0 if t.get("sitewide_representative") else 1,
+            IMPACT_ORDER.get(t["impact"], 9),
+            t["task_id"],
+        ),
     )
+
+
+def _wants_crop(task):
+    if not task["selector"] or not task["visual"]:
+        return False
+    # False means a rolled-up duplicate. Absent means decide from the rule.
+    if task.get("needs_crop") is False:
+        return False
+    return True
 
 
 def build_capture_plan(
@@ -65,67 +114,49 @@ def build_capture_plan(
     pin_impacts=None,
     pin_cap=None,
 ):
-    """Build full task list (stable IDs) and capped pin/annotate subsets.
+    """Build task ids and the visual crops to take.
 
-    Task IDs are ``A11Y-{n:03d}`` with n starting at ``id_start`` so multi-page
-    audits can assign globally unique IDs that match the report table.
+    Task IDs are ``A11Y-{n:03d}`` starting at ``id_start``, unless the violation
+    already has ``task_id`` (multi-page rollup assigns those).
 
-    - ``image_tasks``: annotated close-ups (severity-filtered + cap)
-    - ``pin_tasks``: pin-map markers (may include more severities than annotate)
-
-    Returns:
-      {
-        "all_tasks": [...],
-        "image_tasks": [...],
-        "pin_tasks": [...],
-      }
+    ``image_tasks`` are visual findings with a selector. The cap applies to
+    page-only crops. Sitewide representatives are kept so the shared template
+    is shot once. ``pin_tasks`` stays empty: full-page pin maps are not captured.
+    ``pin_impacts`` and ``pin_cap`` are accepted and ignored.
     """
+    del pin_impacts, pin_cap
     id_start = max(1, int(id_start))
     impact_filter = _normalize_impacts(impacts)
-    pin_filter = _normalize_impacts(pin_impacts)
-    if pin_filter is None:
-        pin_filter = impact_filter
 
     all_tasks = []
     for index, violation in enumerate(results.get("violations", [])):
         task_num = id_start + index
+        needs = violation.get("needs_crop", None) if "needs_crop" in violation else None
         all_tasks.append(
             {
-                "task_id": f"A11Y-{task_num:03d}",
+                "task_id": violation.get("task_id") or f"A11Y-{task_num:03d}",
                 "rule_id": violation.get("id", ""),
                 "impact": (violation.get("impact") or "minor").lower(),
                 "selector": _first_selector(violation),
+                "visual": is_visual_finding(violation),
+                "needs_crop": needs,
+                "sitewide_representative": bool(violation.get("sitewide_representative")),
             }
         )
 
-    eligible = [t for t in all_tasks if t["selector"]]
-
-    annotate_pool = eligible
+    pool = [t for t in all_tasks if _wants_crop(t)]
     if impact_filter is not None:
         allowed = set(impact_filter)
-        annotate_pool = [t for t in eligible if t["impact"] in allowed]
-    annotate_pool = _sort_tasks(annotate_pool)
-    image_tasks = [dict(t) for t in annotate_pool[: max(0, int(cap))]]
-
-    pin_pool = eligible
-    if pin_filter is not None:
-        allowed_pins = set(pin_filter)
-        pin_pool = [t for t in eligible if t["impact"] in allowed_pins]
-    pin_pool = _sort_tasks(pin_pool)
-    pcap = int(pin_cap) if pin_cap is not None else max(int(cap), 8)
-    pin_tasks = [dict(t) for t in pin_pool[: max(0, pcap)]]
-    for pin, item in enumerate(pin_tasks, start=1):
-        item["pin"] = pin
-
-    pin_by_id = {t["task_id"]: t["pin"] for t in pin_tasks}
-    for item in image_tasks:
-        if item["task_id"] in pin_by_id:
-            item["pin"] = pin_by_id[item["task_id"]]
+        pool = [t for t in pool if t["impact"] in allowed]
+    pool = _sort_tasks(pool)
+    representatives = [dict(t) for t in pool if t.get("sitewide_representative")]
+    page_only = [dict(t) for t in pool if not t.get("sitewide_representative")]
+    image_tasks = representatives + page_only[: max(0, int(cap))]
 
     return {
         "all_tasks": all_tasks,
         "image_tasks": image_tasks,
-        "pin_tasks": pin_tasks,
+        "pin_tasks": [],
     }
 
 
@@ -152,14 +183,10 @@ def run_capture(
         pin_cap=pin_cap,
     )
     image_tasks = plan["image_tasks"] if annotate else []
-    pin_tasks = plan["pin_tasks"]
-    pin_format = (pin_format or "jpeg").lower()
-    if pin_format not in ("jpeg", "jpg", "png"):
-        pin_format = "jpeg"
-    pin_ext = "jpg" if pin_format in ("jpeg", "jpg") else "png"
+    # pin_format is unused. Crops are PNG. The argument remains so older
+    # command lines that passed --pin-format still run.
 
     script = f"""
-const fs = require('fs');
 const path = require('path');
 const {{ createRequire }} = require('module');
 const requireFromSkill = createRequire({json.dumps(str(PACKAGE_JSON_PATH))});
@@ -168,9 +195,6 @@ const {{ chromium }} = requireFromSkill('playwright');
 const url = {json.dumps(url)};
 const outputDir = {json.dumps(str(output_dir))};
 const plan = {json.dumps(image_tasks)};
-const pinPlan = {json.dumps(pin_tasks)};
-const pinExt = {json.dumps(pin_ext)};
-const pinIsJpeg = {json.dumps(pin_ext == "jpg")};
 
 async function clearOverlays(page) {{
   await page.evaluate(() => {{
@@ -198,35 +222,6 @@ async function measureLocator(locator) {{
       visible,
     }};
   }});
-}}
-
-/** Apply pin via the same locator used for count/measure. Returns true if pin DOM was added. */
-async function addPin(locator, item) {{
-  return locator.evaluate((el, item) => {{
-    const r = el.getBoundingClientRect();
-    if (r.width <= 0 || r.height <= 0) return false;
-    const pin = document.createElement('div');
-    pin.setAttribute('data-dd-a11y-overlay', 'pin');
-    pin.textContent = String(item.pin);
-    pin.style.cssText = [
-      'position:absolute',
-      `left:${{r.left + window.scrollX + r.width / 2 - 12}}px`,
-      `top:${{r.top + window.scrollY + r.height / 2 - 12}}px`,
-      'width:24px',
-      'height:24px',
-      'border-radius:50%',
-      'background:#b00020',
-      'color:#fff',
-      'font:bold 12px/24px sans-serif',
-      'text-align:center',
-      'border:2px solid #fff',
-      'box-shadow:0 0 0 1px #000',
-      'z-index:2147483646',
-      'pointer-events:none',
-    ].join(';');
-    document.documentElement.appendChild(pin);
-    return true;
-  }}, item);
 }}
 
 /**
@@ -275,6 +270,27 @@ async function scrollToCenter(locator) {{
   await locator.evaluate((el) => {{
     el.scrollIntoView({{ block: 'center', inline: 'nearest' }});
   }});
+}}
+
+/** Viewport clip around the element. Padding keeps the badge and nearby background. */
+function cropBox(box, viewport) {{
+  const pad = 64;
+  const minW = 320;
+  const minH = 180;
+  let width = Math.max(box.width + pad * 2, minW);
+  let height = Math.max(box.height + pad * 2, minH);
+  let x = box.x + box.width / 2 - width / 2;
+  let y = box.y + box.height / 2 - height / 2;
+  x = Math.max(0, x);
+  y = Math.max(0, y);
+  if (x + width > viewport.width) width = viewport.width - x;
+  if (y + height > viewport.height) height = viewport.height - y;
+  return {{
+    x,
+    y,
+    width: Math.max(1, width),
+    height: Math.max(1, height),
+  }};
 }}
 
 function shotEntry(item, overrides) {{
@@ -340,41 +356,7 @@ function shotEntry(item, overrides) {{
   try {{
     await page.goto(url, {{ waitUntil: 'networkidle' }});
 
-    // Pin map from pinPlan (may include more issues than annotated close-ups)
-    const pinLocatable = await resolveLocatable(pinPlan, false);
-    const pinned = [];
-    if (pinLocatable.length > 0) {{
-      await clearOverlays(page);
-      for (const item of pinLocatable) {{
-        try {{
-          const locator = page.locator(item.selector).first();
-          const count = await locator.count();
-          if (!count) continue;
-          const applied = await addPin(locator, item);
-          if (applied) pinned.push(item);
-        }} catch (e) {{
-          // skip failed pin; do not claim it in pin_legend
-        }}
-      }}
-      if (pinned.length > 0) {{
-        const pinMapPath = path.join(outputDir, `pin-map.${{pinExt}}`);
-        const shotOpts = {{ path: pinMapPath, fullPage: true }};
-        if (pinIsJpeg) {{
-          shotOpts.type = 'jpeg';
-          shotOpts.quality = 72;
-        }}
-        await page.screenshot(shotOpts);
-        result.pin_map = pinMapPath;
-        result.pin_legend = pinned.map((item) => ({{
-          pin: item.pin,
-          task_id: item.task_id,
-          rule_id: item.rule_id,
-          impact: item.impact,
-        }}));
-      }}
-    }}
-
-    // Annotated viewport shots (may be empty when annotate is off)
+    // Visual crops only. No full-page pin map.
     const annotateLocatable = await resolveLocatable(plan, true);
     for (const item of annotateLocatable) {{
       try {{
@@ -406,7 +388,13 @@ function shotEntry(item, overrides) {{
         }}
 
         const shotPath = path.join(outputDir, `${{item.task_id}}.png`);
-        await page.screenshot({{ path: shotPath }});
+        const box = await locator.boundingBox();
+        const viewport = page.viewportSize();
+        const shotOpts = {{ path: shotPath }};
+        if (box && viewport) {{
+          shotOpts.clip = cropBox(box, viewport);
+        }}
+        await page.screenshot(shotOpts);
         screenshotsByTaskId.set(item.task_id, shotEntry(item, {{
           path: shotPath,
           status: 'captured',
@@ -468,7 +456,12 @@ def main():
     parser.add_argument("url")
     parser.add_argument("--input", required=True, help="Path to axe-results.json")
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--cap", type=int, default=3, help="Max annotated issue screenshots (default 3)")
+    parser.add_argument(
+        "--cap",
+        type=int,
+        default=3,
+        help="Max page-only visual crops (default 3). Sitewide representatives are not capped.",
+    )
     parser.add_argument(
         "--id-start",
         type=int,
@@ -477,25 +470,25 @@ def main():
     )
     parser.add_argument(
         "--impacts",
-        default="critical",
-        help="Comma-separated impacts for annotated shots (default: critical). Use 'all' for every impact.",
+        default="critical,serious",
+        help="Comma-separated impacts for visual crops (default: critical,serious). Use 'all' for every impact.",
     )
     parser.add_argument(
         "--pin-impacts",
         default="critical,serious",
-        help="Comma-separated impacts for pin-map markers (default: critical,serious)",
+        help="Ignored. Full-page pin maps are not captured.",
     )
-    parser.add_argument("--pin-cap", type=int, default=8, help="Max pins on pin-map (default 8)")
+    parser.add_argument("--pin-cap", type=int, default=8, help="Ignored. Full-page pin maps are not captured.")
     parser.add_argument(
         "--no-annotate",
         action="store_true",
-        help="Skip per-issue annotated viewport shots (pin-map only)",
+        help="Skip visual crops",
     )
     parser.add_argument(
         "--pin-format",
         choices=["jpeg", "png"],
         default="jpeg",
-        help="Pin-map image format (default jpeg)",
+        help="Ignored. Crops are PNG.",
     )
     args = parser.parse_args()
 
